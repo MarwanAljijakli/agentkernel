@@ -1,0 +1,160 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Actions",
+      "type": "array"
+    },
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "audience": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Audience",
+      "type": "string"
+    },
+    "capability_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Capability Id",
+      "type": "string"
+    },
+    "conditions": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Conditions",
+      "type": "object"
+    },
+    "data_classes": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Data Classes",
+      "type": "array"
+    },
+    "delegation_depth_remaining": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Delegation Depth Remaining",
+      "type": "integer"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "goal_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Goal Id",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "issuer": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Issuer",
+      "type": "string"
+    },
+    "key_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Key Id",
+      "type": "string"
+    },
+    "max_uses": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Max Uses",
+      "type": "integer"
+    },
+    "nonce": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Nonce",
+      "type": "string"
+    },
+    "not_before": {
+      "format": "date-time",
+      "title": "Not Before",
+      "type": "string"
+    },
+    "parent_capability": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parent Capability"
+    },
+    "resources": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Resources",
+      "type": "array"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "signature": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Signature",
+      "type": "string"
+    },
+    "subject": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Subject",
+      "type": "string"
+    },
+    "token_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Token Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "capability_id",
+    "key_id",
+    "issuer",
+    "subject",
+    "audience",
+    "goal_id",
+    "run_id",
+    "actions",
+    "resources",
+    "issued_at",
+    "not_before",
+    "expires_at",
+    "nonce",
+    "signature"
+  ],
+  "title": "CapabilityGrant",
+  "type": "object"
+}

@@ -1,0 +1,132 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentkernel-runtime"
+version = "0.1.0.dev0"
+description = "A transactional, policy-verifiable execution kernel for autonomous AI agents."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [
+  { name = "Marwan Aljijakli" },
+]
+keywords = [
+  "ai-agents",
+  "agent-safety",
+  "sandboxing",
+  "transactions",
+  "reliability",
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+  "Typing :: Typed",
+]
+dependencies = [
+  "pydantic>=2.12.0,<3",
+  "pyyaml>=6.0.2,<7",
+]
+
+[project.urls]
+Homepage = "https://github.com/MarwanAljijakli/agentkernel"
+Documentation = "https://github.com/MarwanAljijakli/agentkernel/tree/main/docs"
+Issues = "https://github.com/MarwanAljijakli/agentkernel/issues"
+Repository = "https://github.com/MarwanAljijakli/agentkernel"
+
+[project.scripts]
+agentkernel = "agentkernel.cli:main"
+
+[dependency-groups]
+dev = [
+  "bandit>=1.8.6,<2",
+  "build>=1.3.0,<2",
+  "hypothesis>=6.136.0,<7",
+  "mypy>=1.17.0,<2",
+  "pip-audit>=2.9.0,<3",
+  "pytest>=9.0.3,<10",
+  "pytest-asyncio>=1.1.0,<2",
+  "pytest-cov>=6.2.0,<8",
+  "ruff>=0.12.0,<1",
+  "types-pyyaml>=6.0.12.20250915,<7",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["agentkernel"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers -ra"
+testpaths = ["tests"]
+xfail_strict = true
+markers = [
+  "integration: exercises persistence or component boundaries",
+  "security: exercises an explicit security invariant",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["agentkernel"]
+
+[tool.coverage.report]
+fail_under = 85
+precision = 2
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["agentkernel", "tests"]
+
+[tool.ruff.lint]
+select = ["A", "ANN", "ASYNC", "B", "C4", "E", "F", "I", "N", "PERF", "PIE", "PLC", "PLE", "PLW", "PT", "PTH", "RET", "RSE", "RUF", "S", "SIM", "T20", "TC", "TRY", "UP"]
+ignore = [
+  "ANN401",
+  "N818",
+  "PLW0108",
+  "S101",
+  "TC001",
+  "TC002",
+  "TC003",
+  "TRY003",
+  "TRY300",
+  "TRY301",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["ANN", "PLC1901", "PLR2004", "S105", "S106"]
+"agentkernel/cli.py" = ["T201"]
+"agentkernel/demo.py" = ["ASYNC240", "S105"]
+"agentkernel/domain/enums.py" = ["S105"]
+"agentkernel/sandbox/docker.py" = ["S108"]
+
+[tool.ruff.format]
+docstring-code-format = true
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["agentkernel"]
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101"]

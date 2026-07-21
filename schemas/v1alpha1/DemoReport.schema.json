@@ -1,0 +1,181 @@
+{
+  "$defs": {
+    "ReplayLevel": {
+      "enum": [
+        "L0",
+        "L1",
+        "L2",
+        "L3",
+        "L4"
+      ],
+      "title": "ReplayLevel",
+      "type": "string"
+    },
+    "ReplayReport": {
+      "additionalProperties": false,
+      "properties": {
+        "authoritative_effects": {
+          "default": false,
+          "title": "Authoritative Effects",
+          "type": "boolean"
+        },
+        "divergences": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Divergences",
+          "type": "array"
+        },
+        "level": {
+          "$ref": "#/$defs/ReplayLevel"
+        },
+        "original_action_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Original Action Hash",
+          "type": "string"
+        },
+        "original_final_state_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Original Final State Hash",
+          "type": "string"
+        },
+        "replay_action_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Replay Action Hash",
+          "type": "string"
+        },
+        "replay_final_state_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Replay Final State Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "original_action_hash",
+        "replay_action_hash",
+        "original_final_state_hash",
+        "replay_final_state_hash"
+      ],
+      "title": "ReplayReport",
+      "type": "object"
+    },
+    "TransactionState": {
+      "description": "Normative durable transaction states from specification Section 8.2.",
+      "enum": [
+        "NEW",
+        "PLANNED",
+        "REJECTED",
+        "AUTHORIZED_TO_STAGE",
+        "STAGING",
+        "STAGED",
+        "STAGE_VERIFIED",
+        "AWAITING_APPROVAL",
+        "READY_TO_COMMIT",
+        "COMMITTING",
+        "COMMITTED",
+        "FAILED",
+        "ABORTING",
+        "ABORTED",
+        "STALE_STATE",
+        "ROLLING_BACK",
+        "ROLLED_BACK",
+        "COMPENSATING",
+        "COMPENSATED",
+        "COMPENSATION_FAILED",
+        "RECOVERY_FAILED",
+        "IN_DOUBT",
+        "RECONCILING"
+      ],
+      "title": "TransactionState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "allowed_files_changed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Files Changed",
+      "type": "array"
+    },
+    "assurance_claim": {
+      "default": "Recorded and inspected",
+      "title": "Assurance Claim",
+      "type": "string"
+    },
+    "assurance_profile": {
+      "default": "A0",
+      "title": "Assurance Profile",
+      "type": "string"
+    },
+    "committed_transaction_state": {
+      "$ref": "#/$defs/TransactionState"
+    },
+    "denied_reason_codes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Denied Reason Codes",
+      "type": "array"
+    },
+    "external_network_dispatch_count": {
+      "title": "External Network Dispatch Count",
+      "type": "integer"
+    },
+    "final_workspace_hash": {
+      "title": "Final Workspace Hash",
+      "type": "string"
+    },
+    "initial_workspace_hash": {
+      "title": "Initial Workspace Hash",
+      "type": "string"
+    },
+    "ledger_valid": {
+      "title": "Ledger Valid",
+      "type": "boolean"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "protected_read_canary_count": {
+      "title": "Protected Read Canary Count",
+      "type": "integer"
+    },
+    "replay": {
+      "$ref": "#/$defs/ReplayReport"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "secret_found_in_evidence": {
+      "title": "Secret Found In Evidence",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "run_id",
+    "protected_read_canary_count",
+    "external_network_dispatch_count",
+    "denied_reason_codes",
+    "committed_transaction_state",
+    "initial_workspace_hash",
+    "final_workspace_hash",
+    "allowed_files_changed",
+    "ledger_valid",
+    "secret_found_in_evidence",
+    "replay",
+    "limitations"
+  ],
+  "title": "DemoReport",
+  "type": "object"
+}

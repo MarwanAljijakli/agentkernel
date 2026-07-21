@@ -1,0 +1,104 @@
+{
+  "$defs": {
+    "JsonValue": {},
+    "PolicyDefault": {
+      "enum": [
+        "deny",
+        "abstain"
+      ],
+      "title": "PolicyDefault",
+      "type": "string"
+    },
+    "PolicyEffect": {
+      "enum": [
+        "grant",
+        "deny",
+        "require_approval",
+        "require_shadow"
+      ],
+      "title": "PolicyEffect",
+      "type": "string"
+    },
+    "PolicyRule": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "$ref": "#/$defs/PolicyEffect"
+        },
+        "modes": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Modes",
+          "type": "array"
+        },
+        "rule_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "when": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "When",
+          "type": "object"
+        }
+      },
+      "required": [
+        "rule_id",
+        "effect",
+        "when"
+      ],
+      "title": "PolicyRule",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "default": {
+      "$ref": "#/$defs/PolicyDefault",
+      "default": "deny"
+    },
+    "kind": {
+      "const": "PolicyBundle",
+      "default": "PolicyBundle",
+      "title": "Kind",
+      "type": "string"
+    },
+    "name": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Name",
+      "type": "string"
+    },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/PolicyRule"
+      },
+      "title": "Rules",
+      "type": "array"
+    },
+    "version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "version",
+    "rules"
+  ],
+  "title": "PolicyBundle",
+  "type": "object"
+}

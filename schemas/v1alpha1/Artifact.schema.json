@@ -1,0 +1,47 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Digest",
+      "type": "string"
+    },
+    "media_type": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Media Type",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "size_bytes": {
+      "minimum": 0,
+      "title": "Size Bytes",
+      "type": "integer"
+    },
+    "storage_ref": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Storage Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "digest",
+    "media_type",
+    "size_bytes",
+    "created_at",
+    "storage_ref"
+  ],
+  "title": "Artifact",
+  "type": "object"
+}

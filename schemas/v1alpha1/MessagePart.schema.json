@@ -1,0 +1,53 @@
+{
+  "$defs": {
+    "ProvenanceTrust": {
+      "enum": [
+        "trusted_control",
+        "authorized_user",
+        "project_data",
+        "external_untrusted",
+        "model_generated",
+        "unknown"
+      ],
+      "title": "ProvenanceTrust",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "data_classes": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Data Classes",
+      "type": "array"
+    },
+    "provenance_ids": {
+      "items": {
+        "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+        "type": "string"
+      },
+      "title": "Provenance Ids",
+      "type": "array"
+    },
+    "provenance_trust": {
+      "$ref": "#/$defs/ProvenanceTrust"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    }
+  },
+  "required": [
+    "text",
+    "provenance_ids",
+    "provenance_trust",
+    "data_classes"
+  ],
+  "title": "MessagePart",
+  "type": "object"
+}

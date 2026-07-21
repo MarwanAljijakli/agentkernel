@@ -1,0 +1,71 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "action_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Action Id"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "dispatched": {
+      "default": false,
+      "title": "Dispatched",
+      "type": "boolean"
+    },
+    "idempotency_key": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "outcome_receipt_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Outcome Receipt Ref"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "intent_hash",
+    "transaction_id",
+    "idempotency_key",
+    "created_at"
+  ],
+  "title": "IntentRecord",
+  "type": "object"
+}

@@ -1,0 +1,95 @@
+{
+  "$defs": {
+    "ProvenanceTrust": {
+      "enum": [
+        "trusted_control",
+        "authorized_user",
+        "project_data",
+        "external_untrusted",
+        "model_generated",
+        "unknown"
+      ],
+      "title": "ProvenanceTrust",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "acquisition_step": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Acquisition Step",
+      "type": "string"
+    },
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "data_classes": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Data Classes",
+      "type": "array"
+    },
+    "integrity_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Integrity Ref"
+    },
+    "parent_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+        "type": "string"
+      },
+      "title": "Parent Ids",
+      "type": "array"
+    },
+    "provenance_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Provenance Id",
+      "type": "string"
+    },
+    "source": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Source",
+      "type": "string"
+    },
+    "transformations": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Transformations",
+      "type": "array"
+    },
+    "trust": {
+      "$ref": "#/$defs/ProvenanceTrust"
+    }
+  },
+  "required": [
+    "provenance_id",
+    "source",
+    "acquisition_step",
+    "trust"
+  ],
+  "title": "ProvenanceRecord",
+  "type": "object"
+}

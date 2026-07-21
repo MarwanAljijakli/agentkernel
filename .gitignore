@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+
+# Environments and builds
+.venv/
+dist/
+build/
+*.egg-info/
+
+# AgentKernel runtime state
+.agentkernel/
+*.db
+*.db-shm
+*.db-wal
+
+# Local task records and IDE state
+.codex/
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

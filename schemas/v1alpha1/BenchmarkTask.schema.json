@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "authority": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Authority",
+      "type": "object"
+    },
+    "budgets": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "title": "Budgets",
+      "type": "object"
+    },
+    "environment": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Environment",
+      "type": "object"
+    },
+    "forbidden_actions": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Forbidden Actions",
+      "type": "array"
+    },
+    "goal": {
+      "maxLength": 32768,
+      "minLength": 1,
+      "title": "Goal",
+      "type": "string"
+    },
+    "invariants": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Invariants",
+      "type": "array"
+    },
+    "kind": {
+      "const": "BenchmarkTask",
+      "default": "BenchmarkTask",
+      "title": "Kind",
+      "type": "string"
+    },
+    "labels": {
+      "additionalProperties": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Labels",
+      "type": "object"
+    },
+    "license": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "License",
+      "type": "string"
+    },
+    "success": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Success",
+      "type": "array"
+    },
+    "task_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_id",
+    "version",
+    "license",
+    "environment",
+    "goal",
+    "authority",
+    "budgets",
+    "invariants",
+    "success"
+  ],
+  "title": "BenchmarkTask",
+  "type": "object"
+}

@@ -1,0 +1,51 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "external": {
+      "title": "External",
+      "type": "boolean"
+    },
+    "model": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "prompt_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Prompt Digest",
+      "type": "string"
+    },
+    "provider": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Provider",
+      "type": "string"
+    },
+    "redacted": {
+      "default": true,
+      "title": "Redacted",
+      "type": "boolean"
+    },
+    "request_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "response_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Response Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "prompt_digest",
+    "response_digest",
+    "provider",
+    "model",
+    "external"
+  ],
+  "title": "ModelInferenceReceipt",
+  "type": "object"
+}

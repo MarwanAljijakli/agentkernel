@@ -1,0 +1,52 @@
+{
+  "$defs": {
+    "ProvenanceTrust": {
+      "enum": [
+        "trusted_control",
+        "authorized_user",
+        "project_data",
+        "external_untrusted",
+        "model_generated",
+        "unknown"
+      ],
+      "title": "ProvenanceTrust",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "model": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "provenance_trust": {
+      "$ref": "#/$defs/ProvenanceTrust",
+      "default": "model_generated"
+    },
+    "provider": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Provider",
+      "type": "string"
+    },
+    "request_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "text",
+    "provider",
+    "model"
+  ],
+  "title": "ModelResponse",
+  "type": "object"
+}

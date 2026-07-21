@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: >-
+  If you use AgentKernel in software or research, please cite this software.
+  Cite a tagged release when one is available; the current repository is pre-alpha.
+title: AgentKernel
+type: software
+abstract: >-
+  A transactional, policy-verifiable execution kernel and reliability laboratory
+  for autonomous AI agents.
+authors:
+  - family-names: Aljijakli
+    given-names: Marwan
+license: Apache-2.0
+repository-code: https://github.com/MarwanAljijakli/agentkernel
+url: https://github.com/MarwanAljijakli/agentkernel
+version: 0.1.0.dev0
+preferred-citation:
+  type: software
+  title: AgentKernel
+  authors:
+    - family-names: Aljijakli
+      given-names: Marwan
+  year: 2026
+  version: 0.1.0.dev0
+  url: https://github.com/MarwanAljijakli/agentkernel

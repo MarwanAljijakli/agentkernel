@@ -1,0 +1,192 @@
+{
+  "$defs": {
+    "ActionState": {
+      "description": "Durable per-action saga states reserved by the v1alpha1 schema.",
+      "enum": [
+        "PENDING",
+        "STAGING",
+        "STAGED",
+        "STAGE_VERIFIED",
+        "COMMIT_DISPATCHED",
+        "COMMITTED",
+        "FAILED",
+        "IN_DOUBT",
+        "RECONCILING",
+        "NO_EFFECT",
+        "SKIPPED",
+        "ROLLING_BACK",
+        "ROLLED_BACK",
+        "COMPENSATING",
+        "COMPENSATED",
+        "RECOVERY_FAILED",
+        "COMPENSATION_FAILED"
+      ],
+      "title": "ActionState",
+      "type": "string"
+    },
+    "RiskClass": {
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "title": "RiskClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "adapter": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Adapter",
+      "type": "string"
+    },
+    "adapter_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Adapter Digest",
+      "type": "string"
+    },
+    "adapter_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Adapter Version",
+      "type": "string"
+    },
+    "dependency_ordinals": {
+      "default": [],
+      "items": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "title": "Dependency Ordinals",
+      "type": "array"
+    },
+    "effect_receipt_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Effect Receipt Ref"
+    },
+    "idempotency_key": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "ordinal": {
+      "minimum": 0,
+      "title": "Ordinal",
+      "type": "integer"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
+    "recovery_receipt_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Recovery Receipt Ref"
+    },
+    "risk_class": {
+      "$ref": "#/$defs/RiskClass"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "staged_receipt_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Staged Receipt Ref"
+    },
+    "state": {
+      "$ref": "#/$defs/ActionState",
+      "default": "PENDING"
+    },
+    "target_version_guard": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Version Guard"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    },
+    "version": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "transaction_id",
+    "action_id",
+    "ordinal",
+    "intent_hash",
+    "adapter",
+    "adapter_version",
+    "adapter_digest",
+    "risk_class",
+    "idempotency_key"
+  ],
+  "title": "ActionExecutionRecord",
+  "type": "object"
+}

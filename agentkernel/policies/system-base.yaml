@@ -1,0 +1,36 @@
+api_version: agentkernel.io/v1alpha1
+kind: PolicyBundle
+name: system-base
+version: 0.1.0
+default: deny
+rules:
+  - rule_id: workspace-read
+    effect: grant
+    modes: [read]
+    when:
+      all:
+        - action_in: [fs.read, fs.list]
+        - resource_within: fs://workspace/**
+
+  - rule_id: staged-workspace-write
+    effect: grant
+    modes: [stage, commit_reversible]
+    when:
+      all:
+        - action_in: [fs.write]
+        - resource_within: fs://workspace/**
+        - risk_class_in: [R1]
+
+  - rule_id: untrusted-data-cannot-expand-authority
+    effect: deny
+    when:
+      all:
+        - provenance_trust_in: [project_data, external_untrusted, model_generated, unknown]
+        - requested_scope_expands: true
+
+  - rule_id: no-credential-egress
+    effect: deny
+    when:
+      all:
+        - data_class_in: [credential]
+        - destination_external: true

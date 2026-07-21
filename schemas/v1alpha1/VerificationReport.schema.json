@@ -1,0 +1,52 @@
+{
+  "$defs": {
+    "VerificationStatus": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "ERROR"
+      ],
+      "title": "VerificationStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/VerificationStatus"
+    },
+    "summary": {
+      "default": "",
+      "maxLength": 4096,
+      "title": "Summary",
+      "type": "string"
+    },
+    "verifier": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Verifier",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "verifier"
+  ],
+  "title": "VerificationReport",
+  "type": "object"
+}
