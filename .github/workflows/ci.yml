@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Python 3.12 quality and contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8
+        with:
+          version: "0.11.28"
+          enable-cache: true
+      - name: Install locked environment
+        run: uv sync --frozen
+      - name: Check formatting
+        run: uv run ruff format --check .
+      - name: Lint
+        run: uv run ruff check .
+      - name: Type-check trusted core
+        run: uv run mypy agentkernel
+      - name: Static security scan
+        run: uv run bandit -q -r agentkernel
+      - name: Audit locked dependencies
+        run: uv run pip-audit
+      - name: Test with branch coverage
+        run: >-
+          uv run pytest --cov=agentkernel --cov-report=term-missing
+          --cov-report=xml --junitxml=test-results/junit.xml
+      - name: Verify generated schemas are current
+        run: |
+          uv run agentkernel schema export --output schemas/v1alpha1
+          git diff --exit-code -- schemas/v1alpha1
+      - name: Build source and wheel artifacts
+        run: uv build
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: phase-0-evidence
+          path: |
+            coverage.xml
+            test-results/junit.xml
+            dist/*
+          if-no-files-found: warn
+
+  locked-install:
+    name: Clean locked install
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8
+        with:
+          version: "0.11.28"
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run agentkernel doctor --json
+      - run: uv run python -c "import agentkernel; print(agentkernel.__version__)"
+
+  docker-controls:
+    name: Docker container-control evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8
+        with:
+          version: "0.11.28"
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Pull the pinned multi-architecture image
+        run: >-
+          docker pull
+          python@sha256:6d43704baacd1bfbe7c295d7f13079d5d8104ed33568873133f8fc69980419df
+      - name: Inspect effective controls
+        run: uv run agentkernel sandbox verify-docker --json
+      - name: Exercise rootfs, network, and host-mount boundaries
+        run: uv run pytest tests/integration/test_docker_sandbox.py -q
