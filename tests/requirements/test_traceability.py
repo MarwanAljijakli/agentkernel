@@ -124,14 +124,32 @@ def test_release_completeness_uses_external_mandatory_map_and_remains_red(
     assert "release gate incomplete" in completed.stderr
 
 
-def test_baseline_does_not_overclaim_unproven_atomic_behaviors() -> None:
+def test_ledger_advances_only_verified_core_rows_and_keeps_broader_rows_partial() -> None:
     value = json.loads(MANIFEST.read_text(encoding="utf-8"))
     rows = {row["id"]: row for row in value["requirements"]}
+    core_commit = "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe"
+    verified_core_ids = {
+        "NORM-S11-010",
+        "NORM-S11-011",
+        "POL-AGG-01",
+        "POL-AGG-02",
+        "POL-AGG-03",
+        "POL-AGG-04",
+        "POL-AGG-05",
+        "POL-AGG-06",
+        "POL-AGG-07",
+        "POL-AGG-10",
+        "AK-006",
+        "AK-015",
+        "OPS-STORE-02",
+        "TEST-UNIT-02",
+        "TEST-UNIT-03",
+        "TEST-UNIT-04",
+    }
     conservative_ids = {
         "AK-002",
         "AK-003",
         "AK-005",
-        "AK-006",
         "AK-012",
         "AK-013",
         "REL-R01-D03",
@@ -145,6 +163,17 @@ def test_baseline_does_not_overclaim_unproven_atomic_behaviors() -> None:
         "USR-008",
     }
 
+    assert all(
+        rows[requirement_id]["status"] == "implemented and verified"
+        and rows[requirement_id]["last_verified_commit"] == core_commit
+        for requirement_id in verified_core_ids
+    )
+    assert {
+        requirement_id
+        for requirement_id, row in rows.items()
+        if row["status"] == "implemented and verified"
+        and row["last_verified_commit"] == core_commit
+    } == verified_core_ids
     assert all(
         rows[requirement_id]["status"] == "partially implemented"
         for requirement_id in conservative_ids

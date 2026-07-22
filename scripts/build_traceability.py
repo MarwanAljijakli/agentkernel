@@ -29,6 +29,8 @@ EXPECTED_SPEC_SHA256 = "b5bef98ca2397b87cff8a87f950488dc6f224610fa0d40b6d8bbf63d
 DEFAULT_SPEC_PATH = Path("requirements/source") / SPEC_NAME
 BASELINE_COMMIT = "a7292ea9ca157fdcb76369d9e61977c7316c8782"
 BASELINE_DATE = "2026-07-22"
+R01_CORE_COMMIT = "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe"
+R01_CORE_DATE = "2026-07-22"
 CI_EVIDENCE = "GitHub Actions CI run 29852865780 succeeded on " + BASELINE_COMMIT
 CODEQL_ALERT = (
     "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is open at high "
@@ -86,6 +88,26 @@ def committed_partial(
         tuple(verification),
         commit,
         verified_date,
+    )
+
+
+def r01_core_verified(*, implementation: Sequence[str], verification: Sequence[str]) -> Evidence:
+    return Evidence(
+        "implemented and verified",
+        tuple(implementation),
+        tuple(verification),
+        R01_CORE_COMMIT,
+        R01_CORE_DATE,
+    )
+
+
+def r01_core_partial(*, implementation: Sequence[str], verification: Sequence[str]) -> Evidence:
+    return Evidence(
+        "partially implemented",
+        tuple(implementation),
+        tuple(verification),
+        R01_CORE_COMMIT,
+        R01_CORE_DATE,
     )
 
 
@@ -368,17 +390,19 @@ NORM_EVIDENCE: dict[tuple[int, int], Evidence] = {
             "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py",
         ),
     ),
-    (335, 1): baseline_partial(
+    (335, 1): r01_core_partial(
         implementation=(
-            "agentkernel/transactions/state_machine.py and versioned domain enums/schemas encode the structural rules; a durable CAS-plus-event proof for every transition is absent",
+            "agentkernel/transactions/state_machine.py encodes the complete normative transaction transition oracle and terminal-state vocabulary; the required durable action for every row is not yet implemented end-to-end",
         ),
-        verification=("tests/unit/test_state_machine.py; tests/unit/test_models.py",),
+        verification=(
+            "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py; independent core review and verification",
+        ),
     ),
-    (378, 1): baseline_partial(
+    (378, 1): r01_core_partial(
         implementation=(
-            "IN_DOUBT and STALE_STATE exist; general redispatch/recovery scanner is absent",
+            "Terminal/non-terminal states, STALE_STATE naming, and no-redispatch transition rules are encoded and exhaustively enumerated; the general recovery scanner and linked recovery transactions are absent",
         ),
-        verification=("tests/integration/test_coordinator.py",),
+        verification=("tests/unit/test_state_machine.py; tests/integration/test_coordinator.py",),
     ),
     (522, 1): baseline_partial(
         implementation=("Current coordinator revalidates target version and adapter identity",),
@@ -394,19 +418,67 @@ NORM_EVIDENCE: dict[tuple[int, int], Evidence] = {
         implementation=("Unversioned blind promotion is rejected in the current adapter path",),
         verification=("test_target_drift_aborts_as_stale_before_commit_dispatch",),
     ),
-    (647, 1): baseline_partial(
+    (647, 1): r01_core_partial(
         implementation=(
-            "Strict Pydantic contracts and filesystem canonicalization exist; network normalization does not",
+            "The admitted write_files normalizer is pure, schema-strict, bounded, Unicode/encoding aware, and emits canonical filesystem resource identifiers; network target normalization is absent",
         ),
-        verification=("tests/unit/test_models.py; tests/unit/test_filesystem_snapshots.py",),
+        verification=("tests/unit/test_normalization.py; independent core verification",),
     ),
-    (659, 1): baseline_partial(
+    (659, 1): r01_core_partial(
         implementation=(
-            "Traversal, symlink/junction, case-fold and replacement checks exist for filesystem scope",
+            "Pure normalization rejects traversal, aliases, ambiguous Unicode/encoding, Windows reserved names, and scope escapes without following links; bind-mount and replacement-race enforcement remains an adapter/harness responsibility",
         ),
         verification=(
-            "tests/unit/test_filesystem_snapshots.py; tests/contract/test_filesystem_adapter.py",
+            "tests/unit/test_normalization.py; tests/unit/test_filesystem_snapshots.py; tests/contract/test_filesystem_adapter.py",
         ),
+    ),
+    (723, 1): r01_core_verified(
+        implementation=(
+            "NormalizedIntentProjection binds normalized operation, canonical resources, semantic arguments, goal, principal, run, actor, adapter protocol/manifest, normalizer, schema, risk, and provenance",
+        ),
+        verification=(
+            "tests/unit/test_normalization.py::test_hash_and_tuple_order_are_deterministic_and_transport_fields_are_excluded; tests/unit/test_normalization.py::test_model_validation_rejects_tampered_intent_hash; independent core verification",
+        ),
+    ),
+    (723, 2): r01_core_verified(
+        implementation=(
+            "NormalizedAction computes intent_hash only from its canonical semantic projection and excludes transaction, trace, deadline, and idempotency transport metadata",
+        ),
+        verification=(
+            "tests/unit/test_normalization.py::test_hash_and_tuple_order_are_deterministic_and_transport_fields_are_excluded; tests/unit/test_normalization.py::test_normalized_action_rejects_noncanonical_idempotency_key_alias",
+        ),
+    ),
+    (892, 1): r01_core_partial(
+        implementation=(
+            "The pure authority evaluator validates issuer, subject, audience, goal, run, key/version, time, revocation, delegation, resource scope, data labels, and atomic usage budgets; adapter/model dispatch integration is absent",
+        ),
+        verification=("tests/unit/test_authority_evaluator.py; independent core verification",),
+    ),
+    (892, 2): r01_core_partial(
+        implementation=(
+            "Authority decisions bind a normalized intent and durable reservation plan, but immediate pre-commit revalidation awaits the enforced coordinator",
+        ),
+        verification=(
+            "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py",
+        ),
+    ),
+    (894, 1): r01_core_partial(
+        implementation=(
+            "Authority snapshots reject unknown, retired, and mismatched key versions and bind supported keys by digest; cryptographic signature validation and production key custody are absent",
+        ),
+        verification=("tests/unit/test_authority_evaluator.py",),
+    ),
+    (954, 1): r01_core_partial(
+        implementation=(
+            "Layered policy is deny-dominant, versioned, digest-bound, and cannot be weakened by a lower layer; production policy signatures are absent",
+        ),
+        verification=("tests/unit/test_policy_aggregation.py; independent core verification",),
+    ),
+    (973, 1): r01_core_partial(
+        implementation=(
+            "The deterministic compiler and evaluator share a typed bounded policy representation for the supported subset; general constraints and Z3 parity remain absent",
+        ),
+        verification=("tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py",),
     ),
     (688, 1): baseline_partial(
         implementation=(
@@ -669,12 +741,12 @@ ROADMAP_EVIDENCE: dict[str, Evidence] = {
         implementation=("Filesystem copy-on-write staging under an out-of-workspace state root",),
         verification=("tests/contract/test_filesystem_adapter.py",),
     ),
-    "REL-R01-D05": baseline_partial(
+    "REL-R01-D05": r01_core_partial(
         implementation=(
-            "Commit/abort/rollback and durable records exist; recovery scanner is absent",
+            "Commit/abort/rollback records plus the complete transaction transition oracle and tenant-first control records exist; the enforced coordinator and recovery scanner are absent",
         ),
         verification=(
-            "tests/integration/test_coordinator.py; tests/contract/test_filesystem_adapter.py",
+            "tests/integration/test_coordinator.py; tests/integration/test_enforced_control_store.py; tests/contract/test_filesystem_adapter.py",
         ),
     ),
     "REL-R01-D06": baseline_verified(
@@ -729,6 +801,20 @@ ROADMAP_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("tests/unit/test_authority.py",),
     ),
+    "REL-R03-D01": r01_core_partial(
+        implementation=(
+            "A bounded capability graph evaluator implements attenuation, expiry, revocation, delegation, and atomic use reservations; signed grant admission is absent",
+        ),
+        verification=(
+            "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py",
+        ),
+    ),
+    "REL-R03-D03": r01_core_partial(
+        implementation=(
+            "A typed deterministic policy representation and bounded compiler exist; Z3 constraint lowering is absent",
+        ),
+        verification=("tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py",),
+    ),
     "REL-R03-D05": baseline_partial(
         implementation=("Deterministic policy tests exist; mutation testing/Z3 parity do not",),
         verification=("tests/unit/test_policy.py",),
@@ -736,6 +822,12 @@ ROADMAP_EVIDENCE: dict[str, Evidence] = {
     "REL-R03-D07": baseline_partial(
         implementation=("Adapter digest/review admission exists; cryptographic signing does not",),
         verification=("tests/contract/test_mock_adapter.py",),
+    ),
+    "REL-R03-G05": r01_core_partial(
+        implementation=(
+            "Policy decisions retain matched grants, denials, obligations, unknown facts, bundle digests, resource evidence, and explanations; solver assertion evidence is absent",
+        ),
+        verification=("tests/unit/test_policy_aggregation.py; independent core verification",),
     ),
     "REL-R10-D07": baseline_partial(
         implementation=("Unsigned wheel/sdist build and checksum automation exists",),
@@ -755,17 +847,21 @@ ROADMAP_EVIDENCE: dict[str, Evidence] = {
 
 
 AK_EVIDENCE: dict[str, Evidence] = {
-    "AK-002": baseline_partial(
+    "AK-002": r01_core_partial(
         implementation=(
-            "The authority layer rejects a manufactured protected-path proposal before dispatch; an integrated agent-generated attack proposal is not proven",
+            "Normalized filesystem resources and authority scopes reject manufactured protected-path access; an integrated confined agent-generated attack proposal is not proven",
         ),
-        verification=("tests/end_to_end/test_no_key_demo.py; tests/unit/test_authority.py",),
+        verification=(
+            "tests/unit/test_normalization.py; tests/unit/test_authority_evaluator.py; tests/end_to_end/test_no_key_demo.py",
+        ),
     ),
-    "AK-003": baseline_partial(
+    "AK-003": r01_core_partial(
         implementation=(
-            "Project-data provenance cannot expand authority for a manufactured proposal; integrated model/agent consumption of adversarial project data is not proven",
+            "Normalized provenance labels cannot expand authority and policy rejects provenance-driven scope widening; integrated model/agent consumption inside the A1 harness is not proven",
         ),
-        verification=("test_project_data_cannot_expand_authority; no-key demo tests",),
+        verification=(
+            "tests/unit/test_normalization.py; tests/unit/test_authority_evaluator.py; tests/unit/test_policy_aggregation.py; no-key demo tests",
+        ),
     ),
     "AK-004": baseline_partial(
         implementation=(
@@ -779,11 +875,13 @@ AK_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("test_filesystem_stage_commit_verify_and_rollback",),
     ),
-    "AK-006": baseline_partial(
+    "AK-006": r01_core_verified(
         implementation=(
-            "Pre-commit cancellation/deadline paths avoid authoritative effects, but NEW plus deadline reaches REJECTED rather than the required ABORTING then ABORTED path",
+            "Every enumerated pre-commit transaction state handles cancellation, deadline, and context exit through ABORTING to ABORTED, invokes staged abort when applicable, and preserves the target",
         ),
-        verification=("test_every_precommit_state_exits_without_authoritative_effect",),
+        verification=(
+            "tests/integration/test_coordinator.py::test_every_precommit_state_exits_without_authoritative_effect; test_task_cancellation_during_inspection_durably_aborts_new_transaction; test_deadline_during_inspection_durably_aborts_new_transaction; test_deadline_elapsing_before_session_entry_aborts_new_transaction",
+        ),
     ),
     "AK-007": baseline_partial(
         implementation=(
@@ -797,11 +895,11 @@ AK_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("tests/integration/test_sqlite_journal.py",),
     ),
-    "AK-009": baseline_partial(
+    "AK-009": r01_core_partial(
         implementation=(
-            "SQLite intent reservation has one owner; end-to-end duplicate submission is incomplete",
+            "Tenant-scoped normalized intents have one durable owner, append-only ownership history, and idempotent capability reservations; end-to-end adapter deduplication is incomplete",
         ),
-        verification=("test_intent_reservation_has_one_owner",),
+        verification=("tests/integration/test_enforced_control_store.py",),
     ),
     "AK-010": baseline_partial(
         implementation=(
@@ -825,11 +923,13 @@ AK_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("test_no_key_cli_demo_denies_attack_commits_and_replays",),
     ),
-    "AK-015": baseline_partial(
+    "AK-015": r01_core_verified(
         implementation=(
-            "Unknown policy fields/predicates and duplicate YAML keys fail; size/depth fuzz gate is absent",
+            "The safe policy loader/compiler rejects unknown fields and predicates, duplicate-key ambiguity, incompatible semantics, and bounded file/node/depth violations before evaluation",
         ),
-        verification=("tests/unit/test_policy.py",),
+        verification=(
+            "tests/unit/test_policy.py::test_unknown_predicate_is_rejected_before_evaluation; test_compile_policy_enforces_direct_model_nesting_limit; test_compile_policy_enforces_direct_model_node_limit; test_policy_loader_rejects_a_sparse_oversized_file; test_duplicate_yaml_keys_are_rejected_instead_of_overriding_deny; independent core review and verification",
+        ),
     ),
     "AK-016": baseline_verified(
         implementation=(
@@ -859,7 +959,27 @@ AK_EVIDENCE: dict[str, Evidence] = {
         implementation=("Target drift produces STALE_STATE without promoting the staged effect",),
         verification=("test_target_drift_aborts_as_stale_before_commit_dispatch",),
     ),
+    "AK-034": r01_core_partial(
+        implementation=(
+            "The pure evaluator denies wrong subject/audience/goal/run/key-version, expiry, revocation, scope/delegation, nonce reuse, and atomic budget exhaustion; cryptographic forgery admission and dispatch integration are absent",
+        ),
+        verification=(
+            "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py; independent core verification",
+        ),
+    ),
+    "AK-036": r01_core_partial(
+        implementation=(
+            "The deterministic policy compiler rejects unknown predicates, duplicate or contradictory rule identities, unsupported modes/effects, invalid versions, and bounded-input violations; the full typed/Z3 compiler remains absent",
+        ),
+        verification=("tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py",),
+    ),
     "AK-043": Evidence("missing", verification=(CODEQL_ALERT,)),
+    "AK-060": r01_core_partial(
+        implementation=(
+            "The SQLite authority/action/decision/budget/reservation/intent-history control plane is tenant-first and cross-tenant access is rejected; API, object, cache, telemetry, and artifact-wide isolation are absent",
+        ),
+        verification=("tests/integration/test_enforced_control_store.py",),
+    ),
     "AK-064": baseline_partial(
         implementation=("An A0 no-key demo works; v1 attack/recovery/replay flow is incomplete",),
         verification=("tests/end_to_end/test_no_key_demo.py",),
@@ -883,21 +1003,29 @@ AK_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("tests/contract; test_lost_commit_acknowledgement_is_persisted_in_doubt",),
     ),
+    "AK-072": r01_core_partial(
+        implementation=(
+            "The deterministic aggregation suite proves deny dominance, deny/abstain defaults, non-granting obligations, obligation union for supported obligations, mode intersection, and fail-closed unknown evidence; general constraint reduction and Z3 parity are absent",
+        ),
+        verification=("tests/unit/test_policy_aggregation.py; independent core verification",),
+    ),
     "AK-073": baseline_partial(
         implementation=(
             "Review admission/digest pinning and TCB documentation exist; A1+ harness does not",
         ),
         verification=("tests/contract/test_mock_adapter.py; docs/security/threat-model.md",),
     ),
-    "AK-074": baseline_partial(
+    "AK-074": r01_core_partial(
         implementation=(
-            "Expiry and atomic multi-use budgets exist; signed binding/revocation matrix does not",
+            "All listed identity/time/key/revocation/scope/budget cases are evaluated against bounded snapshots and valid multi-use reservations are distinguished from replay; signed grant admission and dispatch/precommit integration are absent",
         ),
-        verification=("tests/unit/test_authority.py",),
+        verification=(
+            "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py; independent storage/core review and verification",
+        ),
     ),
-    "AK-075": baseline_partial(
+    "AK-075": r01_core_partial(
         implementation=(
-            "Normative transition table and precommit cancellation paths are tested; crash matrix is absent",
+            "A generated oracle covers all 38 normative transaction-table rows through 42 stable rule IDs and 58 concrete transitions, plus illegal transitions, stale naming, deadlines, and precommit cancel/context-exit behavior; effect-boundary crash recovery is absent",
         ),
         verification=("tests/unit/test_state_machine.py; tests/integration/test_coordinator.py",),
     ),
@@ -1345,11 +1473,13 @@ COMPONENT_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("tests/security/test_model_gateway.py",),
     ),
-    "COMP-STORE-SQLITE": baseline_partial(
+    "COMP-STORE-SQLITE": r01_core_partial(
         implementation=(
-            "agentkernel/storage/sqlite.py passes WAL, migration, CAS, reservation, and reopen tests; full recovery and user-flow coverage are incomplete",
+            "SQLiteJournal plus SQLiteControlStore provide WAL, validated migrations, CAS, tenant-first normalized actions and decision snapshots, intent ownership/history, and atomic capability budgets/reservations; full coordinator recovery and user-flow coverage are incomplete",
         ),
-        verification=("tests/integration/test_sqlite_journal.py",),
+        verification=(
+            "tests/integration/test_sqlite_journal.py; tests/integration/test_enforced_control_store.py; independent storage review and verification",
+        ),
     ),
     "COMP-ARTIFACT-LOCAL": baseline_partial(
         implementation=(
@@ -1363,6 +1493,26 @@ COMPONENT_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=(
             "tests/unit/test_docker_backend_unit.py; tests/integration/test_docker_sandbox.py",
+        ),
+    ),
+    "COMP-SVC-AUTHORITYSERVICE": r01_core_partial(
+        implementation=(
+            "A pure AuthorityEvaluator validates bounded snapshots, grants, delegation chains, resource/data scope, revocation, and budgets; authenticated service admission/dispatch is absent",
+        ),
+        verification=("tests/unit/test_authority_evaluator.py; independent core verification",),
+    ),
+    "COMP-SVC-POLICYSERVICE": r01_core_partial(
+        implementation=(
+            "The bounded compiler and aggregate evaluator return digest-bound per-layer/per-resource decisions and explanations; a deployed service and Z3 proof artifacts are absent",
+        ),
+        verification=("tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py",),
+    ),
+    "COMP-SVC-TRANSACTIONSERVICE": r01_core_partial(
+        implementation=(
+            "The transaction oracle and SQLite control store own versioned state and intent records; the enforced service coordinator, leases, dispatch fencing, and recovery scanner are absent",
+        ),
+        verification=(
+            "tests/unit/test_state_machine.py; tests/integration/test_enforced_control_store.py",
         ),
     ),
 }
@@ -1392,6 +1542,7 @@ def _component_catalog(lines: Sequence[str], sections: Sequence[str]) -> list[di
                 release_gate=("R10",),
                 component=(slug.lower(),),
                 pass_condition=summary,
+                evidence=COMPONENT_EVIDENCE.get(f"COMP-SVC-{slug}", MISSING),
             )
         )
     for requirement_id, marker, summary, gate, mandatory in COMPONENT_SPECS:
@@ -1427,11 +1578,13 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
         for line_number, cells in tx_table
     ]
     tx_evidence = {
-        index: baseline_partial(
+        index: r01_core_partial(
             implementation=(
-                "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row",
+                "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row",
             ),
-            verification=("tests/unit/test_state_machine.py",),
+            verification=(
+                "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py",
+            ),
         )
         for index in range(1, len(tx_items) + 1)
     }
@@ -1472,15 +1625,25 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
         "The compiler and evaluator MUST apply these rules identically:",
         "The precedence list",
     )
-    policy_partial = {
-        index: baseline_partial(
+    policy_evidence = {
+        index: r01_core_partial(
             implementation=(
-                "A deterministic subset exists; Z3 parity and the complete algebra are absent",
+                "The bounded deterministic compiler/aggregator implements this rule for its supported typed subset; general constraints, solver evidence, coordinator mapping, or Z3 parity needed by the broader rule remain absent",
             ),
-            verification=("tests/unit/test_policy.py",),
+            verification=("tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py",),
         )
         for index in range(1, len(policy_items) + 1)
     }
+    verified_policy_rule = r01_core_verified(
+        implementation=(
+            "The bounded deterministic compiler and all-and-only layer/resource aggregator implement this atomic rule with digest-bound authority and policy evidence",
+        ),
+        verification=(
+            "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py; independent core review and verification",
+        ),
+    )
+    for index in (1, 2, 3, 4, 5, 6, 7, 10):
+        policy_evidence[index] = verified_policy_rule
     rows.extend(
         _catalog_rows(
             lines,
@@ -1490,7 +1653,7 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
             category="policy-aggregation",
             release_gate=("R03",),
             component=("policy", "policy/z3"),
-            evidence_by_index=policy_partial,
+            evidence_by_index=policy_evidence,
         )
     )
     saga_items = _numbered_rows_between(
@@ -1723,6 +1886,44 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
     storage_invariants = _bullet_rows_between(
         lines, "### 22.2 Storage invariants", "### 22.3 Retention"
     )
+    storage_evidence = {
+        2: r01_core_verified(
+            implementation=(
+                "SQLiteJournal applies compare-and-swap transaction transitions and increments the durable transaction version only after a successful transition",
+            ),
+            verification=(
+                "tests/integration/test_sqlite_journal.py::test_compare_and_swap_rejects_stale_writer",
+            ),
+        ),
+        3: r01_core_partial(
+            implementation=(
+                "Tenant-scoped intent ownership/history and reservation records enforce one active owner and immutable attempt links; enforced action dispatch/receipt records are pending",
+            ),
+            verification=("tests/integration/test_enforced_control_store.py",),
+        ),
+        7: r01_core_partial(
+            implementation=(
+                "Every new authority/action/decision/budget/reservation/intent control table and access path is tenant-first; the wider production storage surface is pending",
+            ),
+            verification=("tests/integration/test_enforced_control_store.py",),
+        ),
+        8: r01_core_partial(
+            implementation=(
+                "Normalized actions and typed authority decisions bind immutable snapshot, grant-chain, budget, and policy digests; generic legacy decision snapshots do not yet enforce all typed references",
+            ),
+            verification=(
+                "tests/unit/test_authority_evaluator.py; tests/unit/test_policy_aggregation.py; tests/integration/test_enforced_control_store.py",
+            ),
+        ),
+        10: r01_core_partial(
+            implementation=(
+                "SQLite migrations are digest-checked, forward-applied, and reject empty/deleted/tampered ledger rows; rollback documentation and production backup verification are pending",
+            ),
+            verification=(
+                "tests/integration/test_sqlite_journal.py; tests/integration/test_enforced_control_store.py",
+            ),
+        ),
+    }
     rows.extend(
         _catalog_rows(
             lines,
@@ -1732,6 +1933,7 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
             category="storage-invariant",
             release_gate=("R02", "R10"),
             component=("storage",),
+            evidence_by_index=storage_evidence,
         )
     )
 
@@ -1750,6 +1952,60 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
         ("TEST-CI-", "### 26.3 CI matrix", "### 26.4 Test evidence", "ci-matrix"),
         ("TEST-EVID-", "CI MUST archive:", "Flaky tests MUST", "test-evidence"),
     )
+    test_evidence_by_prefix: dict[str, dict[int, Evidence]] = {
+        "TEST-UNIT-": {
+            2: r01_core_verified(
+                implementation=(
+                    "The generated state-machine unit suite covers all normative rows, legal and illegal transitions, terminal semantics, and typed reason codes",
+                ),
+                verification=("tests/unit/test_state_machine.py",),
+            ),
+            3: r01_core_verified(
+                implementation=(
+                    "The normalization unit suite covers canonical paths/resources, Unicode and encoded aliases, traversal, semantic hashing, provenance flow, and configured bounds",
+                ),
+                verification=("tests/unit/test_normalization.py; independent core verification",),
+            ),
+            4: r01_core_verified(
+                implementation=(
+                    "The authority unit suite covers capability subset/delegation, identity and key binding, expiry, revocation, resource/data scope, and bounded budgets",
+                ),
+                verification=(
+                    "tests/unit/test_authority_evaluator.py; independent core verification",
+                ),
+            ),
+            7: r01_core_partial(
+                implementation=(
+                    "Atomic capability reservation and intent ownership dispositions are tested; end-to-end dispatch reconciliation is pending",
+                ),
+                verification=("tests/integration/test_enforced_control_store.py",),
+            ),
+        },
+        "TEST-INT-": {
+            1: r01_core_partial(
+                implementation=(
+                    "Coordinator and SQLite integration suites pass; PostgreSQL and the enforced coordinator flow are pending",
+                ),
+                verification=(
+                    "tests/integration/test_coordinator.py; tests/integration/test_sqlite_journal.py; tests/integration/test_enforced_control_store.py",
+                ),
+            ),
+        },
+        "TEST-SEC-": {
+            7: r01_core_partial(
+                implementation=(
+                    "Expiry, revocation, delegation, replay-budget, subject/audience/goal/run/key-version, and resource-scope cases are tested; signed-token forgery admission is pending",
+                ),
+                verification=("tests/unit/test_authority_evaluator.py",),
+            ),
+            9: r01_core_partial(
+                implementation=(
+                    "Cross-tenant SQLite control records and operations are rejected; the full API/object/cache/telemetry matrix is pending",
+                ),
+                verification=("tests/integration/test_enforced_control_store.py",),
+            ),
+        },
+    }
     for prefix, start_marker, end_marker, category in test_sections:
         items = _bullet_rows_between(lines, start_marker, end_marker)
         rows.extend(
@@ -1761,6 +2017,7 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
                 category=category,
                 release_gate=("R10",),
                 component=("testing",),
+                evidence_by_index=test_evidence_by_prefix.get(prefix),
             )
         )
     for requirement_id, marker, summary in (
@@ -2236,12 +2493,28 @@ USER_EVIDENCE: dict[str, Evidence] = {
         commit="1f1c6a243e51b5552bcdb1304af8bf0a486f7de7",
         verified_date="2026-07-22",
     ),
+    "USR-006": r01_core_partial(
+        implementation=(
+            "Typed durable authority snapshots/decisions, capability budget reservations/fences, policy decisions, normalized actions, and intent ownership/history exist in the SQLite control plane; enforced dispatch receipts and full audit integration are pending",
+        ),
+        verification=(
+            "tests/unit/test_authority_evaluator.py; tests/unit/test_policy_aggregation.py; tests/integration/test_enforced_control_store.py; independent storage/core review and verification",
+        ),
+    ),
     "USR-008": baseline_partial(
         implementation=(
             "A scripted no-key workflow exists; a supported real local/offline model workflow is absent",
         ),
         verification=(
             "tests/security/test_model_gateway.py; tests/end_to_end/test_no_key_demo.py",
+        ),
+    ),
+    "USR-009": r01_core_partial(
+        implementation=(
+            "The complete transaction oracle plus cancellation/deadline/context-exit tests and SQLite process-kill durability probes exist; effect-boundary fault schedules, restart reconciliation, and recovery remain pending",
+        ),
+        verification=(
+            "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py; tests/integration/test_enforced_control_store.py; independent storage verification",
         ),
     ),
     "USR-021": baseline_partial(

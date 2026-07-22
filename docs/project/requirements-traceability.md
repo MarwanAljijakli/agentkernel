@@ -33,9 +33,9 @@ Normative occurrence accounting excludes the keyword-definition line and contain
 
 | Status | Rows |
 | --- | ---: |
-| implemented and verified | 39 |
-| partially implemented | 132 |
-| missing | 635 |
+| implemented and verified | 55 |
+| partially implemented | 147 |
+| missing | 604 |
 | blocked | 0 |
 
 ## Release-oriented view
@@ -45,11 +45,11 @@ A row can relate to more than one release, so this table is not additive.
 | ID | Gate | Implemented + verified | Partial | Missing | Blocked |
 | --- | --- | ---: | ---: | ---: | ---: |
 | `REL-P0` | Phase 0 | 15 | 40 | 0 | 0 |
-| `REL-R01` | Release 0.1 | 12 | 32 | 21 | 0 |
-| `REL-R02` | Release 0.2 | 3 | 8 | 174 | 0 |
-| `REL-R03` | Release 0.3 | 0 | 15 | 32 | 0 |
+| `REL-R01` | Release 0.1 | 14 | 30 | 21 | 0 |
+| `REL-R02` | Release 0.2 | 4 | 12 | 169 | 0 |
+| `REL-R03` | Release 0.3 | 8 | 14 | 25 | 0 |
 | `REL-R04` | Release 0.4 | 0 | 0 | 144 | 0 |
-| `REL-R10` | Release 1.0 | 13 | 53 | 486 | 0 |
+| `REL-R10` | Release 1.0 | 19 | 73 | 460 | 0 |
 
 ## Explicit catalogs
 

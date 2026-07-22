@@ -18,9 +18,9 @@
     "catalog_row_count": 446,
     "total_row_count": 806,
     "status_counts": {
-      "implemented and verified": 39,
-      "partially implemented": 132,
-      "missing": 635,
+      "implemented and verified": 55,
+      "partially implemented": 147,
+      "missing": 604,
       "blocked": 0
     },
     "release_readiness": "FAIL",
@@ -1101,10 +1101,10 @@
         "Milestone implementation and verification evidence"
       ],
       "implementation_evidence": [
-        "Commit/abort/rollback and durable records exist; recovery scanner is absent"
+        "Commit/abort/rollback records plus the complete transaction transition oracle and tenant-first control records exist; the enforced coordinator and recovery scanner are absent"
       ],
       "verification_evidence": [
-        "tests/integration/test_coordinator.py; tests/contract/test_filesystem_adapter.py"
+        "tests/integration/test_coordinator.py; tests/integration/test_enforced_control_store.py; tests/contract/test_filesystem_adapter.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -1112,7 +1112,7 @@
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -2820,16 +2820,20 @@
       "artifact": [
         "Milestone implementation and verification evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "A bounded capability graph evaluator implements attenuation, expiry, revocation, delegation, and atomic use reservations; signed grant admission is absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "REL-R03"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -2921,16 +2925,20 @@
       "artifact": [
         "Milestone implementation and verification evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "A typed deterministic policy representation and bounded compiler exist; Z3 constraint lowering is absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "REL-R03"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -3458,16 +3466,20 @@
       "artifact": [
         "Milestone implementation and verification evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Policy decisions retain matched grants, denials, obligations, unknown facts, bundle digests, resource evidence, and explanations; solver assertion evidence is absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_policy_aggregation.py; independent core verification"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "REL-R03"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -5714,16 +5726,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "agentkernel/transactions/state_machine.py and versioned domain enums/schemas encode the structural rules; a durable CAS-plus-event proof for every transition is absent"
+        "agentkernel/transactions/state_machine.py encodes the complete normative transaction transition oracle and terminal-state vocabulary; the required durable action for every row is not yet implemented end-to-end"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/unit/test_models.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py; independent core review and verification"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -5763,16 +5775,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "IN_DOUBT and STALE_STATE exist; general redispatch/recovery scanner is absent"
+        "Terminal/non-terminal states, STALE_STATE naming, and no-redispatch transition rules are encoded and exhaustively enumerated; the general recovery scanner and linked recovery transactions are absent"
       ],
       "verification_evidence": [
-        "tests/integration/test_coordinator.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -6733,16 +6745,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Strict Pydantic contracts and filesystem canonicalization exist; network normalization does not"
+        "The admitted write_files normalizer is pure, schema-strict, bounded, Unicode/encoding aware, and emits canonical filesystem resource identifiers; network target normalization is absent"
       ],
       "verification_evidence": [
-        "tests/unit/test_models.py; tests/unit/test_filesystem_snapshots.py"
+        "tests/unit/test_normalization.py; independent core verification"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -6781,16 +6793,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Traversal, symlink/junction, case-fold and replacement checks exist for filesystem scope"
+        "Pure normalization rejects traversal, aliases, ambiguous Unicode/encoding, Windows reserved names, and scope escapes without following links; bind-mount and replacement-race enforcement remains an adapter/harness responsibility"
       ],
       "verification_evidence": [
-        "tests/unit/test_filesystem_snapshots.py; tests/contract/test_filesystem_adapter.py"
+        "tests/unit/test_normalization.py; tests/unit/test_filesystem_snapshots.py; tests/contract/test_filesystem_adapter.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -7068,14 +7080,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "NormalizedIntentProjection binds normalized operation, canonical resources, semantic arguments, goal, principal, run, actor, adapter protocol/manifest, normalizer, schema, risk, and provenance"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_normalization.py::test_hash_and_tuple_order_are_deterministic_and_transport_fields_are_excluded; tests/unit/test_normalization.py::test_model_validation_rejects_tampered_intent_hash; independent core verification"
+      ],
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -7112,14 +7128,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "NormalizedAction computes intent_hash only from its canonical semantic projection and excludes transaction, trace, deadline, and idempotency transport metadata"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_normalization.py::test_hash_and_tuple_order_are_deterministic_and_transport_fields_are_excluded; tests/unit/test_normalization.py::test_normalized_action_rejects_noncanonical_idempotency_key_alias"
+      ],
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -8021,14 +8041,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The pure authority evaluator validates issuer, subject, audience, goal, run, key/version, time, revocation, delegation, resource scope, data labels, and atomic usage budgets; adapter/model dispatch integration is absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_authority_evaluator.py; independent core verification"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -8066,14 +8090,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Authority decisions bind a normalized intent and durable reservation plan, but immediate pre-commit revalidation awaits the enforced coordinator"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -8110,14 +8138,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Authority snapshots reject unknown, retired, and mismatched key versions and bind supported keys by digest; cryptographic signature validation and production key custody are absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_authority_evaluator.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -8244,14 +8276,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Layered policy is deny-dominant, versioned, digest-bound, and cannot be weakened by a lower layer; production policy signatures are absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_policy_aggregation.py; independent core verification"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -8289,14 +8325,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The deterministic compiler and evaluator share a typed bounded policy representation for the supported subset; general constraints and Z3 parity remain absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -11963,10 +12003,10 @@
         "Event trace with `AUTHORITY_MISSING`; synthetic canary unchanged"
       ],
       "implementation_evidence": [
-        "The authority layer rejects a manufactured protected-path proposal before dispatch; an integrated agent-generated attack proposal is not proven"
+        "Normalized filesystem resources and authority scopes reject manufactured protected-path access; an integrated confined agent-generated attack proposal is not proven"
       ],
       "verification_evidence": [
-        "tests/end_to_end/test_no_key_demo.py; tests/unit/test_authority.py"
+        "tests/unit/test_normalization.py; tests/unit/test_authority_evaluator.py; tests/end_to_end/test_no_key_demo.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -11974,7 +12014,7 @@
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -12016,10 +12056,10 @@
         "Authority/policy decisions naming provenance and missing grants"
       ],
       "implementation_evidence": [
-        "Project-data provenance cannot expand authority for a manufactured proposal; integrated model/agent consumption of adversarial project data is not proven"
+        "Normalized provenance labels cannot expand authority and policy rejects provenance-driven scope widening; integrated model/agent consumption inside the A1 harness is not proven"
       ],
       "verification_evidence": [
-        "test_project_data_cannot_expand_authority; no-key demo tests"
+        "tests/unit/test_normalization.py; tests/unit/test_authority_evaluator.py; tests/unit/test_policy_aggregation.py; no-key demo tests"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -12027,7 +12067,7 @@
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -12174,18 +12214,18 @@
         "Parameterized transition trace and target hash/version equality"
       ],
       "implementation_evidence": [
-        "Pre-commit cancellation/deadline paths avoid authoritative effects, but NEW plus deadline reaches REJECTED rather than the required ABORTING then ABORTED path"
+        "Every enumerated pre-commit transaction state handles cancellation, deadline, and context exit through ABORTING to ABORTED, invokes staged abort when applicable, and preserves the target"
       ],
       "verification_evidence": [
-        "test_every_precommit_state_exits_without_authoritative_effect"
+        "tests/integration/test_coordinator.py::test_every_precommit_state_exits_without_authoritative_effect; test_task_cancellation_during_inspection_durably_aborts_new_transaction; test_deadline_during_inspection_durably_aborts_new_transaction; test_deadline_elapsing_before_session_entry_aborts_new_transaction"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -12332,10 +12372,10 @@
         "Idempotency contract test"
       ],
       "implementation_evidence": [
-        "SQLite intent reservation has one owner; end-to-end duplicate submission is incomplete"
+        "Tenant-scoped normalized intents have one durable owner, append-only ownership history, and idempotent capability reservations; end-to-end adapter deduplication is incomplete"
       ],
       "verification_evidence": [
-        "test_intent_reservation_has_one_owner"
+        "tests/integration/test_enforced_control_store.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -12343,7 +12383,7 @@
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -12641,18 +12681,18 @@
         "Parser/fuzz tests"
       ],
       "implementation_evidence": [
-        "Unknown policy fields/predicates and duplicate YAML keys fail; size/depth fuzz gate is absent"
+        "The safe policy loader/compiler rejects unknown fields and predicates, duplicate-key ambiguity, incompatible semantics, and bounded file/node/depth violations before evaluation"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py::test_unknown_predicate_is_rejected_before_evaluation; test_compile_policy_enforces_direct_model_nesting_limit; test_compile_policy_enforces_direct_model_node_limit; test_policy_loader_rejects_a_sparse_oversized_file; test_duplicate_yaml_keys_are_rejected_instead_of_overriding_deny; independent core review and verification"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -13584,16 +13624,20 @@
       "artifact": [
         "Automated criterion evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The pure evaluator denies wrong subject/audience/goal/run/key-version, expiry, revocation, scope/delegation, nonce reuse, and atomic budget exhaustion; cryptographic forgery admission and dispatch integration are absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py; independent core verification"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "REL-R03"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -13680,16 +13724,20 @@
       "artifact": [
         "Automated criterion evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The deterministic policy compiler rejects unknown predicates, duplicate or contradictory rule identities, unsupported modes/effects, invalid versions, and bounded-input violations; the full typed/Z3 compiler remains absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "REL-R03"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -14841,16 +14889,20 @@
       "artifact": [
         "Automated criterion evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The SQLite authority/action/decision/budget/reservation/intent-history control plane is tenant-first and cross-tenant access is rejected; API, object, cache, telemetry, and artifact-wide isolation are absent"
+      ],
+      "verification_evidence": [
+        "tests/integration/test_enforced_control_store.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "REL-R10"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -15442,16 +15494,20 @@
       "artifact": [
         "Automated criterion evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The deterministic aggregation suite proves deny dominance, deny/abstain defaults, non-granting obligations, obligation union for supported obligations, mode intersection, and fail-closed unknown evidence; general constraint reduction and Z3 parity are absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_policy_aggregation.py; independent core verification"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "REL-R10"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
     {
@@ -15545,10 +15601,10 @@
         "Automated criterion evidence"
       ],
       "implementation_evidence": [
-        "Expiry and atomic multi-use budgets exist; signed binding/revocation matrix does not"
+        "All listed identity/time/key/revocation/scope/budget cases are evaluated against bounded snapshots and valid multi-use reservations are distinguished from replay; signed grant admission and dispatch/precommit integration are absent"
       ],
       "verification_evidence": [
-        "tests/unit/test_authority.py"
+        "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py; independent storage/core review and verification"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -15556,7 +15612,7 @@
       "related_ids": [
         "REL-R10"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -15597,7 +15653,7 @@
         "Automated criterion evidence"
       ],
       "implementation_evidence": [
-        "Normative transition table and precommit cancellation paths are tested; crash matrix is absent"
+        "A generated oracle covers all 38 normative transaction-table rows through 42 stable rule IDs and 58 concrete transitions, plus illegal transitions, stale naming, deadlines, and precommit cancel/context-exit behavior; effect-boundary crash recovery is absent"
       ],
       "verification_evidence": [
         "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
@@ -15608,7 +15664,7 @@
       "related_ids": [
         "REL-R10"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": true
     },
@@ -17250,16 +17306,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17298,16 +17354,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17346,16 +17402,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17394,16 +17450,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17442,16 +17498,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17490,16 +17546,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17538,16 +17594,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17586,16 +17642,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17634,16 +17690,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17682,16 +17738,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17730,16 +17786,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17778,16 +17834,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17826,16 +17882,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17874,16 +17930,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17922,16 +17978,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -17970,16 +18026,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18018,16 +18074,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18066,16 +18122,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18114,16 +18170,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18162,16 +18218,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18210,16 +18266,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18258,16 +18314,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18306,16 +18362,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18354,16 +18410,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18402,16 +18458,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18450,16 +18506,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18498,16 +18554,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18546,16 +18602,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18594,16 +18650,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18642,16 +18698,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18690,16 +18746,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18738,16 +18794,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18786,16 +18842,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18834,16 +18890,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18882,16 +18938,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18930,16 +18986,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -18978,16 +19034,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -19026,16 +19082,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row"
+        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20087,16 +20143,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler and all-and-only layer/resource aggregator implement this atomic rule with digest-bound authority and policy evidence"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py; independent core review and verification"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20136,16 +20192,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler and all-and-only layer/resource aggregator implement this atomic rule with digest-bound authority and policy evidence"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py; independent core review and verification"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20185,16 +20241,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler and all-and-only layer/resource aggregator implement this atomic rule with digest-bound authority and policy evidence"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py; independent core review and verification"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20234,16 +20290,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler and all-and-only layer/resource aggregator implement this atomic rule with digest-bound authority and policy evidence"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py; independent core review and verification"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20283,16 +20339,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler and all-and-only layer/resource aggregator implement this atomic rule with digest-bound authority and policy evidence"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py; independent core review and verification"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20332,16 +20388,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler and all-and-only layer/resource aggregator implement this atomic rule with digest-bound authority and policy evidence"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py; independent core review and verification"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20381,16 +20437,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler and all-and-only layer/resource aggregator implement this atomic rule with digest-bound authority and policy evidence"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py; independent core review and verification"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20430,16 +20486,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler/aggregator implements this rule for its supported typed subset; general constraints, solver evidence, coordinator mapping, or Z3 parity needed by the broader rule remain absent"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20479,16 +20535,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler/aggregator implements this rule for its supported typed subset; general constraints, solver evidence, coordinator mapping, or Z3 parity needed by the broader rule remain absent"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20529,16 +20585,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler and all-and-only layer/resource aggregator implement this atomic rule with digest-bound authority and policy evidence"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py; independent core review and verification"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20578,16 +20634,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler/aggregator implements this rule for its supported typed subset; general constraints, solver evidence, coordinator mapping, or Z3 parity needed by the broader rule remain absent"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -20627,16 +20683,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "A deterministic subset exists; Z3 parity and the complete algebra are absent"
+        "The bounded deterministic compiler/aggregator implements this rule for its supported typed subset; general constraints, solver evidence, coordinator mapping, or Z3 parity needed by the broader rule remain absent"
       ],
       "verification_evidence": [
-        "tests/unit/test_policy.py"
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -26275,14 +26331,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "SQLiteJournal applies compare-and-swap transaction transitions and increments the durable transaction version only after a successful transition"
+      ],
+      "verification_evidence": [
+        "tests/integration/test_sqlite_journal.py::test_compare_and_swap_rejects_stale_writer"
+      ],
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -26320,14 +26380,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Tenant-scoped intent ownership/history and reservation records enforce one active owner and immutable attempt links; enforced action dispatch/receipt records are pending"
+      ],
+      "verification_evidence": [
+        "tests/integration/test_enforced_control_store.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -26500,14 +26564,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Every new authority/action/decision/budget/reservation/intent control table and access path is tenant-first; the wider production storage surface is pending"
+      ],
+      "verification_evidence": [
+        "tests/integration/test_enforced_control_store.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -26545,14 +26613,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Normalized actions and typed authority decisions bind immutable snapshot, grant-chain, budget, and policy digests; generic legacy decision snapshots do not yet enforce all typed references"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_authority_evaluator.py; tests/unit/test_policy_aggregation.py; tests/integration/test_enforced_control_store.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -26635,14 +26707,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "SQLite migrations are digest-checked, forward-applied, and reject empty/deleted/tampered ledger rows; rollback documentation and production backup verification are pending"
+      ],
+      "verification_evidence": [
+        "tests/integration/test_sqlite_journal.py; tests/integration/test_enforced_control_store.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -26723,14 +26799,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The generated state-machine unit suite covers all normative rows, legal and illegal transitions, terminal semantics, and typed reason codes"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_state_machine.py"
+      ],
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -26767,14 +26847,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The normalization unit suite covers canonical paths/resources, Unicode and encoded aliases, traversal, semantic hashing, provenance flow, and configured bounds"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_normalization.py; independent core verification"
+      ],
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -26811,14 +26895,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The authority unit suite covers capability subset/delegation, identity and key binding, expiry, revocation, resource/data scope, and bounded budgets"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_authority_evaluator.py; independent core verification"
+      ],
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -26943,14 +27031,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Atomic capability reservation and intent ownership dispositions are tested; end-to-end dispatch reconciliation is pending"
+      ],
+      "verification_evidence": [
+        "tests/integration/test_enforced_control_store.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -27340,14 +27432,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Coordinator and SQLite integration suites pass; PostgreSQL and the enforced coordinator flow are pending"
+      ],
+      "verification_evidence": [
+        "tests/integration/test_coordinator.py; tests/integration/test_sqlite_journal.py; tests/integration/test_enforced_control_store.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -28000,14 +28096,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Expiry, revocation, delegation, replay-budget, subject/audience/goal/run/key-version, and resource-scope cases are tested; signed-token forgery admission is pending"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_authority_evaluator.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -28088,14 +28188,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Cross-tenant SQLite control records and operations are rejected; the full API/object/cache/telemetry matrix is pending"
+      ],
+      "verification_evidence": [
+        "tests/integration/test_enforced_control_store.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -32944,14 +33048,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "A pure AuthorityEvaluator validates bounded snapshots, grants, delegation chains, resource/data scope, revocation, and budgets; authenticated service admission/dispatch is absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_authority_evaluator.py; independent core verification"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -32988,14 +33096,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The bounded compiler and aggregate evaluator return digest-bound per-layer/per-resource decisions and explanations; a deployed service and Z3 proof artifacts are absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -33032,14 +33144,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The transaction oracle and SQLite control store own versioned state and intent records; the enforced service coordinator, leases, dispatch fencing, and recovery scanner are absent"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_state_machine.py; tests/integration/test_enforced_control_store.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -33928,16 +34044,16 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "agentkernel/storage/sqlite.py passes WAL, migration, CAS, reservation, and reopen tests; full recovery and user-flow coverage are incomplete"
+        "SQLiteJournal plus SQLiteControlStore provide WAL, validated migrations, CAS, tenant-first normalized actions and decision snapshots, intent ownership/history, and atomic capability budgets/reservations; full coordinator recovery and user-flow coverage are incomplete"
       ],
       "verification_evidence": [
-        "tests/integration/test_sqlite_journal.py"
+        "tests/integration/test_sqlite_journal.py; tests/integration/test_enforced_control_store.py; independent storage review and verification"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
       "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
@@ -34718,17 +34834,21 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Typed durable authority snapshots/decisions, capability budget reservations/fences, policy decisions, normalized actions, and intent ownership/history exist in the SQLite control plane; enforced dispatch receipts and full audit integration are pending"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_authority_evaluator.py; tests/unit/test_policy_aggregation.py; tests/integration/test_enforced_control_store.py; independent storage/core review and verification"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "AK-034",
         "AK-074"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
@@ -34863,9 +34983,13 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The complete transaction oracle plus cancellation/deadline/context-exit tests and SQLite process-kill durability probes exist; effect-boundary fault schedules, restart reconciliation, and recovery remain pending"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py; tests/integration/test_enforced_control_store.py; independent storage verification"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
@@ -34874,8 +34998,8 @@
         "AK-023",
         "AK-077"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
