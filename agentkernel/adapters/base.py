@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Protocol, runtime_checkable
+from typing import Annotated, Protocol, runtime_checkable
 
-from pydantic import Field, JsonValue
+from pydantic import Field, JsonValue, field_validator
 
 from agentkernel.canonical import canonical_digest
 from agentkernel.domain.enums import RiskClass
@@ -24,9 +25,46 @@ from agentkernel.domain.models import (
 )
 
 
+def _canonical_manifest_text(value: str, *, field_name: str) -> str:
+    try:
+        value.encode("utf-8", errors="strict")
+    except UnicodeEncodeError as error:
+        raise ValueError(f"{field_name} must be valid UTF-8") from error
+    if unicodedata.normalize("NFC", value) != value:
+        raise ValueError(f"{field_name} must use Unicode NFC")
+    return value
+
+
+class NormalizerManifest(StrictModel):
+    """Pinned pure-normalizer admission metadata for one operation schema.
+
+    ``implementation_digest`` is only as strong as the admission pipeline that produced it.
+    A declarative pre-release pin is not evidence of installed-byte measurement or signing.
+    """
+
+    schema_ref: NonEmptyStr
+    schema_digest: Digest
+    implementation: Identifier
+    version: NonEmptyStr
+    implementation_digest: Digest
+    max_resources: Annotated[int, Field(ge=1, le=4096)]
+    max_argument_bytes: Annotated[int, Field(ge=1, le=16_777_216)]
+
+    @field_validator("schema_ref", "version")
+    @classmethod
+    def _text_is_unicode_nfc(cls, value: str) -> str:
+        return _canonical_manifest_text(value, field_name="Normalizer manifest text")
+
+    @property
+    def digest(self) -> str:
+        """Digest the complete normalizer contract, including its resource bounds."""
+
+        return canonical_digest(self)
+
+
 class OperationManifest(StrictModel):
     risk_floor: RiskClass
-    effect_domains: tuple[NonEmptyStr, ...]
+    effect_domains: Annotated[tuple[NonEmptyStr, ...], Field(max_length=64)]
     idempotency: NonEmptyStr = "intent_hash"
     staging: bool
     commit: bool
@@ -34,9 +72,30 @@ class OperationManifest(StrictModel):
     rollback: bool
     reconcile: bool
     compensate: bool = False
-    preconditions: tuple[NonEmptyStr, ...] = ()
-    staged_postconditions: tuple[NonEmptyStr, ...] = ()
-    committed_postconditions: tuple[NonEmptyStr, ...] = ()
+    preconditions: Annotated[tuple[NonEmptyStr, ...], Field(max_length=256)] = ()
+    staged_postconditions: Annotated[tuple[NonEmptyStr, ...], Field(max_length=256)] = ()
+    committed_postconditions: Annotated[tuple[NonEmptyStr, ...], Field(max_length=256)] = ()
+    normalizer: NormalizerManifest | None = None
+
+    @field_validator("idempotency")
+    @classmethod
+    def _canonical_idempotency(cls, value: str) -> str:
+        return _canonical_manifest_text(value, field_name="Operation idempotency mode")
+
+    @field_validator(
+        "effect_domains",
+        "preconditions",
+        "staged_postconditions",
+        "committed_postconditions",
+    )
+    @classmethod
+    def _canonical_semantic_sets(cls, values: tuple[str, ...], info: object) -> tuple[str, ...]:
+        field_name = getattr(info, "field_name", "operation manifest tuple")
+        if values != tuple(sorted(set(values))):
+            raise ValueError(f"{field_name} must be sorted and unique")
+        for value in values:
+            _canonical_manifest_text(value, field_name=field_name)
+        return values
 
 
 class AdapterManifest(StrictModel):
@@ -44,13 +103,34 @@ class AdapterManifest(StrictModel):
     name: Identifier
     version: NonEmptyStr
     implementation_digest: Digest
-    operations: dict[NonEmptyStr, OperationManifest]
+    operations: Annotated[
+        dict[NonEmptyStr, OperationManifest], Field(min_length=1, max_length=1_024)
+    ]
+
+    @field_validator("api_version", "version")
+    @classmethod
+    def _canonical_text(cls, value: str, info: object) -> str:
+        return _canonical_manifest_text(
+            value,
+            field_name=getattr(info, "field_name", "adapter manifest text"),
+        )
+
+    @field_validator("operations")
+    @classmethod
+    def _canonical_operation_names(
+        cls,
+        values: dict[str, OperationManifest],
+    ) -> dict[str, OperationManifest]:
+        for operation in values:
+            _canonical_manifest_text(operation, field_name="Adapter operation name")
+        return values
 
     @property
     def digest(self) -> str:
         """Digest the exact versioned manifest admitted to the registry."""
 
-        return canonical_digest(self)
+        # Excluding only absent optional extensions preserves the A0 manifest identity.
+        return canonical_digest(self.model_dump(mode="python", exclude_none=True))
 
 
 class EffectPlan(StrictModel):

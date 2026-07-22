@@ -1,0 +1,386 @@
+{
+  "$defs": {
+    "CapabilityBudgetState": {
+      "additionalProperties": false,
+      "description": "Read-only budget facts captured by the durable authority snapshot.",
+      "properties": {
+        "capability_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "consumed_uses": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Consumed Uses",
+          "type": "integer"
+        },
+        "goal_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Goal Id",
+          "type": "string"
+        },
+        "max_uses": {
+          "minimum": 1,
+          "title": "Max Uses",
+          "type": "integer"
+        },
+        "reserved_intent_hashes": {
+          "default": [],
+          "items": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "title": "Reserved Intent Hashes",
+          "type": "array"
+        },
+        "reserved_uses": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Reserved Uses",
+          "type": "integer"
+        },
+        "run_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "tenant_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "capability_id",
+        "goal_id",
+        "run_id",
+        "max_uses"
+      ],
+      "title": "CapabilityBudgetState",
+      "type": "object"
+    },
+    "CapabilityKeyVersion": {
+      "additionalProperties": false,
+      "description": "One key/version pair already admitted for capability validation.",
+      "properties": {
+        "key_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Key Id",
+          "type": "string"
+        },
+        "tenant_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "token_version": {
+          "minimum": 1,
+          "title": "Token Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "key_id",
+        "token_version"
+      ],
+      "title": "CapabilityKeyVersion",
+      "type": "object"
+    },
+    "CapabilityRevocation": {
+      "additionalProperties": false,
+      "description": "A durable revocation by capability ID, nonce, or both.",
+      "properties": {
+        "capability_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capability Id"
+        },
+        "effective_at": {
+          "format": "date-time",
+          "title": "Effective At",
+          "type": "string"
+        },
+        "nonce": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Nonce"
+        },
+        "reason": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "revocation_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Revocation Id",
+          "type": "string"
+        },
+        "tenant_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revocation_id",
+        "tenant_id",
+        "effective_at",
+        "reason"
+      ],
+      "title": "CapabilityRevocation",
+      "type": "object"
+    },
+    "EnforcedCapabilityGrant": {
+      "additionalProperties": false,
+      "description": "A content-bound capability record admitted to the enforced authority snapshot.",
+      "properties": {
+        "actions": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "minItems": 1,
+          "title": "Actions",
+          "type": "array"
+        },
+        "audience": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Audience",
+          "type": "string"
+        },
+        "capability_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "data_classes": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "title": "Data Classes",
+          "type": "array"
+        },
+        "delegation_depth_remaining": {
+          "default": 0,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Delegation Depth Remaining",
+          "type": "integer"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "goal_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Goal Id",
+          "type": "string"
+        },
+        "grant_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Grant Digest",
+          "type": "string"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "issuer": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Issuer",
+          "type": "string"
+        },
+        "key_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Key Id",
+          "type": "string"
+        },
+        "max_uses": {
+          "minimum": 1,
+          "title": "Max Uses",
+          "type": "integer"
+        },
+        "nonce": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Nonce",
+          "type": "string"
+        },
+        "not_before": {
+          "format": "date-time",
+          "title": "Not Before",
+          "type": "string"
+        },
+        "parent_capability": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Capability"
+        },
+        "resource_scopes": {
+          "items": {
+            "maxLength": 8192,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "minItems": 1,
+          "title": "Resource Scopes",
+          "type": "array"
+        },
+        "run_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "subject": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Subject",
+          "type": "string"
+        },
+        "tenant_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "token_version": {
+          "minimum": 1,
+          "title": "Token Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "capability_id",
+        "token_version",
+        "key_id",
+        "issuer",
+        "subject",
+        "audience",
+        "goal_id",
+        "run_id",
+        "actions",
+        "resource_scopes",
+        "issued_at",
+        "not_before",
+        "expires_at",
+        "max_uses",
+        "nonce",
+        "grant_digest"
+      ],
+      "title": "EnforcedCapabilityGrant",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable durable facts used for one reproducible authority decision.",
+  "properties": {
+    "accepted_key_versions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/CapabilityKeyVersion"
+      },
+      "maxItems": 4096,
+      "title": "Accepted Key Versions",
+      "type": "array"
+    },
+    "as_of": {
+      "format": "date-time",
+      "title": "As Of",
+      "type": "string"
+    },
+    "budget_states": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/CapabilityBudgetState"
+      },
+      "maxItems": 4096,
+      "title": "Budget States",
+      "type": "array"
+    },
+    "capabilities": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/EnforcedCapabilityGrant"
+      },
+      "maxItems": 4096,
+      "title": "Capabilities",
+      "type": "array"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "revocations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/CapabilityRevocation"
+      },
+      "maxItems": 4096,
+      "title": "Revocations",
+      "type": "array"
+    },
+    "snapshot_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Snapshot Digest",
+      "type": "string"
+    },
+    "snapshot_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "snapshot_id",
+    "revision",
+    "as_of",
+    "snapshot_digest"
+  ],
+  "title": "AuthoritySnapshot",
+  "type": "object"
+}

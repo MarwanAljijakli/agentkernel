@@ -1,0 +1,56 @@
+{
+  "additionalProperties": false,
+  "description": "Pinned pure-normalizer admission metadata for one operation schema.\n\n``implementation_digest`` is only as strong as the admission pipeline that produced it.\nA declarative pre-release pin is not evidence of installed-byte measurement or signing.",
+  "properties": {
+    "implementation": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Implementation",
+      "type": "string"
+    },
+    "implementation_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Implementation Digest",
+      "type": "string"
+    },
+    "max_argument_bytes": {
+      "maximum": 16777216,
+      "minimum": 1,
+      "title": "Max Argument Bytes",
+      "type": "integer"
+    },
+    "max_resources": {
+      "maximum": 4096,
+      "minimum": 1,
+      "title": "Max Resources",
+      "type": "integer"
+    },
+    "schema_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Schema Digest",
+      "type": "string"
+    },
+    "schema_ref": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Schema Ref",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_ref",
+    "schema_digest",
+    "implementation",
+    "version",
+    "implementation_digest",
+    "max_resources",
+    "max_argument_bytes"
+  ],
+  "title": "NormalizerManifest",
+  "type": "object"
+}

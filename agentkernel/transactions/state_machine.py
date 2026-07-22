@@ -97,6 +97,13 @@ NORMATIVE_TRANSITIONS: tuple[TransitionRule, ...] = (
         IntendedOutcome.ABORTED,
     ),
     _rule(
+        "TX-004",
+        TransactionState.NEW,
+        TransitionEvent.DEADLINE_EXCEEDED,
+        TransactionState.ABORTING,
+        IntendedOutcome.ABORTED,
+    ),
+    _rule(
         "TX-005",
         TransactionState.NEW,
         TransitionEvent.CONTEXT_EXITED,
@@ -379,6 +386,17 @@ NORMATIVE_TRANSITIONS: tuple[TransitionRule, ...] = (
 _TRANSITION_INDEX = {(rule.source, rule.event): rule for rule in NORMATIVE_TRANSITIONS}
 if len(_TRANSITION_INDEX) != len(NORMATIVE_TRANSITIONS):
     raise RuntimeError("Duplicate state/event pair in the normative transaction table")
+
+_RULE_IDS = {rule.rule_id for rule in NORMATIVE_TRANSITIONS}
+if len(_RULE_IDS) != len(NORMATIVE_TRANSITIONS):
+    raise RuntimeError("Duplicate rule ID in the normative transaction table")
+
+if any(
+    rule.target is TransactionState.ABORTING
+    and rule.intended_outcome not in {IntendedOutcome.ABORTED, IntendedOutcome.STALE_STATE}
+    for rule in NORMATIVE_TRANSITIONS
+):
+    raise RuntimeError("Every ABORTING rule must declare ABORTED or STALE_STATE")
 
 
 def apply_transition(

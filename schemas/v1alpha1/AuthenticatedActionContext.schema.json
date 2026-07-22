@@ -1,0 +1,70 @@
+{
+  "additionalProperties": false,
+  "description": "Identity and deployment facts authenticated outside untrusted proposal data.",
+  "properties": {
+    "actor_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Actor Id",
+      "type": "string"
+    },
+    "agent_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Agent Id",
+      "type": "string"
+    },
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "configuration_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Configuration Digest",
+      "type": "string"
+    },
+    "goal_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Goal Id",
+      "type": "string"
+    },
+    "on_behalf_of": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "On Behalf Of",
+      "type": "string"
+    },
+    "principal_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Principal Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "principal_id",
+    "goal_id",
+    "run_id",
+    "trace_id",
+    "actor_id",
+    "on_behalf_of",
+    "agent_id",
+    "configuration_digest"
+  ],
+  "title": "AuthenticatedActionContext",
+  "type": "object"
+}

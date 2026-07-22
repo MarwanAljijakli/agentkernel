@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "PolicyLayer": {
+      "description": "Normative policy layers in their evidence-rendering order.",
+      "enum": [
+        "system",
+        "deployment",
+        "tenant",
+        "user",
+        "goal",
+        "adapter",
+        "data"
+      ],
+      "title": "PolicyLayer",
+      "type": "string"
+    },
+    "PolicyLayerIdentity": {
+      "additionalProperties": false,
+      "description": "Immutable identity of one compiled bundle at one policy layer.",
+      "properties": {
+        "bundle_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Bundle Digest",
+          "type": "string"
+        },
+        "bundle_name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Bundle Name",
+          "type": "string"
+        },
+        "bundle_version": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Bundle Version",
+          "type": "string"
+        },
+        "layer": {
+          "$ref": "#/$defs/PolicyLayer"
+        },
+        "scope_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Scope Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layer",
+        "scope_id",
+        "bundle_name",
+        "bundle_version",
+        "bundle_digest"
+      ],
+      "title": "PolicyLayerIdentity",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Canonical all-and-only manifest of policy bundles expected for this evaluation.",
+  "properties": {
+    "identities": {
+      "items": {
+        "$ref": "#/$defs/PolicyLayerIdentity"
+      },
+      "maxItems": 64,
+      "title": "Identities",
+      "type": "array"
+    },
+    "snapshot_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Snapshot Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "identities",
+    "snapshot_digest"
+  ],
+  "title": "PolicyLayerSnapshot",
+  "type": "object"
+}

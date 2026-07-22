@@ -21,20 +21,38 @@ from typing import Any, Never
 from pydantic import BaseModel
 
 from agentkernel import __version__
+from agentkernel.adapters.base import NormalizerManifest
+from agentkernel.authority import (
+    AuthorityEvaluationContext,
+    AuthoritySnapshot,
+    CapabilityBudgetState,
+    CapabilityKeyVersion,
+    CapabilityReservationPlan,
+    CapabilityRevocation,
+    EnforcedAuthorityDecision,
+    EnforcedCapabilityGrant,
+    ResourceAuthorityDecision,
+)
 from agentkernel.demo import DemoReport, run_demo
 from agentkernel.domain.models import (
     ActionExecutionRecord,
     ActionProposal,
     Artifact,
+    AuthenticatedActionContext,
     BenchmarkTask,
     CapabilityGrant,
     EffectReceipt,
     EventEnvelope,
     GoalRecord,
     IntentRecord,
+    NormalizedAction,
+    NormalizedIntentProjection,
+    NormalizedProvenance,
     PolicyBundle,
     ProvenanceRecord,
     RecoveryReport,
+    ResourceUse,
+    SemanticArgument,
     TransactionRecord,
     VerificationReport,
 )
@@ -46,14 +64,53 @@ from agentkernel.model_gateway.gateway import (
     ModelInferenceRequest,
     ModelResponse,
 )
+from agentkernel.normalization.filesystem import FilesystemNormalizerConfig, WriteFilesArguments
+from agentkernel.policy import (
+    AggregatePolicyDecision,
+    PolicyContext,
+    PolicyDecision,
+    PolicyLayerDecisionEvidence,
+    PolicyLayerIdentity,
+    PolicyLayerInput,
+    PolicyLayerSnapshot,
+    PolicyResourceInput,
+    ResourcePolicyDecision,
+)
 from agentkernel.sandbox.docker import DockerSandbox
 
 SCHEMA_MODELS: tuple[type[BaseModel], ...] = (
     GoalRecord,
     ActionProposal,
+    AuthenticatedActionContext,
     CapabilityGrant,
     ProvenanceRecord,
+    NormalizedProvenance,
+    ResourceUse,
+    SemanticArgument,
+    NormalizedIntentProjection,
+    NormalizedAction,
+    NormalizerManifest,
+    WriteFilesArguments,
+    FilesystemNormalizerConfig,
     PolicyBundle,
+    PolicyContext,
+    PolicyDecision,
+    PolicyLayerIdentity,
+    PolicyLayerInput,
+    PolicyLayerSnapshot,
+    PolicyResourceInput,
+    PolicyLayerDecisionEvidence,
+    ResourcePolicyDecision,
+    AggregatePolicyDecision,
+    CapabilityKeyVersion,
+    CapabilityBudgetState,
+    CapabilityRevocation,
+    EnforcedCapabilityGrant,
+    AuthoritySnapshot,
+    AuthorityEvaluationContext,
+    ResourceAuthorityDecision,
+    CapabilityReservationPlan,
+    EnforcedAuthorityDecision,
     TransactionRecord,
     ActionExecutionRecord,
     IntentRecord,
@@ -288,9 +345,10 @@ def export_schemas(output: Path) -> int:
     for model in SCHEMA_MODELS:
         schema = model.model_json_schema(mode="validation")
         target = output / f"{model.__name__}.schema.json"
-        target.write_text(
-            json.dumps(schema, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
+        target.write_bytes(
+            (json.dumps(schema, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
+                "utf-8"
+            )
         )
     return len(SCHEMA_MODELS)
 

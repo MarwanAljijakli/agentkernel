@@ -469,6 +469,7 @@ def _guard_context(action: DemoPlannedAction) -> tuple[str, str, PolicyContext]:
                 provenance_trust=(action.provenance_trust,),
                 requested_scope_expands=True,
                 data_classes=("credential",),
+                destination_external=False,
                 risk_class=RiskClass.REVERSIBLE,
             ),
         )
@@ -499,6 +500,9 @@ def _guard_context(action: DemoPlannedAction) -> tuple[str, str, PolicyContext]:
                 action=normalized_action,
                 resource=resource,
                 provenance_trust=(action.provenance_trust,),
+                requested_scope_expands=False,
+                data_classes=("project_data",),
+                destination_external=False,
                 risk_class=RiskClass.REVERSIBLE,
             ),
         )
