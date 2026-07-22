@@ -9,6 +9,7 @@ __pycache__/
 .coverage
 coverage.xml
 htmlcov/
+test-results/
 
 # Environments and builds
 .venv/

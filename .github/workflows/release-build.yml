@@ -18,6 +18,14 @@ jobs:
         with:
           version: "0.11.28"
       - run: uv sync --frozen
+      - name: Enforce traceability gate for stable tags
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" && "${GITHUB_REF_NAME:-}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            uv run python scripts/validate_traceability.py --require-complete
+          else
+            uv run python scripts/validate_traceability.py
+          fi
       - run: uv run pytest
       - run: uv build
       - name: Generate checksums

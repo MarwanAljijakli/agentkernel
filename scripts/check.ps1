@@ -12,6 +12,8 @@ uv run bandit -q -r agentkernel
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 uv run pip-audit
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+uv run python scripts/validate_traceability.py
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 uv run pytest --cov=agentkernel --cov-report=term-missing --cov-fail-under=85
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 uv run coverage report --fail-under=85

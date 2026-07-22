@@ -7,6 +7,7 @@ uv run ruff check .
 uv run mypy agentkernel
 uv run bandit -q -r agentkernel
 uv run pip-audit
+uv run python scripts/validate_traceability.py
 uv run pytest --cov=agentkernel --cov-report=term-missing --cov-fail-under=85
 uv run coverage report --fail-under=85
 uv build
