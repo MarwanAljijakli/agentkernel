@@ -156,14 +156,14 @@ def test_baseline_does_not_overclaim_unproven_atomic_behaviors() -> None:
     )
 
 
-def test_uncommitted_traceability_bundle_has_no_baseline_provenance() -> None:
+def test_traceability_bundle_points_to_its_first_containing_commit() -> None:
     rows = {
         row["id"]: row for row in json.loads(MANIFEST.read_text(encoding="utf-8"))["requirements"]
     }
 
     assert rows["USR-002"]["status"] == "partially implemented"
-    assert rows["USR-002"]["last_verified_commit"] == ""
-    assert rows["USR-002"]["last_verified_date"] == ""
+    assert rows["USR-002"]["last_verified_commit"] == "1f1c6a243e51b5552bcdb1304af8bf0a486f7de7"
+    assert rows["USR-002"]["last_verified_date"] == "2026-07-22"
 
 
 def test_current_only_traceability_path_cannot_claim_baseline_commit(tmp_path: Path) -> None:
@@ -183,7 +183,7 @@ def test_current_only_test_name_cannot_claim_baseline_commit(tmp_path: Path) -> 
         row = next(row for row in value["requirements"] if row["id"] == "USR-002")
         row["implementation_evidence"] = ["agentkernel/canonical.py"]
         row["verification_evidence"] = [
-            "test_uncommitted_traceability_bundle_has_no_baseline_provenance"
+            "test_traceability_bundle_points_to_its_first_containing_commit"
         ]
         row["last_verified_commit"] = "a7292ea9ca157fdcb76369d9e61977c7316c8782"
         row["last_verified_date"] = "2026-07-22"
@@ -230,6 +230,7 @@ def test_last_verified_commit_and_date_pairing_is_required(tmp_path: Path) -> No
     def mutate(value: dict[str, Any]) -> None:
         row = next(row for row in value["requirements"] if row["id"] == "USR-002")
         row["last_verified_commit"] = "a7292ea9ca157fdcb76369d9e61977c7316c8782"
+        row["last_verified_date"] = ""
 
     completed = _run(manifest=_mutated_manifest(tmp_path, mutate))
 

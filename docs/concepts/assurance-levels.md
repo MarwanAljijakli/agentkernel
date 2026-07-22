@@ -10,8 +10,8 @@ AgentKernel must never reduce a complex run to an unexplained `safe: true`. Assu
 | Profile | Minimum evidence | Permitted claim |
 | --- | --- | --- |
 | `A0` — Inspect-only | Proposal schema validated and the proposal recorded | “Recorded and inspected” |
-| `A1` — Policy-checked | `A0`, authenticated actor/principal/goal, current capability chain, deterministic policy grant, obligations and unknowns resolved | “Authorized under policy bundle `<digest>`” |
-| `A2` — Contained | `A1`, supported sandbox controls measured effective, ambient bypass paths tested/blocked | “Executed within sandbox profile `<name@digest>`” |
+| `A1` — Policy-checked | `A0`, authenticated actor/principal/goal, current capability chain, deterministic policy grant, obligations and unknowns resolved, **and the global A1+ prerequisite:** an OS/network-confined agent harness whose only effect/model route is the Kernel API, with the minimum ambient-bypass suite passing | “Authorized under policy bundle `<digest>`” |
+| `A2` — Contained | `A1`, plus execution/staging inside a named content-digested sandbox profile whose claimed effective controls are measured and whose isolation suite passes | “Executed within sandbox profile `<name@digest>`” |
 | `A3` — State-verified | `A2`, sufficiently complete supported snapshot/diff, staged and committed postconditions, declared invariants pass | “Verified against declared invariants `<ids>`” |
 | `A4` — Recoverable | `A3`, durable journal plus tested rollback or compensation semantics for the named adapter boundary | “Recoverable within adapter boundary `<name@version>`” |
 | `A5` — Reproducible | `A3`/`A4`, a declared replay level is achieved with divergence reporting | “Reproduced at replay level `Lx`” |
@@ -22,13 +22,16 @@ No profile means universal safety. `A4` does not make an irreversible effect rev
 
 An assurance claim must include:
 
-- run, transaction, goal, principal, and configuration identity;
+- tenant, run, transaction, goal, actor, principal/on-behalf-of, and configuration identity;
+- the normalized typed resource-use identities, or an immutable digest/reference that
+  resolves to all authorized explicit and implied reads/effects;
 - adapter and policy versions/digests;
 - achieved profile and every unavailable, degraded, or unobserved control;
 - authoritative target and resource scope;
 - risk class and truthful recovery semantics;
 - verifier identities, results, and evidence references;
-- sandbox profile and effective-control checks for `A2+`;
+- agent-harness confinement and minimum ambient-bypass evidence for `A1+`;
+- sandbox profile and its additional effective-control checks for `A2+`;
 - replay level and first divergence for `A5`; and
 - any residual effect or unresolved ambiguity.
 
@@ -101,8 +104,11 @@ The following is **conceptual**, not evidence of a currently implemented command
 }
 ```
 
-Because verification is `UNKNOWN`, this example cannot claim `A3`. If the sandbox controls were also unverified, it would be limited to `A1` or lower.
+Because verification is `UNKNOWN`, this example cannot claim `A3`. If the named sandbox
+profile were unverified but the minimum agent-harness confinement/bypass suite still
+passed, it would be limited to `A1`; if that global `A1+` prerequisite failed or was
+unobserved, it would be limited to `A0`.
 
 ## Current implementation statement
 
-The current repository implements contracts, an embedded transactional filesystem path, hash-chained evidence, a deterministic scripted `L2` replay for that path, and a separate Docker control verifier. The public demo remains `A0` because it does not execute a hostile agent inside an integrated confinement boundary. It does not claim a general `A1+` path, sandbox escape resistance, cross-domain recoverability, or replay outside the named scripted scenario. A future release may claim a stronger profile only after its named acceptance evidence passes in a clean supported environment.
+The current repository implements contracts, an embedded transactional filesystem path, hash-chained evidence, a deterministic scripted `L1` replay for that path, and a separate Docker control verifier. The `L1` path feeds recorded model and tool results without adapter dispatch; its recorded final-state hash is not presented as an observed replay-environment state. The demo does not reconstruct or prove a network-disabled environment, so it does not claim `L2`. The public demo remains `A0` because it does not execute a hostile agent inside an integrated confinement boundary. It does not claim a general `A1+` path, sandbox escape resistance, cross-domain recoverability, or replay outside the named scripted scenario. A future release may claim a stronger profile only after its named acceptance evidence passes in a clean supported environment.

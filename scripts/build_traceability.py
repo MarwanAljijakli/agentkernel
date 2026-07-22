@@ -73,6 +73,22 @@ def uncommitted_partial(
     return Evidence("partially implemented", tuple(implementation), tuple(verification))
 
 
+def committed_partial(
+    *,
+    implementation: Sequence[str],
+    verification: Sequence[str],
+    commit: str,
+    verified_date: str,
+) -> Evidence:
+    return Evidence(
+        "partially implemented",
+        tuple(implementation),
+        tuple(verification),
+        commit,
+        verified_date,
+    )
+
+
 MISSING = Evidence("missing")
 
 
@@ -2210,13 +2226,15 @@ USER_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("Traceability generation audit on 2026-07-22",),
     ),
-    "USR-002": uncommitted_partial(
+    "USR-002": committed_partial(
         implementation=(
-            "The traceability manifest, append-only registry, policy, schema, validator, and tests exist in the working tree; no later commit yet contains this complete bundle",
+            "The traceability manifest, append-only registry, policy, schema, validator, and tests are retained in the repository",
         ),
         verification=(
             "scripts/validate_traceability.py and tests/requirements/test_traceability.py",
         ),
+        commit="1f1c6a243e51b5552bcdb1304af8bf0a486f7de7",
+        verified_date="2026-07-22",
     ),
     "USR-008": baseline_partial(
         implementation=(

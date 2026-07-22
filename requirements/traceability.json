@@ -34522,7 +34522,7 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The traceability manifest, append-only registry, policy, schema, validator, and tests exist in the working tree; no later commit yet contains this complete bundle"
+        "The traceability manifest, append-only registry, policy, schema, validator, and tests are retained in the repository"
       ],
       "verification_evidence": [
         "scripts/validate_traceability.py and tests/requirements/test_traceability.py"
@@ -34533,8 +34533,8 @@
       "related_ids": [
         "REL-P0"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "1f1c6a243e51b5552bcdb1304af8bf0a486f7de7",
+      "last_verified_date": "2026-07-22",
       "baseline_source_row": false
     },
     {
