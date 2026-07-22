@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "ResourceAccessMode": {
+      "description": "The primitive access requested for one canonical resource.",
+      "enum": [
+        "read",
+        "write",
+        "execute",
+        "connect"
+      ],
+      "title": "ResourceAccessMode",
+      "type": "string"
+    },
+    "ResourceUseKind": {
+      "description": "Why an action needs a resource, independent of the access mode.",
+      "enum": [
+        "authoritative_effect",
+        "precondition_read",
+        "verifier_read",
+        "process_execution",
+        "egress"
+      ],
+      "title": "ResourceUseKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One independently authorizable use of one canonical resource.",
+  "properties": {
+    "access_mode": {
+      "$ref": "#/$defs/ResourceAccessMode"
+    },
+    "authority_action": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Authority Action",
+      "type": "string"
+    },
+    "canonical_resource": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Canonical Resource",
+      "type": "string"
+    },
+    "data_classes": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Data Classes",
+      "type": "array"
+    },
+    "destination_external": {
+      "title": "Destination External",
+      "type": "boolean"
+    },
+    "effect_domain": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Effect Domain",
+      "type": "string"
+    },
+    "provenance_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Provenance Ids",
+      "type": "array"
+    },
+    "purpose": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Purpose",
+      "type": "string"
+    },
+    "use_kind": {
+      "$ref": "#/$defs/ResourceUseKind"
+    }
+  },
+  "required": [
+    "authority_action",
+    "access_mode",
+    "canonical_resource",
+    "effect_domain",
+    "purpose",
+    "use_kind",
+    "destination_external"
+  ],
+  "title": "ResourceUse",
+  "type": "object"
+}

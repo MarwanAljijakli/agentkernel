@@ -1,0 +1,57 @@
+{
+  "additionalProperties": false,
+  "description": "A deterministic all-or-none budget reservation request for the durable store.",
+  "properties": {
+    "authority_snapshot_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Authority Snapshot Digest",
+      "type": "string"
+    },
+    "capability_ids": {
+      "items": {
+        "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Capability Ids",
+      "type": "array"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "plan_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plan Digest",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    },
+    "units_per_capability": {
+      "const": 1,
+      "default": 1,
+      "title": "Units Per Capability",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "intent_hash",
+    "authority_snapshot_digest",
+    "capability_ids",
+    "plan_digest"
+  ],
+  "title": "CapabilityReservationPlan",
+  "type": "object"
+}

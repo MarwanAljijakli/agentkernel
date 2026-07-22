@@ -155,6 +155,15 @@ class CancellableInspectAdapter(MockReversibleAdapter):
         await asyncio.Event().wait()
 
 
+class DeadlineDuringInspectAdapter(MockReversibleAdapter):
+    async def inspect(self, proposal, ctx):
+        del proposal, ctx
+        raise AgentKernelError(
+            ErrorCode.DEADLINE_EXCEEDED,
+            "Synthetic deadline elapsed during inspection",
+        )
+
+
 class BlockingPrecommitAdapter(TrackingAbortAdapter):
     def __init__(self, target, boundary: str):
         super().__init__(target)
@@ -272,11 +281,7 @@ async def test_every_precommit_state_exits_without_authoritative_effect(
         else:
             await session.__aexit__(None, None, None)
 
-        expected = (
-            TransactionState.REJECTED
-            if state is TransactionState.NEW and cause == "deadline"
-            else TransactionState.ABORTED
-        )
+        expected = TransactionState.ABORTED
         assert session.record.state is expected
         assert target.digest == initial_digest
         assert target.version == initial_version
@@ -331,6 +336,74 @@ async def test_task_cancellation_during_inspection_durably_aborts_new_transactio
         assert journal.get_transaction(proposal.transaction_id).state is TransactionState.ABORTED
         assert target.state == {"before": "kept"}
         events = journal.list_events("run_cancel_inspect")
+        assert [event.payload.get("to") for event in events[1:]] == ["ABORTING", "ABORTED"]
+        assert validate_chain(events).valid
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_deadline_during_inspection_durably_aborts_new_transaction(
+    tmp_path: Path, proposal: ActionProposal, now: datetime
+) -> None:
+    target = VersionedMemoryTarget({"before": "kept"})
+    adapter = DeadlineDuringInspectAdapter(target)
+    registry = AdapterRegistry()
+    digest = registry.register(adapter)
+    run_id = "run_deadline_during_inspect"
+
+    with SQLiteJournal(tmp_path / "deadline-during-inspect.db") as journal:
+        coordinator = TransactionCoordinator(journal=journal, registry=registry, clock=_clock(now))
+        with pytest.raises(AgentKernelError) as captured:
+            await coordinator.transaction(
+                proposal,
+                run_id=run_id,
+                actor="service:coordinator",
+                on_behalf_of="principal:test",
+                adapter_manifest_digest=digest,
+            )
+
+        assert captured.value.code is ErrorCode.DEADLINE_EXCEEDED
+        assert journal.get_transaction(proposal.transaction_id).state is TransactionState.ABORTED
+        assert target.state == {"before": "kept"}
+        events = journal.list_events(run_id)
+        assert [event.payload.get("to") for event in events[1:]] == ["ABORTING", "ABORTED"]
+        assert validate_chain(events).valid
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_deadline_elapsing_before_session_entry_aborts_new_transaction(
+    tmp_path: Path, proposal: ActionProposal, now: datetime
+) -> None:
+    current_time = [now]
+
+    def clock() -> datetime:
+        return current_time[0]
+
+    target = VersionedMemoryTarget({"before": "kept"})
+    adapter = MockReversibleAdapter(target)
+    registry = AdapterRegistry()
+    digest = registry.register(adapter)
+    run_id = "run_deadline_before_entry"
+
+    with SQLiteJournal(tmp_path / "deadline-before-entry.db") as journal:
+        coordinator = TransactionCoordinator(journal=journal, registry=registry, clock=clock)
+        session = await coordinator.transaction(
+            proposal,
+            run_id=run_id,
+            actor="service:coordinator",
+            on_behalf_of="principal:test",
+            adapter_manifest_digest=digest,
+        )
+        current_time[0] = proposal.deadline
+
+        with pytest.raises(AgentKernelError) as captured:
+            await session.__aenter__()
+
+        assert captured.value.code is ErrorCode.DEADLINE_EXCEEDED
+        assert session.record.state is TransactionState.ABORTED
+        assert target.state == {"before": "kept"}
+        events = journal.list_events(run_id)
         assert [event.payload.get("to") for event in events[1:]] == ["ABORTING", "ABORTED"]
         assert validate_chain(events).valid
 

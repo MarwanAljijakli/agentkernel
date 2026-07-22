@@ -30,6 +30,7 @@
       "additionalProperties": {
         "$ref": "#/$defs/JsonValue"
       },
+      "maxProperties": 4096,
       "title": "Arguments",
       "type": "object"
     },
@@ -39,6 +40,7 @@
         "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
         "type": "string"
       },
+      "maxItems": 256,
       "title": "Capability Refs",
       "type": "array"
     },
@@ -78,6 +80,7 @@
         "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
         "type": "string"
       },
+      "maxItems": 256,
       "title": "Provenance Ids",
       "type": "array"
     },

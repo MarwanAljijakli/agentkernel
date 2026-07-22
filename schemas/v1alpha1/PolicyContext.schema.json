@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "ProvenanceTrust": {
+      "enum": [
+        "trusted_control",
+        "authorized_user",
+        "project_data",
+        "external_untrusted",
+        "model_generated",
+        "unknown"
+      ],
+      "title": "ProvenanceTrust",
+      "type": "string"
+    },
+    "RiskClass": {
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "title": "RiskClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Action",
+      "type": "string"
+    },
+    "data_classes": {
+      "anyOf": [
+        {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Data Classes"
+    },
+    "destination_external": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Destination External"
+    },
+    "provenance_trust": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/ProvenanceTrust"
+          },
+          "maxItems": 64,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Provenance Trust"
+    },
+    "requested_scope_expands": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Requested Scope Expands"
+    },
+    "resource": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Resource",
+      "type": "string"
+    },
+    "risk_class": {
+      "$ref": "#/$defs/RiskClass"
+    }
+  },
+  "required": [
+    "action",
+    "resource",
+    "risk_class"
+  ],
+  "title": "PolicyContext",
+  "type": "object"
+}

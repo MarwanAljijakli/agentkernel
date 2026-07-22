@@ -1,0 +1,428 @@
+{
+  "$defs": {
+    "NormalizedProvenance": {
+      "additionalProperties": false,
+      "description": "Trusted provenance facts and an integrity binding to their complete source record.",
+      "properties": {
+        "data_classes": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Data Classes",
+          "type": "array"
+        },
+        "integrity_ref": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Integrity Ref"
+        },
+        "provenance_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Provenance Id",
+          "type": "string"
+        },
+        "record_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Record Digest",
+          "type": "string"
+        },
+        "trust": {
+          "$ref": "#/$defs/ProvenanceTrust"
+        }
+      },
+      "required": [
+        "provenance_id",
+        "trust",
+        "record_digest"
+      ],
+      "title": "NormalizedProvenance",
+      "type": "object"
+    },
+    "ProvenanceTrust": {
+      "enum": [
+        "trusted_control",
+        "authorized_user",
+        "project_data",
+        "external_untrusted",
+        "model_generated",
+        "unknown"
+      ],
+      "title": "ProvenanceTrust",
+      "type": "string"
+    },
+    "ResourceAccessMode": {
+      "description": "The primitive access requested for one canonical resource.",
+      "enum": [
+        "read",
+        "write",
+        "execute",
+        "connect"
+      ],
+      "title": "ResourceAccessMode",
+      "type": "string"
+    },
+    "ResourceUse": {
+      "additionalProperties": false,
+      "description": "One independently authorizable use of one canonical resource.",
+      "properties": {
+        "access_mode": {
+          "$ref": "#/$defs/ResourceAccessMode"
+        },
+        "authority_action": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Authority Action",
+          "type": "string"
+        },
+        "canonical_resource": {
+          "maxLength": 8192,
+          "minLength": 1,
+          "title": "Canonical Resource",
+          "type": "string"
+        },
+        "data_classes": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Data Classes",
+          "type": "array"
+        },
+        "destination_external": {
+          "title": "Destination External",
+          "type": "boolean"
+        },
+        "effect_domain": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Effect Domain",
+          "type": "string"
+        },
+        "provenance_ids": {
+          "default": [],
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Provenance Ids",
+          "type": "array"
+        },
+        "purpose": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Purpose",
+          "type": "string"
+        },
+        "use_kind": {
+          "$ref": "#/$defs/ResourceUseKind"
+        }
+      },
+      "required": [
+        "authority_action",
+        "access_mode",
+        "canonical_resource",
+        "effect_domain",
+        "purpose",
+        "use_kind",
+        "destination_external"
+      ],
+      "title": "ResourceUse",
+      "type": "object"
+    },
+    "ResourceUseKind": {
+      "description": "Why an action needs a resource, independent of the access mode.",
+      "enum": [
+        "authoritative_effect",
+        "precondition_read",
+        "verifier_read",
+        "process_execution",
+        "egress"
+      ],
+      "title": "ResourceUseKind",
+      "type": "string"
+    },
+    "RiskClass": {
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "title": "RiskClass",
+      "type": "string"
+    },
+    "SemanticArgument": {
+      "additionalProperties": false,
+      "description": "Non-secret metadata binding one semantic argument value to its artifact digest.",
+      "properties": {
+        "argument_name": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Argument Name",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "media_type": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "provenance_ids": {
+          "default": [],
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Provenance Ids",
+          "type": "array"
+        },
+        "resource": {
+          "maxLength": 8192,
+          "minLength": 1,
+          "title": "Resource",
+          "type": "string"
+        },
+        "size_bytes": {
+          "maximum": 1073741824,
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "argument_name",
+        "resource",
+        "digest",
+        "size_bytes",
+        "media_type"
+      ],
+      "title": "SemanticArgument",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable normalized action plus non-semantic request/trace transport facts.",
+  "properties": {
+    "actor_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Actor Id",
+      "type": "string"
+    },
+    "adapter": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Adapter",
+      "type": "string"
+    },
+    "adapter_manifest_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Adapter Manifest Digest",
+      "type": "string"
+    },
+    "adapter_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Adapter Version",
+      "type": "string"
+    },
+    "agent_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Agent Id",
+      "type": "string"
+    },
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "configuration_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Configuration Digest",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "effect_domains": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Effect Domains",
+      "type": "array"
+    },
+    "goal_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Goal Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Idempotency Key"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "normalizer_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Normalizer Digest",
+      "type": "string"
+    },
+    "normalizer_implementation": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Normalizer Implementation",
+      "type": "string"
+    },
+    "normalizer_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Normalizer Version",
+      "type": "string"
+    },
+    "on_behalf_of": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "On Behalf Of",
+      "type": "string"
+    },
+    "operation": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Operation",
+      "type": "string"
+    },
+    "operation_schema_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Operation Schema Digest",
+      "type": "string"
+    },
+    "operation_schema_ref": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Operation Schema Ref",
+      "type": "string"
+    },
+    "principal_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Principal Id",
+      "type": "string"
+    },
+    "provenance": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/NormalizedProvenance"
+      },
+      "maxItems": 256,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "resource_uses": {
+      "items": {
+        "$ref": "#/$defs/ResourceUse"
+      },
+      "maxItems": 4096,
+      "minItems": 1,
+      "title": "Resource Uses",
+      "type": "array"
+    },
+    "risk_floor": {
+      "$ref": "#/$defs/RiskClass"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "semantic_arguments": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SemanticArgument"
+      },
+      "maxItems": 4096,
+      "title": "Semantic Arguments",
+      "type": "array"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "principal_id",
+    "goal_id",
+    "run_id",
+    "actor_id",
+    "on_behalf_of",
+    "agent_id",
+    "adapter",
+    "adapter_version",
+    "adapter_manifest_digest",
+    "operation",
+    "normalizer_implementation",
+    "normalizer_version",
+    "normalizer_digest",
+    "operation_schema_ref",
+    "operation_schema_digest",
+    "configuration_digest",
+    "risk_floor",
+    "effect_domains",
+    "resource_uses",
+    "transaction_id",
+    "trace_id",
+    "deadline",
+    "intent_hash"
+  ],
+  "title": "NormalizedAction",
+  "type": "object"
+}

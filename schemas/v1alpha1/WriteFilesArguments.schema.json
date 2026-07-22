@@ -1,0 +1,20 @@
+{
+  "additionalProperties": false,
+  "description": "Strict bounded ingress schema for the filesystem write operation.",
+  "properties": {
+    "files": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "maxProperties": 256,
+      "minProperties": 1,
+      "title": "Files",
+      "type": "object"
+    }
+  },
+  "required": [
+    "files"
+  ],
+  "title": "WriteFilesArguments",
+  "type": "object"
+}

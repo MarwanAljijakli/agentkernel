@@ -14,19 +14,8 @@
     }
   },
   "additionalProperties": false,
+  "description": "Trusted provenance facts and an integrity binding to their complete source record.",
   "properties": {
-    "acquisition_step": {
-      "maxLength": 512,
-      "minLength": 1,
-      "title": "Acquisition Step",
-      "type": "string"
-    },
-    "api_version": {
-      "const": "agentkernel.io/v1alpha1",
-      "default": "agentkernel.io/v1alpha1",
-      "title": "Api Version",
-      "type": "string"
-    },
     "data_classes": {
       "default": [],
       "items": {
@@ -51,37 +40,15 @@
       "default": null,
       "title": "Integrity Ref"
     },
-    "parent_ids": {
-      "default": [],
-      "items": {
-        "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
-        "type": "string"
-      },
-      "maxItems": 256,
-      "title": "Parent Ids",
-      "type": "array"
-    },
     "provenance_id": {
       "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
       "title": "Provenance Id",
       "type": "string"
     },
-    "source": {
-      "maxLength": 512,
-      "minLength": 1,
-      "title": "Source",
+    "record_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Record Digest",
       "type": "string"
-    },
-    "transformations": {
-      "default": [],
-      "items": {
-        "maxLength": 512,
-        "minLength": 1,
-        "type": "string"
-      },
-      "maxItems": 256,
-      "title": "Transformations",
-      "type": "array"
     },
     "trust": {
       "$ref": "#/$defs/ProvenanceTrust"
@@ -89,10 +56,9 @@
   },
   "required": [
     "provenance_id",
-    "source",
-    "acquisition_step",
-    "trust"
+    "trust",
+    "record_digest"
   ],
-  "title": "ProvenanceRecord",
+  "title": "NormalizedProvenance",
   "type": "object"
 }

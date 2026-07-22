@@ -11,6 +11,25 @@ class RiskClass(StrEnum):
     FORBIDDEN = "R4"
 
 
+class ResourceAccessMode(StrEnum):
+    """The primitive access requested for one canonical resource."""
+
+    READ = "read"
+    WRITE = "write"
+    EXECUTE = "execute"
+    CONNECT = "connect"
+
+
+class ResourceUseKind(StrEnum):
+    """Why an action needs a resource, independent of the access mode."""
+
+    AUTHORITATIVE_EFFECT = "authoritative_effect"
+    PRECONDITION_READ = "precondition_read"
+    VERIFIER_READ = "verifier_read"
+    PROCESS_EXECUTION = "process_execution"
+    EGRESS = "egress"
+
+
 class VerificationStatus(StrEnum):
     PASS = "PASS"  # nosec B105
     FAIL = "FAIL"
