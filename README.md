@@ -77,7 +77,7 @@ uv run agentkernel demo
 uv run pytest
 ```
 
-The demo needs no cloud credentials and makes no network request. It consumes an untrusted synthetic repository instruction, denies the proposed protected-file read and external send before dispatch, stages and commits one authorized file change, validates the event chain, scans evidence for the synthetic secret, and reproduces the action/final-state hashes at the supported `L2` replay path. To retain the disposable workspace and machine-readable report:
+The demo needs no cloud credentials and makes no network request. It consumes an untrusted synthetic repository instruction, denies the proposed protected-file read and external send before dispatch, stages and commits one authorized file change, validates the event chain, and scans evidence for the synthetic secret. Its supported `L1` replay feeds the hash-chain-bound recorded model and tool results in order, re-evaluates the ordered authority/policy decisions, and performs no adapter dispatch. The replay report distinguishes the recorded final-state hash from the unchanged disposable directory it actually observes; it does not claim environment reconstruction or `L2`. To retain the disposable workspace and machine-readable report:
 
 ```bash
 uv run agentkernel demo --root .agentkernel/demo-run --json

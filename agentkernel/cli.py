@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import platform
+import re
 import shutil
 import sqlite3
 import subprocess  # nosec B404
@@ -14,7 +16,7 @@ import tempfile
 from collections.abc import Sequence
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Never
 
 from pydantic import BaseModel
 
@@ -36,7 +38,7 @@ from agentkernel.domain.models import (
     TransactionRecord,
     VerificationReport,
 )
-from agentkernel.errors import AgentKernelError
+from agentkernel.errors import AgentKernelError, ErrorCode
 from agentkernel.evidence.ledger import validate_chain
 from agentkernel.model_gateway.gateway import (
     MessagePart,
@@ -80,6 +82,129 @@ _REQUIRED_DOCKER_CONTROLS = (
     "no_host_mounts",
     "bounded_tmpfs",
 )
+_CLI_MAX_DEPTH = 8
+_CLI_MAX_ITEMS = 256
+_CLI_MAX_TEXT_BYTES = 4096
+_SENSITIVE_FIELD_NAMES = frozenset(
+    {"stdout", "stderr", "prompt", "payload", "content", "message", "details"}
+)
+_SAFE_SENSITIVE_CLI_KEYS = frozenset({"protected_read_canary_count", "secret_found_in_evidence"})
+_SENSITIVE_WORD_RE = re.compile(
+    r"(?i)(?:^|[_-])(?:secret|token|password|canary|private[_-]?key|api[_-]?key)(?:[_-]|$)"
+)
+_LONG_HEX_RE = re.compile(r"(?i)(?<![0-9a-f])[0-9a-f]{32,}(?![0-9a-f])")
+_LONG_BASE64_RE = re.compile(r"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{32,}={0,2}(?![A-Za-z0-9+/])")
+_SAFE_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+_SAFE_IMAGE_RE = re.compile(r"^[a-z0-9._/-]+@sha256:[0-9a-f]{64}$")
+_DOCKER_VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+){1,3}(?:[-+][0-9A-Za-z.-]{1,32})?$")
+
+
+def _redacted_text_summary(value: str) -> dict[str, object]:
+    encoded = value.encode("utf-8", errors="replace")
+    return {
+        "redacted": True,
+        "bytes": len(encoded),
+        "sha256": hashlib.sha256(encoded).hexdigest(),
+    }
+
+
+def _redacted_value_summary(value: Any) -> dict[str, object]:
+    try:
+        serialized = json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            default=lambda item: type(item).__name__,
+        ).encode("utf-8", errors="replace")
+    except (TypeError, ValueError):
+        serialized = type(value).__name__.encode("ascii", errors="replace")
+    return {
+        "redacted": True,
+        "bytes": len(serialized),
+        "sha256": hashlib.sha256(serialized).hexdigest(),
+    }
+
+
+def _looks_sensitive(value: str) -> bool:
+    if _SAFE_DIGEST_RE.fullmatch(value) or _SAFE_IMAGE_RE.fullmatch(value):
+        return False
+    return bool(
+        _SENSITIVE_WORD_RE.search(value)
+        or _LONG_HEX_RE.search(value)
+        or _LONG_BASE64_RE.search(value)
+    )
+
+
+def _sanitize_cli_value(
+    value: Any,
+    *,
+    field_name: str | None = None,
+    depth: int = 0,
+) -> Any:
+    """Return a bounded JSON-safe projection without echoing tainted tool text."""
+
+    if depth > _CLI_MAX_DEPTH:
+        return {"redacted": True, "reason": "depth_limit"}
+    if field_name is not None and field_name.casefold() in _SENSITIVE_FIELD_NAMES:
+        return _redacted_value_summary(value)
+    if isinstance(value, BaseModel):
+        return _sanitize_cli_value(value.model_dump(mode="json"), depth=depth)
+    if isinstance(value, dict):
+        sanitized: dict[str, Any] = {}
+        for ordinal, (raw_key, item) in enumerate(value.items()):
+            if ordinal >= _CLI_MAX_ITEMS:
+                sanitized["_truncated"] = True
+                break
+            key = str(raw_key)
+            if (
+                (_looks_sensitive(key) and key not in _SAFE_SENSITIVE_CLI_KEYS)
+                or len(key.encode("utf-8", errors="replace")) > 128
+                or any(not character.isprintable() for character in key)
+            ):
+                key = f"redacted_field_{ordinal}"
+            sanitized[key] = _sanitize_cli_value(
+                item,
+                field_name=key,
+                depth=depth + 1,
+            )
+        return sanitized
+    if isinstance(value, list | tuple):
+        items = [_sanitize_cli_value(item, depth=depth + 1) for item in value[:_CLI_MAX_ITEMS]]
+        if len(value) > _CLI_MAX_ITEMS:
+            items.append({"redacted": True, "reason": "item_limit"})
+        return items
+    if isinstance(value, str):
+        encoded = value.encode("utf-8", errors="replace")
+        if len(encoded) > _CLI_MAX_TEXT_BYTES or _looks_sensitive(value):
+            return _redacted_text_summary(value)
+        if any(not character.isprintable() and character not in "\n\r\t" for character in value):
+            return _redacted_text_summary(value)
+        return value
+    if value is None or isinstance(value, bool | int | float):
+        return value
+    return {"redacted": True, "type": type(value).__name__}
+
+
+def _emit_json(value: Any) -> None:
+    print(json.dumps(_sanitize_cli_value(value), ensure_ascii=False, indent=2, sort_keys=True))
+
+
+def _emit_lines(*lines: str) -> None:
+    for line in lines:
+        sanitized = _sanitize_cli_value(line)
+        if isinstance(sanitized, str):
+            print(sanitized)
+        else:
+            print(json.dumps(sanitized, sort_keys=True))
+
+
+class _SafeArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> Never:
+        del message
+        raise AgentKernelError(
+            ErrorCode.VALIDATION_ERROR,
+            "Invalid command-line arguments",
+        )
 
 
 def _docker_probe() -> dict[str, Any]:
@@ -98,7 +223,10 @@ def _docker_probe() -> dict[str, Any]:
         return {"available": False, "reason": type(error).__name__}
     if completed.returncode != 0:
         return {"available": False, "reason": "engine_unavailable"}
-    return {"available": True, "server_version": completed.stdout.strip()}
+    server_version = completed.stdout.strip()
+    if not _DOCKER_VERSION_RE.fullmatch(server_version):
+        return {"available": False, "reason": "docker_output_invalid"}
+    return {"available": True, "server_version": server_version}
 
 
 def doctor_report(*, verify_container: bool = False) -> dict[str, Any]:
@@ -176,15 +304,15 @@ def _validate_ledger(path: Path) -> int:
             if line.strip()
         )
     except (OSError, ValueError):
-        print(json.dumps({"valid": False, "error_code": "LEDGER_INPUT_INVALID"}))
+        _emit_json({"valid": False, "error_code": "LEDGER_INPUT_INVALID"})
         return 2
     result = validate_chain(events)
-    print(json.dumps(asdict(result), sort_keys=True))
+    _emit_json(asdict(result))
     return 0 if result.valid else 1
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="agentkernel")
+    parser = _SafeArgumentParser(prog="agentkernel")
     parser.add_argument("--version", action="version", version=__version__)
     subcommands = parser.add_subparsers(dest="command", required=True)
 
@@ -215,27 +343,27 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def _run_command(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     if args.command == "doctor":
         doctor_data = doctor_report(verify_container=args.require_contained)
         if args.as_json:
-            print(json.dumps(doctor_data, ensure_ascii=False, indent=2, sort_keys=True))
+            _emit_json(doctor_data)
         else:
-            print(f"AgentKernel {doctor_data['agentkernel_version']} — {doctor_data['profile']}")
-            print(doctor_data["claim"])
-            print(f"Python supported: {doctor_data['python']['supported']}")
-            print(f"Docker engine available: {doctor_data['docker']['available']}")
-            print(
+            _emit_lines(
+                f"AgentKernel {doctor_data['agentkernel_version']} — {doctor_data['profile']}",
+                str(doctor_data["claim"]),
+                f"Python supported: {doctor_data['python']['supported']}",
+                f"Docker engine available: {doctor_data['docker']['available']}",
                 "Container profile verified: "
-                f"{str(doctor_data['controls']['container_profile_verified']).lower()}"
+                f"{str(doctor_data['controls']['container_profile_verified']).lower()}",
             )
         if args.require_contained and not doctor_data["controls"]["container_profile_verified"]:
             return 2
         return 0
     if args.command == "schema" and args.schema_command == "export":
         exported = export_schemas(args.output)
-        print(json.dumps({"exported_schema_count": exported}, sort_keys=True))
+        _emit_json({"exported_schema_count": exported})
         return 0
     if args.command == "ledger" and args.ledger_command == "validate":
         return _validate_ledger(args.path)
@@ -246,23 +374,49 @@ def main(argv: Sequence[str] | None = None) -> int:
         else:
             demo_report = asyncio.run(run_demo(args.root))
         if args.as_json:
-            print(demo_report.model_dump_json(indent=2))
+            _emit_json(demo_report)
         else:
-            print(f"AgentKernel demo — {demo_report.assurance_profile}")
-            print(demo_report.assurance_claim)
-            print(f"Protected read dispatches: {demo_report.protected_read_canary_count}")
-            print(f"External network dispatches: {demo_report.external_network_dispatch_count}")
-            print(f"Transaction: {demo_report.committed_transaction_state.value}")
-            print(f"Ledger valid: {str(demo_report.ledger_valid).lower()}")
-            print(f"Replay L2 matched: {str(demo_report.replay.matched).lower()}")
+            _emit_lines(
+                f"AgentKernel demo — {demo_report.assurance_profile}",
+                demo_report.assurance_claim,
+                f"Protected read dispatches: {demo_report.protected_read_canary_count}",
+                f"External network dispatches: {demo_report.external_network_dispatch_count}",
+                f"Transaction: {demo_report.committed_transaction_state.value}",
+                f"Ledger valid: {str(demo_report.ledger_valid).lower()}",
+                f"Replay {demo_report.replay.level.value} matched: "
+                f"{str(demo_report.replay.matched).lower()}",
+            )
         return 0
     if args.command == "sandbox" and args.sandbox_command == "verify-docker":
         sandbox_result = DockerSandbox().run_python("print('container-controls-ok')")
         if args.as_json:
-            print(sandbox_result.model_dump_json(indent=2))
+            _emit_json(sandbox_result)
         else:
-            print("Docker container controls verified")
-            print(f"Image: {sandbox_result.controls.image}")
-            print(f"All required controls: {str(sandbox_result.controls.all_required).lower()}")
+            _emit_lines(
+                "Docker container controls verified",
+                f"Image: {sandbox_result.controls.image}",
+                f"All required controls: {str(sandbox_result.controls.all_required).lower()}",
+            )
         return 0 if sandbox_result.exit_code == 0 else 1
     return 2
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run one CLI command and render expected failures without raw exception data."""
+
+    try:
+        return _run_command(argv)
+    except AgentKernelError as error:
+        _emit_json(
+            {
+                "ok": False,
+                "error_code": error.code.value,
+                "retryable": error.retryable,
+                "reconcilable": error.reconcilable,
+                "review_required": error.review_required,
+            }
+        )
+        return 2
+    except (OSError, UnicodeError):
+        _emit_json({"ok": False, "error_code": "CLI_IO_ERROR"})
+        return 2

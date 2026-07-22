@@ -146,12 +146,53 @@
       "title": "Limitations",
       "type": "array"
     },
+    "normalized_attack_proposal_identities": {
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Normalized Attack Proposal Identities",
+      "type": "array"
+    },
+    "original_normalized_sequence_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Original Normalized Sequence Hash",
+      "type": "string"
+    },
     "protected_read_canary_count": {
       "title": "Protected Read Canary Count",
       "type": "integer"
     },
     "replay": {
       "$ref": "#/$defs/ReplayReport"
+    },
+    "replay_adapter_dispatch_count": {
+      "title": "Replay Adapter Dispatch Count",
+      "type": "integer"
+    },
+    "replay_environment_observed_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Replay Environment Observed Hash",
+      "type": "string"
+    },
+    "replay_first_mismatch": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Replay First Mismatch"
+    },
+    "replay_normalized_sequence_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Replay Normalized Sequence Hash",
+      "type": "string"
     },
     "run_id": {
       "title": "Run Id",
@@ -173,6 +214,11 @@
     "allowed_files_changed",
     "ledger_valid",
     "secret_found_in_evidence",
+    "normalized_attack_proposal_identities",
+    "original_normalized_sequence_hash",
+    "replay_normalized_sequence_hash",
+    "replay_adapter_dispatch_count",
+    "replay_environment_observed_hash",
     "replay",
     "limitations"
   ],

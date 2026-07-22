@@ -14,10 +14,21 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Trace evidence is verified against frozen historical commits.
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: "0.11.28"
       - run: uv sync --frozen
+      - name: Enforce traceability gate for stable tags
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" && "${GITHUB_REF_NAME:-}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            uv run python scripts/validate_traceability.py --require-complete
+          else
+            uv run python scripts/validate_traceability.py
+          fi
       - run: uv run pytest
       - run: uv build
       - name: Generate checksums
