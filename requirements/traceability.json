@@ -18,9 +18,9 @@
     "catalog_row_count": 446,
     "total_row_count": 806,
     "status_counts": {
-      "implemented and verified": 55,
-      "partially implemented": 147,
-      "missing": 604,
+      "implemented and verified": 67,
+      "partially implemented": 148,
+      "missing": 591,
       "blocked": 0
     },
     "release_readiness": "FAIL",
@@ -1100,10 +1100,10 @@
         "Milestone implementation and verification evidence"
       ],
       "implementation_evidence": [
-        "Commit/abort/rollback records plus the complete transaction transition oracle and tenant-first control records exist; the enforced coordinator and recovery scanner are absent"
+        "Commit, abort, rollback, and a restartable single-action recovery journal are enforced with leased, fenced, authorized, deadline-bounded discard/rollback/compensation/reconciliation; the complete enumerated crash matrix and saga ordering remain incomplete"
       ],
       "verification_evidence": [
-        "tests/integration/test_coordinator.py; tests/integration/test_enforced_control_store.py; tests/contract/test_filesystem_adapter.py"
+        "tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_fenced_adapter_crash_recovery.py; tests/integration/test_filesystem_enforced_edge_cases.py; Exact-push GitHub Actions CI run 30213261164 succeeded on a4be55e8dabca26f51db3a3acbe20eb4ae9fe043 across Linux, Windows, Docker controls, locked install, and the cross-platform coverage union; PR merge run 30213262222 also succeeded"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -1111,8 +1111,8 @@
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -1801,10 +1801,10 @@
         "Milestone implementation and verification evidence"
       ],
       "implementation_evidence": [
-        "Normal filesystem rollback restores a captured workspace digest; rollback after a failed staged or authoritative partial commit is not proven"
+        "Filesystem rollback restores exact pre-effect content after normal commit and injected authoritative partial-write failure; the integrated A1 demonstration gate is not complete"
       ],
       "verification_evidence": [
-        "test_filesystem_stage_commit_verify_and_rollback"
+        "test_filesystem_stage_commit_verify_and_rollback; test_enforced_process_kill_never_resends_and_recovery_is_explicit; test_recovery_v1_partial_effect_preserves_applied_path_evidence_through_rollback"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -1812,8 +1812,8 @@
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -5725,17 +5725,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "agentkernel/transactions/state_machine.py encodes the complete normative transaction transition oracle and terminal-state vocabulary; the required durable action for every row is not yet implemented end-to-end"
+        "The complete oracle is enforced through durable compare-and-swap transitions and events for the supported single-action coordinator path; approval, compensation, saga, and every-row end-to-end evidence remain incomplete"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py; independent core review and verification"
+        "agentkernel/transactions/state_machine.py; tests/unit/test_state_machine.py; tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; Exact-push GitHub Actions CI run 30213261164 succeeded on a4be55e8dabca26f51db3a3acbe20eb4ae9fe043 across Linux, Windows, Docker controls, locked install, and the cross-platform coverage union; PR merge run 30213262222 also succeeded"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -5774,17 +5774,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Terminal/non-terminal states, STALE_STATE naming, and no-redispatch transition rules are encoded and exhaustively enumerated; the general recovery scanner and linked recovery transactions are absent"
+        "Terminal naming and no-redispatch are enforced durably; separately authorized linked recovery actions and restart reconciliation exist for supported single-action adapters. Automatic stale replanning and the complete later-compensation/saga profile remain incomplete"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -6141,17 +6141,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Current coordinator revalidates target version and adapter identity"
+        "The enforced mock/filesystem path revalidates authority, policy, target version, idempotency ownership, reservation version, lease/fence, and adapter identity before commit; approval and every future ingress surface are incomplete"
       ],
       "verification_evidence": [
-        "tests/integration/test_coordinator.py"
+        "test_capability_expiry_bounds_every_stage_and_commit_permit; test_precommit_policy_change_aborts_before_authoritative_effect; test_target_drift_aborts_as_stale_before_commit_dispatch"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -6189,17 +6189,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Current filesystem/mock path discards stale staged work and links a retry"
+        "The enforced path discards stale staged work, records STALE_STATE, and preserves linked intent ownership without authoritative promotion; an integrated automatic replanning workflow remains incomplete"
       ],
       "verification_evidence": [
-        "test_target_drift_aborts_as_stale_before_commit_dispatch"
+        "test_target_drift_aborts_as_stale_before_commit_dispatch; tests/integration/test_enforced_control_store.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -6237,17 +6237,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Unversioned blind promotion is rejected in the current adapter path"
+        "Enforced commit permits require an exact target-version guard and stale drift aborts before adapter commit; the rule is not yet certified across every future adapter"
       ],
       "verification_evidence": [
-        "test_target_drift_aborts_as_stale_before_commit_dispatch"
+        "test_target_drift_aborts_as_stale_before_commit_dispatch; test_enforced_happy_commit_binds_full_request_and_lease_deadlines"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -6932,17 +6932,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Durable CAS coordinator covers the current single-action A0 path; scanner/saga are absent"
+        "The enforced coordinator is the authoritative CAS owner for durable single-action ingress, staged execution, commit dispatch, receipt classification, leases/fences, reconciliation, and recovery scanning; approval service, saga/per-action ordering, nested scopes, and all ingress surfaces remain incomplete"
       ],
       "verification_evidence": [
-        "tests/integration/test_coordinator.py; tests/integration/test_sqlite_journal.py"
+        "tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_enforced_transaction_store_v4.py; Exact-push GitHub Actions CI run 30213261164 succeeded on a4be55e8dabca26f51db3a3acbe20eb4ae9fe043 across Linux, Windows, Docker controls, locked install, and the cross-platform coverage union; PR merge run 30213262222 also succeeded"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -6982,17 +6982,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Mock and filesystem execute paths preserve authoritative state"
+        "The enforced mock/filesystem execute paths remain inside staged state and durable commit permits carry exact version, fence, idempotency, and authority bindings; short-lived credential brokerage and every future adapter are incomplete"
       ],
       "verification_evidence": [
-        "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py"
+        "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py; tests/integration/test_fenced_adapter_crash_recovery.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -7032,17 +7032,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Explicit commit is the authoritative boundary for current adapters"
+        "Explicit coordinator-authorized commit is the only authoritative boundary for enforced mock/filesystem operations; unsupported staging declarations and future adapter coverage remain incomplete"
       ],
       "verification_evidence": [
-        "test_explicit_commit_is_the_only_authoritative_effect"
+        "test_explicit_commit_is_the_only_authoritative_effect; test_enforced_process_kill_never_resends_and_recovery_is_explicit"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -7491,17 +7491,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Coordinator aborts current staged work on UNKNOWN verification; the ERROR branch is not equivalently proven"
+        "Staged FAIL, UNKNOWN, and ERROR remain distinct durable non-PASS outcomes and cannot commit; committed UNKNOWN or ERROR remains IN_DOUBT instead of being treated as PASS or blindly rolled back"
       ],
       "verification_evidence": [
-        "test_unknown_verification_fails_closed"
+        "test_staged_nonpass_is_distinct_and_discards_exactly_once; test_committed_inconclusive_verification_stays_in_doubt_without_rollback"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -7539,14 +7539,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Supported single-action recovery is independently normalized and authorized, journaled as a handoff/work lineage, separately deadline/lease/fence bounded, verified, and evidence preserving; saga/all-adapter recovery and the full operator workflow remain incomplete"
+      ],
+      "verification_evidence": [
+        "test_capability_expiry_bounds_recovery_lease_and_permit; test_recovery_authorization_atomically_releases_handoff_before_crash; test_recovery_completion_report_binds_exact_operation_evidence; test_status_revalidates_successful_recovery_operation_artifact"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -7584,14 +7588,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Recovery authority and immutable operation evidence are bound separately from the target action for the enforced single-action path; broader service, saga, and adapter certification remain incomplete"
+      ],
+      "verification_evidence": [
+        "test_capability_expiry_bounds_recovery_lease_and_permit; test_recovery_authorization_atomically_releases_handoff_before_crash; test_status_revalidates_successful_recovery_operation_artifact"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -8041,17 +8049,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The pure authority evaluator validates issuer, subject, audience, goal, run, key/version, time, revocation, delegation, resource scope, data labels, and atomic usage budgets; adapter/model dispatch integration is absent"
+        "The enforced mock/filesystem path validates and durably binds issuer, subject, audience, goal, run, key/version, time, revocation, delegation, scope, labels, and atomic budgets at staging and before commit; model-gateway dispatch and every future adapter ingress are not covered"
       ],
       "verification_evidence": [
-        "tests/unit/test_authority_evaluator.py; independent core verification"
+        "tests/unit/test_authority_evaluator.py; test_enforced_happy_commit_binds_full_request_and_lease_deadlines; test_capability_expiry_bounds_every_stage_and_commit_permit"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -8090,17 +8098,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Authority decisions bind a normalized intent and durable reservation plan, but immediate pre-commit revalidation awaits the enforced coordinator"
+        "Immediate pre-commit authority/policy revalidation is enforced for mock/filesystem, including consumed reservation version and lease/fence evidence; model-gateway and every future adapter dispatch remain incomplete"
       ],
       "verification_evidence": [
-        "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py"
+        "test_capability_expiry_bounds_every_stage_and_commit_permit; test_precommit_policy_change_aborts_before_authoritative_effect; tests/integration/test_enforced_transaction_coordinator.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -10073,14 +10081,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Crash injection covers representative boundaries before and after stage, commit dispatch/call/receipt, reconciliation, and recovery; the shared suite does not yet kill before and after every stage, commit, receipt, verification, abort, rollback, reconciliation, and compensation boundary"
+      ],
+      "verification_evidence": [
+        "test_predispatch_crash_boundaries_recover_after_fence_expiry; test_crash_after_dispatch_is_reconciled_without_redispatch; test_enforced_process_kill_never_resends_and_recovery_is_explicit; tests/integration/test_enforced_coordinator_edge_cases.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -10118,17 +10130,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Context exit abort is covered; the full crash-boundary matrix is absent"
+        "Context exit invokes abort and preserves the authoritative target, while representative crash boundaries are restart-tested; the complete shared every-boundary matrix remains incomplete"
       ],
       "verification_evidence": [
-        "test_context_exit_without_commit_aborts_and_preserves_target"
+        "test_context_exit_without_commit_aborts_and_preserves_target; test_predispatch_crash_boundaries_recover_after_fence_expiry; test_enforced_process_kill_never_resends_and_recovery_is_explicit"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -12160,10 +12172,10 @@
         "Pre/post hashes, receipt, commit event"
       ],
       "implementation_evidence": [
-        "Filesystem staging applies a staged single-file write on explicit commit; an exact multi-file staged-diff test is absent"
+        "The enforced filesystem adapter stages a two-file diff without touching the target and commits/reconciles only the staged paths; one integrated multi-file coordinator transaction asserting COMMITTED remains absent"
       ],
       "verification_evidence": [
-        "test_filesystem_stage_commit_verify_and_rollback"
+        "test_filesystem_stage_commit_verify_and_rollback; test_enforced_process_kill_never_resends_and_recovery_is_explicit"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -12171,8 +12183,8 @@
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -12265,10 +12277,10 @@
         "Snapshot/diff comparison and rollback verification"
       ],
       "implementation_evidence": [
-        "Exact filesystem restoration is tested; the named partial-write fault schedule is absent"
+        "A named crash after the first of two filesystem changes is durably classified PARTIAL_OR_INVALID and rollback restores the exact prior tree digest; the integrated transaction/user-flow assertion remains incomplete"
       ],
       "verification_evidence": [
-        "test_filesystem_stage_commit_verify_and_rollback"
+        "test_crash_after_one_file_is_truthfully_classified_as_partial; test_recovery_v1_partial_effect_preserves_applied_path_evidence_through_rollback; test_enforced_process_kill_never_resends_and_recovery_is_explicit"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -12276,8 +12288,8 @@
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -12319,10 +12331,10 @@
         "Parameterized crash-recovery test report"
       ],
       "implementation_evidence": [
-        "Durable non-terminal records exist; automatic recovery scanner/crash matrix is absent"
+        "Process-kill/reopen and scanner recovery are implemented for representative pre-dispatch, post-dispatch, receipt, reconciliation, and recovery boundaries without implicit redispatch; not every CoordinatorCrashPoint is kill-tested"
       ],
       "verification_evidence": [
-        "tests/integration/test_sqlite_journal.py"
+        "test_real_process_kill_after_pre_effect_dispatch_reopens_without_redispatch; test_enforced_process_kill_never_resends_and_recovery_is_explicit; test_predispatch_crash_boundaries_recover_after_fence_expiry; tests/integration/test_enforced_coordinator_edge_cases.py; Exact-push GitHub Actions CI run 30213261164 succeeded on a4be55e8dabca26f51db3a3acbe20eb4ae9fe043 across Linux, Windows, Docker controls, locked install, and the cross-platform coverage union; PR merge run 30213262222 also succeeded"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -12330,8 +12342,8 @@
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -12371,19 +12383,19 @@
         "Idempotency contract test"
       ],
       "implementation_evidence": [
-        "Tenant-scoped normalized intents have one durable owner, append-only ownership history, and idempotent capability reservations; end-to-end adapter deduplication is incomplete"
+        "The enforced mock path gives each normalized intent one durable owner; exact retries and aliases return the owner outcome or receipt and cannot acquire commit authority or dispatch twice"
       ],
       "verification_evidence": [
-        "tests/integration/test_enforced_control_store.py"
+        "test_exact_retry_reports_existing_owner_without_resuming_or_redispatching; test_committed_alias_returns_owner_receipt_without_commit_capability; test_active_alias_returns_read_only_owner_status_without_adapter_io"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -12423,10 +12435,10 @@
         "Fault-injection trace and mock server request count"
       ],
       "implementation_evidence": [
-        "Lost acknowledgement durably enters IN_DOUBT; retry/reconcile flow is incomplete"
+        "Timeout or interruption after mock dispatch never resends the original intent; durable recovery either reconciles and attaches the observed outcome or remains bounded IN_DOUBT"
       ],
       "verification_evidence": [
-        "test_lost_commit_acknowledgement_is_persisted_in_doubt"
+        "test_mock_timeout_after_dispatch_waits_for_quiescence_and_never_resends; test_crash_after_dispatch_is_reconciled_without_redispatch; test_cancel_after_durable_dispatch_reports_in_doubt_then_reconciles"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -12434,8 +12446,8 @@
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -12839,10 +12851,11 @@
         "CI artifact bundle"
       ],
       "implementation_evidence": [
-        "Current CI runs quality/security/unit/integration/e2e checks; full R0.1 suites are absent"
+        "Exact-commit Linux, Windows, Docker, locked-install, cross-platform coverage-union, and CodeQL gates pass for the enforced recovery core; the complete R0.1 A1/A2/process/ingress suite is absent"
       ],
       "verification_evidence": [
-        "GitHub Actions CI run 29852865780 succeeded on a7292ea9ca157fdcb76369d9e61977c7316c8782"
+        "Exact-push GitHub Actions CI run 30213261164 succeeded on a4be55e8dabca26f51db3a3acbe20eb4ae9fe043 across Linux, Windows, Docker controls, locked install, and the cross-platform coverage union; PR merge run 30213262222 also succeeded",
+        "Exact-push GitHub CodeQL run 30213261166 succeeded on a4be55e8dabca26f51db3a3acbe20eb4ae9fe043 with zero open code-scanning alerts; PR merge CodeQL run 30213262221 also succeeded"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -12850,8 +12863,8 @@
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -15441,10 +15454,10 @@
         "Automated criterion evidence"
       ],
       "implementation_evidence": [
-        "Current R1 adapters preserve stage boundary; full crash matrix is absent"
+        "Mock and Linux filesystem R1 paths preserve the stage boundary and representative crashes around commit, reconciliation, and rollback yield one verifiable effect, verified recovery, or IN_DOUBT; not every R1+ adapter or enumerated boundary is certified"
       ],
       "verification_evidence": [
-        "tests/contract; test_lost_commit_acknowledgement_is_persisted_in_doubt"
+        "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py; test_enforced_process_kill_never_resends_and_recovery_is_explicit; test_crash_after_dispatch_is_reconciled_without_redispatch"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -15452,8 +15465,8 @@
       "related_ids": [
         "REL-R10"
       ],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -15652,10 +15665,10 @@
         "Automated criterion evidence"
       ],
       "implementation_evidence": [
-        "A generated oracle covers all 38 normative transaction-table rows through 42 stable rule IDs and 58 concrete transitions, plus illegal transitions, stale naming, deadlines, and precommit cancel/context-exit behavior; effect-boundary crash recovery is absent"
+        "The generated oracle covers all 38 normative transaction rows plus illegal transitions, stale naming, deadlines, and precommit cancellation/context exit; representative pre/post-dispatch, receipt, reconciliation, and recovery crashes are tested, but not every declared CoordinatorCrashPoint"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
+        "tests/unit/test_state_machine.py; test_predispatch_crash_boundaries_recover_after_fence_expiry; test_crash_after_dispatch_is_reconciled_without_redispatch; test_recovery_authorization_atomically_releases_handoff_before_crash; tests/integration/test_enforced_coordinator_edge_cases.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -15663,8 +15676,8 @@
       "related_ids": [
         "REL-R10"
       ],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -18217,17 +18230,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
+        "READY_TO_COMMIT enters COMMITTING by atomically journaling the immutable dispatch intent and permit before adapter commit can begin"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
+        "test_effect_receipt_does_not_imply_commit; test_enforced_happy_commit_binds_full_request_and_lease_deadlines"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -18265,17 +18278,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
+        "Only a durable receipt, committed-state PASS verification, and matching dispatch outcome can promote COMMITTING to COMMITTED"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
+        "test_enforced_happy_commit_binds_full_request_and_lease_deadlines; test_status_revalidates_committed_effect_receipt_artifact; test_status_rejects_commit_history_after_dispatch_is_deleted"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -18409,17 +18422,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
+        "Unknown post-dispatch outcomes atomically enter IN_DOUBT, block duplicate intent dispatch, and remain eligible for explicit or scanner reconciliation"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
+        "test_crash_after_dispatch_is_reconciled_without_redispatch; test_cancel_after_durable_dispatch_reports_in_doubt_then_reconciles"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -18601,17 +18614,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
+        "ABORTING uses the persisted intended outcome, runs a separately authorized staged discard, verifies no authoritative effect, and terminalizes as ABORTED or STALE_STATE"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
+        "test_recovery_scanner_resumes_an_already_aborting_transaction; test_target_drift_aborts_as_stale_before_commit_dispatch"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -18889,17 +18902,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
+        "IN_DOUBT reconciliation starts under a durable fenced lease and attempt record without redispatching the original intent"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
+        "test_reconciliation_is_durably_started_resumable_and_exact_retry_bound; test_crash_after_dispatch_is_reconciled_without_redispatch"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -18937,17 +18950,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
+        "A reconciled committed effect is independently verified and attaches the authoritative receipt without resending before promotion to COMMITTED"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
+        "test_reconciled_commit_is_independently_verified_before_classification; test_crash_after_dispatch_is_reconciled_without_redispatch"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -18985,17 +18998,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
+        "A reconciled NO_EFFECT outcome enters ABORTING and completes the staged discard without issuing the original effect"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
+        "test_restart_after_no_effect_reconciliation_finishes_abort_once; test_cancel_between_coordinator_and_adapter_dispatch_recovers_truthful_no_effect"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -19033,17 +19046,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
+        "A reconciled PARTIAL_OR_INVALID outcome enters FAILED and schedules the supported authorized recovery classification from durable effect evidence"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
+        "test_restart_after_partial_reconciliation_creates_one_follow_on_recovery; test_terminal_reconciliation_follow_on_revalidates_operation_evidence"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -19081,17 +19094,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row"
+        "Insufficient reconciliation evidence returns to IN_DOUBT with durable bounded backoff and ends in review at the absolute deadline or policy attempt limit"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py"
+        "test_unknown_reconciliation_honors_backoff_then_commits_successor; test_reconciliation_backoff_past_absolute_deadline_requires_review; test_late_reconciliation_closes_attempt_without_retry_or_redispatch; test_reconciliation_attempt_limit_cannot_be_bypassed_by_repeated_scans"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -26380,17 +26393,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Tenant-scoped intent ownership/history and reservation records enforce one active owner and immutable attempt links; enforced action dispatch/receipt records are pending"
+        "Single-action dispatches have CAS state/version, one active intent/dispatch lineage, immutable outcome chains, and append-only receipt references; normative per-action (transaction_id, ordinal) saga records remain absent"
       ],
       "verification_evidence": [
-        "tests/integration/test_enforced_control_store.py"
+        "tests/integration/test_enforced_transaction_store_v4.py; tests/integration/test_enforced_transaction_coordinator.py; test_status_revalidates_committed_effect_receipt_artifact"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -27031,17 +27044,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Atomic capability reservation and intent ownership dispositions are tested; end-to-end dispatch reconciliation is pending"
+        "Atomic capability reservation, intent ownership dispositions, exact retry, no-redispatch, and bounded reconciliation decisions are exercised end to end; the required property/unit-test breadth remains incomplete"
       ],
       "verification_evidence": [
-        "tests/integration/test_enforced_control_store.py"
+        "tests/integration/test_enforced_control_store.py; tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -27432,17 +27445,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Coordinator and SQLite integration suites pass; PostgreSQL and the enforced coordinator flow are pending"
+        "Enforced coordinator plus SQLite integration, reopen, and recovery suites pass; PostgreSQL remains absent"
       ],
       "verification_evidence": [
-        "tests/integration/test_coordinator.py; tests/integration/test_sqlite_journal.py; tests/integration/test_enforced_control_store.py"
+        "tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_enforced_transaction_store_v4.py; tests/integration/test_sqlite_journal.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -27479,14 +27492,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Local artifact corruption, substitution, missing-object, write-outage, and typed-unavailable recovery paths are integration-tested; distributed/unavailable backend coverage remains incomplete"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_artifacts.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_recovery_handoff_evidence_audit.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -27567,14 +27584,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Representative pre-dispatch, dispatch, receipt, reconciliation, and recovery journal crash transitions reopen without illegal transitions or implicit redispatch; not every declared crash point is injected"
+      ],
+      "verification_evidence": [
+        "test_predispatch_crash_boundaries_recover_after_fence_expiry; test_crash_after_dispatch_is_reconciled_without_redispatch; test_enforced_process_kill_never_resends_and_recovery_is_explicit; tests/integration/test_enforced_coordinator_edge_cases.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -27655,14 +27676,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Blocking policy evaluation is bounded by the transaction deadline and aborts durably without late dispatch; a deployed policy-service transport timeout matrix is absent"
+      ],
+      "verification_evidence": [
+        "test_asyncio_timeout_during_blocking_policy_provider_aborts_without_late_dispatch; test_recovery_policy_deadline_closes_registered_recovery_intent"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -27699,14 +27724,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Worker and recovery leases are durable, expiry-bounded, and fenced across reopen and competing scanners/adapters; stale generations cannot dispatch or recover"
+      ],
+      "verification_evidence": [
+        "test_predispatch_crash_boundaries_recover_after_fence_expiry; test_expired_running_recovery_is_not_reclaimed_or_dispatched; test_filesystem_absence_observation_fences_cross_instance_stale_commit; test_cross_instance_verification_is_serialized_by_sqlite_fence"
+      ],
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -29513,17 +29542,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Current mock/filesystem contracts and A0 demo cover a bounded subset"
+        "Mock/filesystem suites cover truthfulness, staged isolation, commit, recovery, deadlines, and representative process-kill boundaries; not every adapter or lifecycle boundary is covered by one shared suite"
       ],
       "verification_evidence": [
-        "tests/contract; tests/end_to_end"
+        "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py; tests/integration/test_fenced_adapter_crash_recovery.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -29560,14 +29589,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Real process kills and injected storage/artifact failures cover multiple pre-effect and post-effect boundaries; every process, storage, and network failure on both sides of every boundary is not covered"
+      ],
+      "verification_evidence": [
+        "test_real_process_kill_after_pre_effect_dispatch_reopens_without_redispatch; test_enforced_process_kill_never_resends_and_recovery_is_explicit; tests/integration/test_enforced_coordinator_edge_cases.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -29605,10 +29638,10 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Current mock/filesystem contracts and A0 demo cover a bounded subset"
+        "The A0 no-key demo covers one bounded end-to-end environment; every benchmark environment and the enforced A1/A2 user flow remain absent"
       ],
       "verification_evidence": [
-        "tests/contract; tests/end_to_end"
+        "tests/end_to_end/test_no_key_demo.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -32603,14 +32636,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "A transaction is classified COMMITTED only with a durable dispatch outcome, receipt reference, and committed verification; reopened status fails closed when commit history or receipt evidence is missing or tampered"
+      ],
+      "verification_evidence": [
+        "test_enforced_happy_commit_binds_full_request_and_lease_deadlines; test_status_rejects_commit_history_after_dispatch_is_deleted; test_status_revalidates_committed_effect_receipt_artifact; test_effect_receipt_does_not_imply_commit"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -32647,14 +32684,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The scanner classifies representative expired or released staging, recovery, and reconciliation leases and terminalizes bounded failures; every abandoned-lease shape is not yet proven"
+      ],
+      "verification_evidence": [
+        "test_predispatch_crash_boundaries_recover_after_fence_expiry; test_typed_reconciliation_attached_prework_crash_waits_for_lease_expiry; test_typed_reconciliation_unattached_prework_deadline_closes_once; test_expired_running_recovery_is_not_reclaimed_or_dispatched"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -33144,17 +33185,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The transaction oracle and SQLite control store own versioned state and intent records; the enforced service coordinator, leases, dispatch fencing, and recovery scanner are absent"
+        "The transaction-service core owns durable state/idempotency, leases/fences, staged and commit permits, dispatch outcomes, and scanner-driven single-action recovery; approval, saga, distributed service/API, and full ingress remain absent"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_enforced_control_store.py"
+        "tests/unit/test_state_machine.py; tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_enforced_transaction_store_v4.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -33500,17 +33541,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "agentkernel/adapters/filesystem.py passes focused contract/security tests; crash recovery and full user-flow coverage are incomplete"
+        "The Linux handle-relative filesystem adapter has durable tenant-scoped dispatch fencing, crash/reopen reconciliation, explicit rollback, and tamper-fail-closed recovery tests; native Windows enforced mode is explicitly refused and complete user-flow/every-boundary certification is absent"
       ],
       "verification_evidence": [
-        "tests/contract/test_filesystem_adapter.py"
+        "agentkernel/adapters/filesystem.py; tests/contract/test_filesystem_adapter.py; tests/integration/test_fenced_adapter_crash_recovery.py; tests/integration/test_filesystem_enforced_edge_cases.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -34043,17 +34084,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "SQLiteJournal plus SQLiteControlStore provide WAL, validated migrations, CAS, tenant-first normalized actions and decision snapshots, intent ownership/history, and atomic capability budgets/reservations; full coordinator recovery and user-flow coverage are incomplete"
+        "The SQLite WAL store persists and reopens ingress, authorization, leases, stage material, dispatch/outcome chains, recovery handoffs/work, reconciliation attempts, immutable deadlines, and evidence-audit checkpoints; PostgreSQL/distributed and complete user-flow coverage remain absent"
       ],
       "verification_evidence": [
-        "tests/integration/test_sqlite_journal.py; tests/integration/test_enforced_control_store.py; independent storage review and verification"
+        "tests/integration/test_sqlite_journal.py; tests/integration/test_enforced_control_store.py; tests/integration/test_enforced_transaction_store_v4.py; tests/integration/test_enforced_store_edge_cases.py; tests/integration/test_recovery_handoff_evidence_audit.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -34136,17 +34177,17 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "agentkernel/evidence/artifacts.py passes focused round-trip, corruption, and traversal tests; full recovery and user-flow coverage are incomplete"
+        "The content-addressed local artifact store rejects corruption, traversal, symlink substitution, insecure modes, and oversized writes; coordinator recovery uses typed unavailable evidence when storage fails, while distributed backends and complete user-flow coverage remain absent"
       ],
       "verification_evidence": [
-        "tests/unit/test_artifacts.py"
+        "agentkernel/evidence/artifacts.py; tests/unit/test_artifacts.py; tests/integration/test_enforced_coordinator_edge_cases.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a7292ea9ca157fdcb76369d9e61977c7316c8782",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -34410,14 +34451,18 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "A tenant-scoped paged recovery scanner reopens SQLite state, isolates candidate failures, respects lease/fence/backoff/deadline bounds, reconciles unknown dispatches without resend, and runs authorized discard/rollback/compensation for supported single-action adapters; complete contract/security/user-flow certification and every abandoned-lease shape are not proven"
+      ],
+      "verification_evidence": [
+        "test_recovery_scanner_isolates_one_candidate_failure_and_continues; test_recovery_limit_does_not_starve_later_work_behind_typed_stop; test_restart_after_partial_reconciliation_creates_one_follow_on_recovery; test_concurrent_scanners_after_terminal_reconciliation_create_one_follow_on"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -34784,9 +34829,13 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "Transactional staging, commit, abort, rollback, reconciliation, and crash recovery are enforced for supported single-action mock/filesystem paths; saga ordering and cross-adapter recovery remain missing"
+      ],
+      "verification_evidence": [
+        "tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_fenced_adapter_crash_recovery.py; tests/integration/test_filesystem_enforced_edge_cases.py"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
@@ -34794,8 +34843,8 @@
         "AK-071",
         "AK-077"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -34834,10 +34883,10 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "Typed durable authority snapshots/decisions, capability budget reservations/fences, policy decisions, normalized actions, and intent ownership/history exist in the SQLite control plane; enforced dispatch receipts and full audit integration are pending"
+        "Durable authority/policy decisions and reservations now bind enforced staged/commit/recovery permits, dispatch outcome chains, receipt references, control evidence, and recovery evidence audits; complete cross-service, observability, and operations integration remains incomplete"
       ],
       "verification_evidence": [
-        "tests/unit/test_authority_evaluator.py; tests/unit/test_policy_aggregation.py; tests/integration/test_enforced_control_store.py; independent storage/core review and verification"
+        "tests/unit/test_authority_evaluator.py; tests/unit/test_policy_aggregation.py; tests/integration/test_enforced_transaction_store_v4.py; tests/integration/test_recovery_handoff_evidence_audit.py; tests/integration/test_enforced_coordinator_edge_cases.py"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -34846,8 +34895,8 @@
         "AK-034",
         "AK-074"
       ],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -34983,10 +35032,10 @@
         "Retained test/review evidence"
       ],
       "implementation_evidence": [
-        "The complete transaction oracle plus cancellation/deadline/context-exit tests and SQLite process-kill durability probes exist; effect-boundary fault schedules, restart reconciliation, and recovery remain pending"
+        "Cancellation/deadline races, real process-kill boundaries, restart/reopen reconciliation, scanner isolation/backoff/deadline behavior, and authorized rollback/compensation are exercised; not every declared crash point, storage/network boundary, or saga transition is covered"
       ],
       "verification_evidence": [
-        "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py; tests/integration/test_enforced_control_store.py; independent storage verification"
+        "tests/unit/test_state_machine.py; tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_fenced_adapter_crash_recovery.py; Exact-push GitHub Actions CI run 30213261164 succeeded on a4be55e8dabca26f51db3a3acbe20eb4ae9fe043 across Linux, Windows, Docker controls, locked install, and the cross-platform coverage union; PR merge run 30213262222 also succeeded"
       ],
       "status": "partially implemented",
       "blocker_reason": "",
@@ -34997,8 +35046,8 @@
         "AK-023",
         "AK-077"
       ],
-      "last_verified_commit": "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe",
-      "last_verified_date": "2026-07-22",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
@@ -35415,16 +35464,21 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The coherent enforced-recovery milestone was committed and pushed through the exact reviewed commit; later milestones and the final release commit still require the same workflow"
+      ],
+      "verification_evidence": [
+        "Exact-push GitHub Actions CI run 30213261164 succeeded on a4be55e8dabca26f51db3a3acbe20eb4ae9fe043 across Linux, Windows, Docker controls, locked install, and the cross-platform coverage union; PR merge run 30213262222 also succeeded",
+        "Exact-push GitHub CodeQL run 30213261166 succeeded on a4be55e8dabca26f51db3a3acbe20eb4ae9fe043 with zero open code-scanning alerts; PR merge CodeQL run 30213262221 also succeeded"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "PKG-REL-01"
       ],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {

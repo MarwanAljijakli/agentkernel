@@ -455,6 +455,43 @@ class _MalformedReceiptAdapter(_ControlledVerificationAdapter):
         return self.malformed_receipt
 
 
+class _TimeoutAfterDurableEffectAdapter(_ControlledVerificationAdapter):
+    def __init__(
+        self,
+        target: VersionedMemoryTarget,
+        *,
+        require_permits: bool = False,
+        artifacts: LocalArtifactStore | None = None,
+        clock: EvidenceClock | None = None,
+    ) -> None:
+        super().__init__(
+            target,
+            require_permits=require_permits,
+            artifacts=artifacts,
+            clock=clock,
+        )
+        self.commit_calls = 0
+        self.reconcile_calls = 0
+        self.applied_receipt: EffectReceipt | None = None
+
+    async def commit(
+        self,
+        receipt: StagedReceipt,
+        ctx: CommitContext,
+    ) -> EffectReceipt:
+        self.commit_calls += 1
+        self.applied_receipt = await super().commit(receipt, ctx)
+        raise TimeoutError("synthetic lost acknowledgement after durable effect")
+
+    async def reconcile(
+        self,
+        intent: IntentRecord,
+        ctx: RecoveryContext,
+    ) -> ReconcileReport:
+        self.reconcile_calls += 1
+        return await super().reconcile(intent, ctx)
+
+
 class _ObservationFaultAdapter(_ControlledVerificationAdapter):
     observation_fault = "missing"
 
@@ -1214,6 +1251,77 @@ async def test_capability_expiry_bounds_recovery_lease_and_permit(tmp_path: Path
         assert authorization_round.authority_valid_until == authority_deadline
     finally:
         harness.store.close()
+
+
+@pytest.mark.asyncio
+async def test_committed_outcome_event_and_receipt_survive_crash_reopen(
+    tmp_path: Path,
+) -> None:
+    harness = _make_harness(
+        tmp_path,
+        crash_point=CoordinatorCrashPoint.AFTER_OUTCOME_CLASSIFIED,
+    )
+    database_path = tmp_path / "control.db"
+    reopened_store: SQLiteEnforcedTransactionStore | None = None
+    try:
+        session = await harness.coordinator.transaction(harness.request)
+        with pytest.raises(CoordinatorInjectedCrash):
+            async with session:
+                await session.commit()
+
+        assert session.record.state is TransactionState.COMMITTED
+        dispatch_before = harness.store.get_commit_dispatch(
+            tenant_id=session.record.tenant_id,
+            transaction_id=session.record.transaction_id,
+        )
+        outcomes_before = harness.store.list_dispatch_outcomes(
+            tenant_id=session.record.tenant_id,
+            transaction_id=session.record.transaction_id,
+        )
+        events_before = harness.store.list_enforced_transaction_events(
+            session.record.tenant_id,
+            session.record.transaction_id,
+        )
+        assert dispatch_before.state is CommitDispatchState.COMMITTED
+        assert dispatch_before.effect_receipt_ref is not None
+        assert outcomes_before[-1].classification is ReconciliationOutcome.COMMITTED
+        assert outcomes_before[-1].effect_receipt_ref == dispatch_before.effect_receipt_ref
+        assert events_before[-1].target_state is TransactionState.COMMITTED
+
+        receipt_ref = dispatch_before.effect_receipt_ref
+        outcome_digest = outcomes_before[-1].outcome_digest
+        event_digest = events_before[-1].event_digest
+        event_count = len(events_before)
+        harness.store.close()
+
+        reopened_store, coordinator = _reopen_coordinator(harness, database_path)
+        status = coordinator.status(session.record.tenant_id, session.record.transaction_id)
+        outcomes_after = reopened_store.list_dispatch_outcomes(
+            tenant_id=session.record.tenant_id,
+            transaction_id=session.record.transaction_id,
+        )
+        events_after = reopened_store.list_enforced_transaction_events(
+            session.record.tenant_id,
+            session.record.transaction_id,
+        )
+
+        assert status.record.state is TransactionState.COMMITTED
+        assert status.dispatch is not None
+        assert status.dispatch.state is CommitDispatchState.COMMITTED
+        assert status.dispatch.effect_receipt_ref == receipt_ref
+        reopened_receipt = harness.artifacts.get_model(receipt_ref, EffectReceipt)
+        assert canonical_digest(reopened_receipt) == receipt_ref
+        assert outcomes_after[-1].outcome_digest == outcome_digest
+        assert outcomes_after[-1].classification is ReconciliationOutcome.COMMITTED
+        assert outcomes_after[-1].effect_receipt_ref == receipt_ref
+        assert events_after[-1].event_digest == event_digest
+        assert events_after[-1].target_state is TransactionState.COMMITTED
+        assert status.event_count == event_count == len(events_after)
+    finally:
+        if reopened_store is not None:
+            reopened_store.close()
+        else:
+            harness.store.close()
 
 
 @pytest.mark.asyncio
@@ -2130,6 +2238,81 @@ async def test_crash_after_dispatch_is_reconciled_without_redispatch(tmp_path: P
         assert verification_permit.authority_permit_digest == works[0].permit.permit_digest
         assert verification_permit.subject_permit_ref == dispatch.permit_ref
         assert verification_permit.subject_permit_digest == dispatch.permit.permit_digest
+    finally:
+        harness.store.close()
+
+
+@pytest.mark.asyncio
+async def test_timeout_after_durable_effect_reconciles_without_second_commit_or_dispatch(
+    tmp_path: Path,
+) -> None:
+    harness = _make_harness(tmp_path, adapter_type=_TimeoutAfterDurableEffectAdapter)
+    adapter = harness.adapter
+    assert isinstance(adapter, _TimeoutAfterDurableEffectAdapter)
+    try:
+        session = await harness.coordinator.transaction(harness.request)
+        with pytest.raises(
+            TimeoutError,
+            match="lost acknowledgement after durable effect",
+        ):
+            async with session:
+                await session.commit()
+
+        assert session.record.state is TransactionState.IN_DOUBT
+        assert adapter.applied_receipt is not None
+        assert adapter.commit_calls == 1
+        assert adapter.reconcile_calls == 0
+        assert harness.target.state == {"before": "kept", "answer": "42"}
+        assert harness.target.version == 1
+        assert len(harness.target.dispatches) == 1
+
+        unknown_dispatch = harness.store.get_commit_dispatch(
+            tenant_id=session.record.tenant_id,
+            transaction_id=session.record.transaction_id,
+        )
+        unknown_outcomes = harness.store.list_dispatch_outcomes(
+            tenant_id=session.record.tenant_id,
+            transaction_id=session.record.transaction_id,
+        )
+        assert unknown_dispatch.state is CommitDispatchState.IN_DOUBT
+        assert unknown_dispatch.effect_receipt_ref is None
+        assert unknown_outcomes[-1].classification is ReconciliationOutcome.UNKNOWN
+        assert unknown_outcomes[-1].effect_receipt_ref is None
+
+        recovery = _restart_coordinator(harness)
+        recovered = await recovery.resume_dispatch_reconciliation(
+            session.record.tenant_id,
+            session.record.transaction_id,
+        )
+
+        assert recovered.record.state is TransactionState.COMMITTED
+        assert adapter.commit_calls == 1
+        assert adapter.reconcile_calls == 1
+        assert harness.target.state == {"before": "kept", "answer": "42"}
+        assert harness.target.version == 1
+        assert len(harness.target.dispatches) == 1
+
+        committed_dispatch = harness.store.get_commit_dispatch(
+            tenant_id=session.record.tenant_id,
+            transaction_id=session.record.transaction_id,
+        )
+        committed_outcomes = harness.store.list_dispatch_outcomes(
+            tenant_id=session.record.tenant_id,
+            transaction_id=session.record.transaction_id,
+        )
+        receipt_ref = canonical_digest(adapter.applied_receipt)
+        assert committed_dispatch.state is CommitDispatchState.COMMITTED
+        assert committed_dispatch.effect_receipt_ref == receipt_ref
+        assert harness.artifacts.get_model(receipt_ref, EffectReceipt) == adapter.applied_receipt
+        assert committed_outcomes[-1].classification is ReconciliationOutcome.COMMITTED
+        assert committed_outcomes[-1].effect_receipt_ref == receipt_ref
+
+        repeated = await recovery.recover_once(session.record.tenant_id)
+        assert repeated.processed == 0
+        assert not repeated.failures
+        assert adapter.commit_calls == 1
+        assert adapter.reconcile_calls == 1
+        assert len(harness.target.dispatches) == 1
     finally:
         harness.store.close()
 

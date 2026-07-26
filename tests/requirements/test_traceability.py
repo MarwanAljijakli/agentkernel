@@ -128,6 +128,7 @@ def test_ledger_advances_only_verified_core_rows_and_keeps_broader_rows_partial(
     value = json.loads(MANIFEST.read_text(encoding="utf-8"))
     rows = {row["id"]: row for row in value["requirements"]}
     core_commit = "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe"
+    recovery_commit = "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043"
     verified_core_ids = {
         "NORM-S11-010",
         "NORM-S11-011",
@@ -178,11 +179,62 @@ def test_ledger_advances_only_verified_core_rows_and_keeps_broader_rows_partial(
         rows[requirement_id]["status"] == "partially implemented"
         for requirement_id in conservative_ids
     )
+    verified_recovery_ids = {
+        "NORM-S11-019",
+        "AK-009",
+        "SM-TX-20",
+        "SM-TX-21",
+        "SM-TX-24",
+        "SM-TX-28",
+        "SM-TX-34",
+        "SM-TX-35",
+        "SM-TX-36",
+        "SM-TX-37",
+        "SM-TX-38",
+        "TEST-INT-07",
+    }
+    assert {
+        requirement_id
+        for requirement_id, row in rows.items()
+        if row["status"] == "implemented and verified"
+        and row["last_verified_commit"] == recovery_commit
+    } == verified_recovery_ids
+    assert all(
+        rows[requirement_id]["last_verified_date"] == "2026-07-26"
+        for requirement_id in verified_recovery_ids
+    )
+    recovery_partial_ids = {
+        "REL-R01-D05",
+        "AK-005",
+        "AK-007",
+        "AK-008",
+        "AK-010",
+        "AK-018",
+        "AK-071",
+        "AK-075",
+        "COMP-RECOVERY-SCANNER",
+        "NORM-S11-020",
+        "NORM-S11-021",
+        "NORM-S21-004",
+        "TEST-INT-04",
+        "TEST-CHAOS-01",
+        "NFR-REL-01",
+        "NFR-REL-02",
+        "USR-005",
+        "USR-009",
+    }
+    assert all(
+        rows[requirement_id]["status"] == "partially implemented"
+        and rows[requirement_id]["last_verified_commit"] == recovery_commit
+        for requirement_id in recovery_partial_ids
+    )
     assert all(
         row["status"] == "partially implemented"
         for requirement_id, row in rows.items()
-        if requirement_id.startswith("SM-TX-")
+        if requirement_id.startswith("SM-TX-") and requirement_id not in verified_recovery_ids
     )
+    assert rows["AK-077"]["status"] == "missing"
+    assert rows["COMP-SAGA"]["status"] == "missing"
 
 
 def test_traceability_bundle_points_to_its_first_containing_commit() -> None:
@@ -193,6 +245,34 @@ def test_traceability_bundle_points_to_its_first_containing_commit() -> None:
     assert rows["USR-002"]["status"] == "partially implemented"
     assert rows["USR-002"]["last_verified_commit"] == "1f1c6a243e51b5552bcdb1304af8bf0a486f7de7"
     assert rows["USR-002"]["last_verified_date"] == "2026-07-22"
+
+
+def test_recovery_freeze_evidence_names_exact_hosted_gates_without_overclaiming() -> None:
+    value = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    rows = {row["id"]: row for row in value["requirements"]}
+
+    assert rows["AK-008"]["status"] == "partially implemented"
+    assert "not every CoordinatorCrashPoint is kill-tested" in " ".join(
+        rows["AK-008"]["implementation_evidence"]
+    )
+    assert rows["AK-075"]["status"] == "partially implemented"
+    assert rows["AK-010"]["status"] == "partially implemented"
+    assert rows["NFR-REL-01"]["status"] == "partially implemented"
+    assert rows["NFR-REL-02"]["status"] == "partially implemented"
+    assert rows["AK-077"]["status"] == "missing"
+    assert rows["COMP-SAGA"]["status"] == "missing"
+
+    recovery_evidence = " ".join(
+        evidence
+        for row in rows.values()
+        if row["last_verified_commit"] == "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043"
+        for evidence in row["verification_evidence"]
+    )
+    assert "30213261164" in recovery_evidence
+    assert "30213261166" in recovery_evidence
+    assert "enforced coordinator and recovery scanner are absent" not in json.dumps(
+        value, sort_keys=True
+    )
 
 
 def test_current_only_traceability_path_cannot_claim_baseline_commit(tmp_path: Path) -> None:
