@@ -1,0 +1,95 @@
+{
+  "$defs": {
+    "LeasePurpose": {
+      "description": "Single-owner work classes protected by monotonically increasing fencing tokens.",
+      "enum": [
+        "STAGING",
+        "RECONCILIATION",
+        "RECOVERY"
+      ],
+      "title": "LeasePurpose",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Exclusive worker lease whose fencing token never decreases for a transaction.",
+  "properties": {
+    "acquired_at": {
+      "format": "date-time",
+      "title": "Acquired At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "fencing_token": {
+      "maximum": 9223372036854775807,
+      "minimum": 1,
+      "title": "Fencing Token",
+      "type": "integer"
+    },
+    "lease_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Lease Id",
+      "type": "string"
+    },
+    "purpose": {
+      "$ref": "#/$defs/LeasePurpose"
+    },
+    "released_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Released At"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    },
+    "version": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Version",
+      "type": "integer"
+    },
+    "worker_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Worker Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "lease_id",
+    "worker_id",
+    "purpose",
+    "fencing_token",
+    "version",
+    "acquired_at",
+    "expires_at"
+  ],
+  "title": "WorkerLeaseRecord",
+  "type": "object"
+}

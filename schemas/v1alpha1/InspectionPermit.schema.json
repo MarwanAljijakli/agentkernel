@@ -1,0 +1,101 @@
+{
+  "additionalProperties": false,
+  "description": "Coordinator-issued authority for one fenced, read-only target inspection.",
+  "properties": {
+    "adapter_manifest_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Adapter Manifest Digest",
+      "type": "string"
+    },
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "authorization_round_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Authorization Round Digest",
+      "type": "string"
+    },
+    "authorization_round_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Authorization Round Id",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "fencing_token": {
+      "maximum": 9223372036854775807,
+      "minimum": 1,
+      "title": "Fencing Token",
+      "type": "integer"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "lease_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Lease Id",
+      "type": "string"
+    },
+    "normalized_action_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Normalized Action Digest",
+      "type": "string"
+    },
+    "permit_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Permit Digest",
+      "type": "string"
+    },
+    "proposal_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Proposal Ref",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    },
+    "worker_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Worker Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "intent_hash",
+    "normalized_action_digest",
+    "proposal_ref",
+    "adapter_manifest_digest",
+    "authorization_round_id",
+    "authorization_round_digest",
+    "lease_id",
+    "worker_id",
+    "fencing_token",
+    "issued_at",
+    "deadline",
+    "permit_digest"
+  ],
+  "title": "InspectionPermit",
+  "type": "object"
+}

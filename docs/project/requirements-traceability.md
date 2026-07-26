@@ -10,7 +10,7 @@
 - Catalog and authoritative user rows: **446**.
 - Total rows: **806**.
 - Stable release readiness: **FAIL**.
-- Reason: mandatory rows remain partial/missing and a high-severity CodeQL alert is open. No stable v1 release is supported by this baseline.
+- Reason: mandatory rows remain partial/missing and clean full-release verification is absent. No stable v1 release is supported by this baseline.
 
 The four allowed status strings are exact: `implemented and verified`, `partially implemented`, `missing`, and `blocked`. No row is marked blocked unless an external reason and minimum action are both recorded.
 
@@ -114,6 +114,6 @@ IDs in `requirements/id-registry.json` are append-only. Existing IDs must never 
 
 ## Known release blockers versus implementation gaps
 
-There is no externally blocked row in this baseline. Missing A1/A2 confinement, the process and heterogeneous adapters, recovery scanner/saga, Z3, benchmark/data/TraceWorld, distributed operations, release artifacts, clean cross-platform verification, and the open high CodeQL finding are implementation or verification work—not external blockers.
+There is no externally blocked row in this baseline. Missing A1/A2 confinement, the process and heterogeneous adapters, recovery scanner/saga, Z3, benchmark/data/TraceWorld, distributed operations, release artifacts, and clean cross-platform verification are implementation or verification work—not external blockers. The previously open high CodeQL finding is fixed and retained as positive scan evidence.
 
 Source category count checksum: `f6e47473a5e85daef35502d5281555cc1c5569e154669cdce9f36031ceb830d7`.

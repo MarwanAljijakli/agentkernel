@@ -1,0 +1,181 @@
+{
+  "$defs": {
+    "IntendedOutcome": {
+      "enum": [
+        "ABORTED",
+        "STALE_STATE"
+      ],
+      "title": "IntendedOutcome",
+      "type": "string"
+    },
+    "TransactionState": {
+      "description": "Normative durable transaction states from specification Section 8.2.",
+      "enum": [
+        "NEW",
+        "PLANNED",
+        "REJECTED",
+        "AUTHORIZED_TO_STAGE",
+        "STAGING",
+        "STAGED",
+        "STAGE_VERIFIED",
+        "AWAITING_APPROVAL",
+        "READY_TO_COMMIT",
+        "COMMITTING",
+        "COMMITTED",
+        "FAILED",
+        "ABORTING",
+        "ABORTED",
+        "STALE_STATE",
+        "ROLLING_BACK",
+        "ROLLED_BACK",
+        "COMPENSATING",
+        "COMPENSATED",
+        "COMPENSATION_FAILED",
+        "RECOVERY_FAILED",
+        "IN_DOUBT",
+        "RECONCILING"
+      ],
+      "title": "TransactionState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Hash-bound CAS event written in the same transaction as its state change.",
+  "properties": {
+    "actor_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Actor Id",
+      "type": "string"
+    },
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "event": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Event",
+      "type": "string"
+    },
+    "event_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Event Digest",
+      "type": "string"
+    },
+    "event_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "intended_outcome": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/IntendedOutcome"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "on_behalf_of": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "On Behalf Of",
+      "type": "string"
+    },
+    "previous_event_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Event Digest"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "rule_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Rule Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sequence": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "source_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TransactionState"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "target_state": {
+      "$ref": "#/$defs/TransactionState"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    },
+    "transaction_version": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Transaction Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "sequence",
+    "transaction_version",
+    "event_id",
+    "rule_id",
+    "event",
+    "source_state",
+    "target_state",
+    "actor_id",
+    "on_behalf_of",
+    "recorded_at",
+    "event_digest"
+  ],
+  "title": "EnforcedTransactionEvent",
+  "type": "object"
+}

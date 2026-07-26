@@ -26,7 +26,6 @@
     "release_readiness": "FAIL",
     "release_readiness_reasons": [
       "Mandatory rows are not all implemented and verified",
-      "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is open at high severity on main as of 2026-07-22",
       "Clean Windows/Linux/Docker/public-clone full release verification is absent"
     ]
   },
@@ -4914,7 +4913,7 @@
       ],
       "implementation_evidence": [],
       "verification_evidence": [
-        "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is open at high severity on main as of 2026-07-22"
+        "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is fixed, and CodeQL run 29941854489 succeeded on cf34418fbc273c4daf9f09007f02105499d7a849, verified 2026-07-23"
       ],
       "status": "missing",
       "blocker_reason": "",
@@ -14069,7 +14068,7 @@
       ],
       "implementation_evidence": [],
       "verification_evidence": [
-        "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is open at high severity on main as of 2026-07-22"
+        "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is fixed, and CodeQL run 29941854489 succeeded on cf34418fbc273c4daf9f09007f02105499d7a849, verified 2026-07-23"
       ],
       "status": "missing",
       "blocker_reason": "",
@@ -15240,7 +15239,7 @@
       ],
       "implementation_evidence": [],
       "verification_evidence": [
-        "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is open at high severity on main as of 2026-07-22"
+        "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is fixed, and CodeQL run 29941854489 succeeded on cf34418fbc273c4daf9f09007f02105499d7a849, verified 2026-07-23"
       ],
       "status": "missing",
       "blocker_reason": "",
@@ -35620,7 +35619,7 @@
         "README/ROADMAP prohibit premature v1 claims; automated full-release gate is not complete"
       ],
       "verification_evidence": [
-        "Manual documentation review; GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is open at high severity on main as of 2026-07-22"
+        "Manual documentation review; GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is fixed, and CodeQL run 29941854489 succeeded on cf34418fbc273c4daf9f09007f02105499d7a849, verified 2026-07-23"
       ],
       "status": "partially implemented",
       "blocker_reason": "",

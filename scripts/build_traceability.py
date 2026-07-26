@@ -32,9 +32,10 @@ BASELINE_DATE = "2026-07-22"
 R01_CORE_COMMIT = "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe"
 R01_CORE_DATE = "2026-07-22"
 CI_EVIDENCE = "GitHub Actions CI run 29852865780 succeeded on " + BASELINE_COMMIT
-CODEQL_ALERT = (
-    "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is open at high "
-    "severity on main as of 2026-07-22"
+CODEQL_EVIDENCE = (
+    "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is fixed, and "
+    "CodeQL run 29941854489 succeeded on "
+    "cf34418fbc273c4daf9f09007f02105499d7a849, verified 2026-07-23"
 )
 
 
@@ -841,7 +842,7 @@ ROADMAP_EVIDENCE: dict[str, Evidence] = {
     ),
     "REL-R10-G05": Evidence(
         "missing",
-        verification=(CODEQL_ALERT,),
+        verification=(CODEQL_EVIDENCE,),
     ),
 }
 
@@ -973,7 +974,7 @@ AK_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py",),
     ),
-    "AK-043": Evidence("missing", verification=(CODEQL_ALERT,)),
+    "AK-043": Evidence("missing", verification=(CODEQL_EVIDENCE,)),
     "AK-060": r01_core_partial(
         implementation=(
             "The SQLite authority/action/decision/budget/reservation/intent-history control plane is tenant-first and cross-tenant access is rejected; API, object, cache, telemetry, and artifact-wide isolation are absent",
@@ -984,7 +985,7 @@ AK_EVIDENCE: dict[str, Evidence] = {
         implementation=("An A0 no-key demo works; v1 attack/recovery/replay flow is incomplete",),
         verification=("tests/end_to_end/test_no_key_demo.py",),
     ),
-    "AK-067": Evidence("missing", verification=(CODEQL_ALERT,)),
+    "AK-067": Evidence("missing", verification=(CODEQL_EVIDENCE,)),
     "AK-068": baseline_partial(
         implementation=(
             "Current documentation scopes A0 claims; future release documentation is absent",
@@ -2527,7 +2528,7 @@ USER_EVIDENCE: dict[str, Evidence] = {
         implementation=(
             "README/ROADMAP prohibit premature v1 claims; automated full-release gate is not complete",
         ),
-        verification=("Manual documentation review; " + CODEQL_ALERT,),
+        verification=("Manual documentation review; " + CODEQL_EVIDENCE,),
     ),
 }
 
@@ -2656,8 +2657,8 @@ def _markdown(manifest: dict[str, Any]) -> str:
             f"- Catalog and authoritative user rows: **{len(catalogs)}**.",
             f"- Total rows: **{len(rows)}**.",
             "- Stable release readiness: **FAIL**.",
-            "- Reason: mandatory rows remain partial/missing and a high-severity CodeQL alert is open. "
-            "No stable v1 release is supported by this baseline.",
+            "- Reason: mandatory rows remain partial/missing and clean full-release verification "
+            "is absent. No stable v1 release is supported by this baseline.",
             "",
             "The four allowed status strings are exact: `implemented and verified`, "
             "`partially implemented`, `missing`, and `blocked`. No row is marked blocked unless an "
@@ -2721,8 +2722,9 @@ def _markdown(manifest: dict[str, Any]) -> str:
             "",
             "There is no externally blocked row in this baseline. Missing A1/A2 confinement, the "
             "process and heterogeneous adapters, recovery scanner/saga, Z3, benchmark/data/TraceWorld, "
-            "distributed operations, release artifacts, clean cross-platform verification, and the "
-            "open high CodeQL finding are implementation or verification work—not external blockers.",
+            "distributed operations, release artifacts, and clean cross-platform verification are "
+            "implementation or verification work—not external blockers. The previously open high "
+            "CodeQL finding is fixed and retained as positive scan evidence.",
             "",
             f"Source category count checksum: `{_sha256(json.dumps(dict(sorted(source_counts.items())), sort_keys=True).encode())}`.",
             "",
@@ -2792,7 +2794,6 @@ def build_manifest(spec_path: Path) -> dict[str, Any]:
             "release_readiness": "FAIL",
             "release_readiness_reasons": [
                 "Mandatory rows are not all implemented and verified",
-                CODEQL_ALERT,
                 "Clean Windows/Linux/Docker/public-clone full release verification is absent",
             ],
         },

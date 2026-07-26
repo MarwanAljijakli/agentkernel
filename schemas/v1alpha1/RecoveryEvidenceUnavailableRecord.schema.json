@@ -1,0 +1,89 @@
+{
+  "additionalProperties": false,
+  "description": "SQL-bound terminal fact when possible recovery effects lack artifact evidence.",
+  "properties": {
+    "boundary": {
+      "enum": [
+        "RECOVERY_DEADLINE",
+        "RECOVERY_LEASE_EXPIRED",
+        "RECOVERY_LEASE_RELEASED",
+        "POST_CLAIM_SETUP",
+        "RECOVERY_ADAPTER_OR_EVIDENCE",
+        "RECONCILIATION_SETUP_OR_QUERY",
+        "RECONCILIATION_EVIDENCE"
+      ],
+      "title": "Boundary",
+      "type": "string"
+    },
+    "evidence_status": {
+      "const": "UNAVAILABLE",
+      "default": "UNAVAILABLE",
+      "title": "Evidence Status",
+      "type": "string"
+    },
+    "operation_evidence_ref": {
+      "default": null,
+      "title": "Operation Evidence Ref",
+      "type": "null"
+    },
+    "reason_code": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "record_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Record Digest",
+      "type": "string"
+    },
+    "recovery_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "reported_at": {
+      "format": "date-time",
+      "title": "Reported At",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "supporting_refs": {
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Supporting Refs",
+      "type": "array"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "recovery_id",
+    "boundary",
+    "supporting_refs",
+    "reported_at",
+    "reason_code",
+    "record_digest"
+  ],
+  "title": "RecoveryEvidenceUnavailableRecord",
+  "type": "object"
+}

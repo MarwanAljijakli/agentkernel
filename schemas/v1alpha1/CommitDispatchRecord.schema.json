@@ -1,0 +1,457 @@
+{
+  "$defs": {
+    "CommitDispatchState": {
+      "description": "Durable post-permit classification; no state authorizes an implicit resend.",
+      "enum": [
+        "DISPATCHED",
+        "COMMITTED",
+        "NO_EFFECT",
+        "PARTIAL_OR_INVALID",
+        "IN_DOUBT",
+        "REVIEW_REQUIRED"
+      ],
+      "title": "CommitDispatchState",
+      "type": "string"
+    },
+    "CommitPermit": {
+      "additionalProperties": false,
+      "description": "One durable permit for one exact staged receipt and commit dispatch.",
+      "properties": {
+        "adapter_manifest_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Adapter Manifest Digest",
+          "type": "string"
+        },
+        "api_version": {
+          "const": "agentkernel.io/v1alpha1",
+          "default": "agentkernel.io/v1alpha1",
+          "title": "Api Version",
+          "type": "string"
+        },
+        "approval_evidence_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Approval Evidence Ref",
+          "type": "string"
+        },
+        "approval_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Id"
+        },
+        "approval_required": {
+          "title": "Approval Required",
+          "type": "boolean"
+        },
+        "authority_decision_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Authority Decision Digest",
+          "type": "string"
+        },
+        "authorization_round_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Authorization Round Digest",
+          "type": "string"
+        },
+        "authorization_round_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Authorization Round Id",
+          "type": "string"
+        },
+        "capability_reservation_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Capability Reservation Digest",
+          "type": "string"
+        },
+        "deadline": {
+          "format": "date-time",
+          "title": "Deadline",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Dispatch Id",
+          "type": "string"
+        },
+        "fencing_token": {
+          "maximum": 9223372036854775807,
+          "minimum": 1,
+          "title": "Fencing Token",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "intent_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Intent Hash",
+          "type": "string"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "lease_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Lease Id",
+          "type": "string"
+        },
+        "normalized_action_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Normalized Action Digest",
+          "type": "string"
+        },
+        "owner_history_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Owner History Digest",
+          "type": "string"
+        },
+        "owner_history_sequence": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Owner History Sequence",
+          "type": "integer"
+        },
+        "owner_version": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Owner Version",
+          "type": "integer"
+        },
+        "permit_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Permit Digest",
+          "type": "string"
+        },
+        "plan_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Plan Digest",
+          "type": "string"
+        },
+        "plan_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Plan Ref",
+          "type": "string"
+        },
+        "policy_decision_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Policy Decision Digest",
+          "type": "string"
+        },
+        "policy_snapshot_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Policy Snapshot Digest",
+          "type": "string"
+        },
+        "precommit_inspection_permit_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Precommit Inspection Permit Digest",
+          "type": "string"
+        },
+        "precommit_inspection_permit_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Precommit Inspection Permit Ref",
+          "type": "string"
+        },
+        "precommit_plan_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Precommit Plan Digest",
+          "type": "string"
+        },
+        "precommit_plan_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Precommit Plan Ref",
+          "type": "string"
+        },
+        "reservation_version": {
+          "maximum": 9223372036854775807,
+          "minimum": 1,
+          "title": "Reservation Version",
+          "type": "integer"
+        },
+        "stage_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Stage Id",
+          "type": "string"
+        },
+        "stage_permit_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Stage Permit Digest",
+          "type": "string"
+        },
+        "stage_permit_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Stage Permit Ref",
+          "type": "string"
+        },
+        "staged_receipt_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Staged Receipt Ref",
+          "type": "string"
+        },
+        "staged_state_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Staged State Digest",
+          "type": "string"
+        },
+        "staged_verification_permit_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Staged Verification Permit Digest",
+          "type": "string"
+        },
+        "staged_verification_permit_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Staged Verification Permit Ref",
+          "type": "string"
+        },
+        "staged_verification_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Staged Verification Ref",
+          "type": "string"
+        },
+        "target_version_guard": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Target Version Guard",
+          "type": "string"
+        },
+        "tenant_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "transaction_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Transaction Id",
+          "type": "string"
+        },
+        "worker_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Worker Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "transaction_id",
+        "intent_hash",
+        "normalized_action_digest",
+        "dispatch_id",
+        "stage_id",
+        "plan_digest",
+        "plan_ref",
+        "stage_permit_digest",
+        "stage_permit_ref",
+        "lease_id",
+        "worker_id",
+        "fencing_token",
+        "idempotency_key",
+        "target_version_guard",
+        "staged_receipt_ref",
+        "staged_state_digest",
+        "staged_verification_permit_digest",
+        "staged_verification_permit_ref",
+        "staged_verification_ref",
+        "precommit_inspection_permit_digest",
+        "precommit_inspection_permit_ref",
+        "precommit_plan_digest",
+        "precommit_plan_ref",
+        "approval_required",
+        "approval_evidence_ref",
+        "adapter_manifest_digest",
+        "authority_decision_digest",
+        "policy_decision_digest",
+        "policy_snapshot_digest",
+        "authorization_round_id",
+        "authorization_round_digest",
+        "capability_reservation_digest",
+        "reservation_version",
+        "owner_version",
+        "owner_history_sequence",
+        "owner_history_digest",
+        "issued_at",
+        "deadline",
+        "permit_digest"
+      ],
+      "title": "CommitPermit",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One dispatch generation, unique per tenant, intent, and owner version.",
+  "properties": {
+    "committed_verification_permit_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Committed Verification Permit Digest"
+    },
+    "committed_verification_permit_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Committed Verification Permit Ref"
+    },
+    "committed_verification_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Committed Verification Ref"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "effect_receipt_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Effect Receipt Ref"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "no_effect_evidence_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "No Effect Evidence Ref"
+    },
+    "outcome_evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Outcome Evidence Refs",
+      "type": "array"
+    },
+    "owner_version": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Owner Version",
+      "type": "integer"
+    },
+    "permit": {
+      "$ref": "#/$defs/CommitPermit"
+    },
+    "permit_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Permit Ref",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/CommitDispatchState"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    },
+    "unavailable_record_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unavailable Record Digest"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "version": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "intent_hash",
+    "dispatch_id",
+    "owner_version",
+    "permit",
+    "permit_ref",
+    "state",
+    "version",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "CommitDispatchRecord",
+  "type": "object"
+}

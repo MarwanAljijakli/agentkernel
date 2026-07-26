@@ -1,0 +1,642 @@
+{
+  "$defs": {
+    "RecoveryPermit": {
+      "additionalProperties": false,
+      "description": "Separate fenced authority for one exact recovery or reconciliation action.",
+      "properties": {
+        "adapter_manifest_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Adapter Manifest Digest",
+          "type": "string"
+        },
+        "api_version": {
+          "const": "agentkernel.io/v1alpha1",
+          "default": "agentkernel.io/v1alpha1",
+          "title": "Api Version",
+          "type": "string"
+        },
+        "approval_evidence_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Approval Evidence Ref",
+          "type": "string"
+        },
+        "approval_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Id"
+        },
+        "approval_required": {
+          "title": "Approval Required",
+          "type": "boolean"
+        },
+        "authority_decision_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Authority Decision Digest",
+          "type": "string"
+        },
+        "authorization_round_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Authorization Round Digest",
+          "type": "string"
+        },
+        "authorization_round_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Authorization Round Id",
+          "type": "string"
+        },
+        "capability_reservation_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Capability Reservation Digest",
+          "type": "string"
+        },
+        "deadline": {
+          "format": "date-time",
+          "title": "Deadline",
+          "type": "string"
+        },
+        "fencing_token": {
+          "maximum": 9223372036854775807,
+          "minimum": 1,
+          "title": "Fencing Token",
+          "type": "integer"
+        },
+        "intent_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Intent Hash",
+          "type": "string"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "lease_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Lease Id",
+          "type": "string"
+        },
+        "owner_history_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Owner History Digest",
+          "type": "string"
+        },
+        "owner_history_sequence": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Owner History Sequence",
+          "type": "integer"
+        },
+        "owner_version": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Owner Version",
+          "type": "integer"
+        },
+        "permit_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Permit Digest",
+          "type": "string"
+        },
+        "policy_decision_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Policy Decision Digest",
+          "type": "string"
+        },
+        "policy_snapshot_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Policy Snapshot Digest",
+          "type": "string"
+        },
+        "recovery_action_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Recovery Action Digest",
+          "type": "string"
+        },
+        "recovery_action_intent_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Recovery Action Intent Hash",
+          "type": "string"
+        },
+        "recovery_action_transaction_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Recovery Action Transaction Id",
+          "type": "string"
+        },
+        "recovery_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Recovery Id",
+          "type": "string"
+        },
+        "recovery_kind": {
+          "$ref": "#/$defs/RecoveryWorkKind"
+        },
+        "reservation_version": {
+          "maximum": 9223372036854775807,
+          "minimum": 1,
+          "title": "Reservation Version",
+          "type": "integer"
+        },
+        "target_evidence_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Target Evidence Ref",
+          "type": "string"
+        },
+        "target_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_owner_history_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Target Owner History Digest",
+          "type": "string"
+        },
+        "target_owner_history_sequence": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Target Owner History Sequence",
+          "type": "integer"
+        },
+        "target_owner_version": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Target Owner Version",
+          "type": "integer"
+        },
+        "target_version_guard": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Target Version Guard",
+          "type": "string"
+        },
+        "tenant_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "transaction_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Transaction Id",
+          "type": "string"
+        },
+        "worker_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Worker Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "transaction_id",
+        "intent_hash",
+        "recovery_id",
+        "recovery_action_transaction_id",
+        "recovery_action_intent_hash",
+        "recovery_action_digest",
+        "adapter_manifest_digest",
+        "recovery_kind",
+        "target_id",
+        "target_owner_version",
+        "target_owner_history_sequence",
+        "target_owner_history_digest",
+        "target_evidence_ref",
+        "target_version_guard",
+        "authorization_round_id",
+        "authorization_round_digest",
+        "authority_decision_digest",
+        "policy_decision_digest",
+        "policy_snapshot_digest",
+        "capability_reservation_digest",
+        "reservation_version",
+        "owner_version",
+        "owner_history_sequence",
+        "owner_history_digest",
+        "approval_required",
+        "approval_evidence_ref",
+        "lease_id",
+        "worker_id",
+        "fencing_token",
+        "issued_at",
+        "deadline",
+        "permit_digest"
+      ],
+      "title": "RecoveryPermit",
+      "type": "object"
+    },
+    "RecoveryWorkKind": {
+      "description": "Explicit recovery operation; each item requires its own authority and deadline.",
+      "enum": [
+        "DISCARD_STAGING",
+        "RECONCILE_DISPATCH",
+        "ROLLBACK",
+        "COMPENSATE"
+      ],
+      "title": "RecoveryWorkKind",
+      "type": "string"
+    },
+    "RecoveryWorkState": {
+      "description": "Durable execution state for one bounded recovery item.",
+      "enum": [
+        "PENDING",
+        "RUNNING",
+        "RETRY_SCHEDULED",
+        "RETRIED",
+        "SUCCEEDED",
+        "FAILED",
+        "REVIEW_REQUIRED"
+      ],
+      "title": "RecoveryWorkState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Separately authorized, deadline-bounded recovery work item.",
+  "properties": {
+    "adapter_manifest_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Adapter Manifest Digest",
+      "type": "string"
+    },
+    "approval_evidence_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Approval Evidence Ref",
+      "type": "string"
+    },
+    "approval_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approval Id"
+    },
+    "approval_required": {
+      "title": "Approval Required",
+      "type": "boolean"
+    },
+    "attempt": {
+      "default": 0,
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "authority_decision_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Authority Decision Digest",
+      "type": "string"
+    },
+    "authorization_round_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Authorization Round Digest",
+      "type": "string"
+    },
+    "authorization_round_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Authorization Round Id",
+      "type": "string"
+    },
+    "capability_reservation_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Capability Reservation Digest"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "fencing_token": {
+      "anyOf": [
+        {
+          "maximum": 9223372036854775807,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fencing Token"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/RecoveryWorkKind"
+    },
+    "lease_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lease Id"
+    },
+    "max_recovery_attempts": {
+      "maximum": 9223372036854775807,
+      "minimum": 1,
+      "title": "Max Recovery Attempts",
+      "type": "integer"
+    },
+    "not_before": {
+      "format": "date-time",
+      "title": "Not Before",
+      "type": "string"
+    },
+    "owner_history_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Owner History Digest",
+      "type": "string"
+    },
+    "owner_history_sequence": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Owner History Sequence",
+      "type": "integer"
+    },
+    "owner_version": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Owner Version",
+      "type": "integer"
+    },
+    "permit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RecoveryPermit"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "permit_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Permit Ref"
+    },
+    "policy_decision_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Policy Decision Digest",
+      "type": "string"
+    },
+    "policy_snapshot_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Policy Snapshot Digest",
+      "type": "string"
+    },
+    "predecessor_recovery_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Predecessor Recovery Id"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
+    "recovery_action_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Recovery Action Digest",
+      "type": "string"
+    },
+    "recovery_action_intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Recovery Action Intent Hash",
+      "type": "string"
+    },
+    "recovery_action_transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Recovery Action Transaction Id",
+      "type": "string"
+    },
+    "recovery_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "recovery_ordinal": {
+      "maximum": 9223372036854775807,
+      "minimum": 1,
+      "title": "Recovery Ordinal",
+      "type": "integer"
+    },
+    "reservation_version": {
+      "anyOf": [
+        {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reservation Version"
+    },
+    "root_recovery_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Root Recovery Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/RecoveryWorkState"
+    },
+    "target_evidence_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Target Evidence Ref",
+      "type": "string"
+    },
+    "target_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_owner_history_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Target Owner History Digest",
+      "type": "string"
+    },
+    "target_owner_history_sequence": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Target Owner History Sequence",
+      "type": "integer"
+    },
+    "target_owner_version": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Target Owner Version",
+      "type": "integer"
+    },
+    "target_version_guard": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Target Version Guard",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    },
+    "unavailable_record_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unavailable Record Digest"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "version": {
+      "default": 0,
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Version",
+      "type": "integer"
+    },
+    "worker_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Worker Id"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "intent_hash",
+    "recovery_id",
+    "root_recovery_id",
+    "recovery_ordinal",
+    "max_recovery_attempts",
+    "not_before",
+    "recovery_action_transaction_id",
+    "recovery_action_intent_hash",
+    "recovery_action_digest",
+    "adapter_manifest_digest",
+    "kind",
+    "target_id",
+    "target_owner_version",
+    "target_owner_history_sequence",
+    "target_owner_history_digest",
+    "target_evidence_ref",
+    "target_version_guard",
+    "state",
+    "authorization_round_id",
+    "authorization_round_digest",
+    "authority_decision_digest",
+    "policy_decision_digest",
+    "policy_snapshot_digest",
+    "owner_version",
+    "owner_history_sequence",
+    "owner_history_digest",
+    "approval_required",
+    "approval_evidence_ref",
+    "deadline",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "RecoveryWorkRecord",
+  "type": "object"
+}

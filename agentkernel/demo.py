@@ -12,7 +12,7 @@ from typing import Self, cast
 
 from pydantic import JsonValue, ValidationError, model_validator
 
-from agentkernel.adapters.filesystem import FilesystemAdapter
+from agentkernel.adapters.filesystem import FILESYSTEM_ADAPTER_VERSION, FilesystemAdapter
 from agentkernel.adapters.registry import AdapterRegistry
 from agentkernel.authority.service import (
     AuthorityGrant,
@@ -226,7 +226,7 @@ class DemoReplayTrace(StrictModel):
                 or proposal.capability_refs != capability_refs
                 or proposal.goal_id != "goal_demo"
                 or proposal.agent_id != "agent:scripted:demo"
-                or proposal.adapter_version != "0.1.0"
+                or proposal.adapter_version != FILESYSTEM_ADAPTER_VERSION
                 or proposal.deadline != datetime(2026, 1, 1, 0, 5, tzinfo=UTC)
             ):
                 raise ValueError("Demo trace contains substituted normalized proposal fields")
@@ -862,7 +862,7 @@ def _materialize_model_plan(
             transaction_id=transaction_id,
             agent_id="agent:scripted:demo",
             adapter=model_action.adapter,
-            adapter_version="0.1.0",
+            adapter_version=FILESYSTEM_ADAPTER_VERSION,
             operation=model_action.operation,
             arguments=arguments,
             provenance_ids=provenance_ids,

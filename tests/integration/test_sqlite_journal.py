@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import sqlite3
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -19,7 +20,7 @@ _FROZEN_MIGRATION_DIGESTS = {
     1: "sha256:c621aaf41e48d6de6b89154575165e8fd19d034e8a48a1d14dd96a12be03041c",
     2: "sha256:18a9e79676b67150c04fd841013de2d48d5c3ae5cc1f2b2a4dc4312edc4d4ef9",
 }
-_CURRENT_SCHEMA_VERSION = 3
+_CURRENT_SCHEMA_VERSION = 7
 _TEST_MIGRATION_VERSION = _CURRENT_SCHEMA_VERSION + 1
 _LEGACY_APPLIED_AT = "2026-01-01T00:00:00.000Z"
 _ATOMIC_TEST_MIGRATION = """
@@ -425,6 +426,189 @@ def test_failed_first_migration_rolls_back_schema_bootstrap(
 
     with SQLiteJournal(path) as retried:
         assert retried.schema_version() == _CURRENT_SCHEMA_VERSION
+
+
+@pytest.mark.integration
+def test_concurrent_fresh_open_releases_migration_lock_before_validation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "concurrent-fresh.db"
+    connection = sqlite3.connect(path)
+    try:
+        assert str(connection.execute("PRAGMA journal_mode = WAL").fetchone()[0]).lower() == "wal"
+    finally:
+        connection.close()
+
+    owner_holds_lock = threading.Event()
+    allow_owner = threading.Event()
+    waiter_saw_pending = threading.Event()
+    waiter_is_validating = threading.Event()
+    allow_waiter = threading.Event()
+    failures: list[BaseException] = []
+    original_execute = SQLiteJournal._execute_migration_statement
+    original_current = SQLiteJournal._current_schema_is_valid
+    original_validate = SQLiteJournal._validate_live_schema
+
+    def pause_owner(
+        journal: SQLiteJournal,
+        statement: str,
+        parameters: tuple[object, ...] = (),
+    ) -> None:
+        if threading.current_thread().name == "migration-owner" and not owner_holds_lock.is_set():
+            owner_holds_lock.set()
+            assert allow_owner.wait(timeout=10)
+        original_execute(journal, statement, parameters)
+
+    def observe_pending(
+        journal: SQLiteJournal,
+        migrations: tuple[sqlite_storage._PreparedMigration, ...],
+    ) -> bool:
+        current = original_current(journal, migrations)
+        if threading.current_thread().name == "migration-waiter" and not current:
+            waiter_saw_pending.set()
+        return current
+
+    def pause_waiter_validation(
+        journal: SQLiteJournal,
+        expected: tuple[sqlite_storage._SchemaObject, ...],
+        *,
+        version: int,
+    ) -> None:
+        if threading.current_thread().name == "migration-waiter":
+            waiter_is_validating.set()
+            assert allow_waiter.wait(timeout=10)
+        original_validate(journal, expected, version=version)
+
+    def open_journal() -> None:
+        try:
+            with SQLiteJournal(path) as journal:
+                assert journal.schema_version() == _CURRENT_SCHEMA_VERSION
+        except BaseException as error:
+            failures.append(error)
+
+    monkeypatch.setattr(SQLiteJournal, "_execute_migration_statement", pause_owner)
+    monkeypatch.setattr(SQLiteJournal, "_current_schema_is_valid", observe_pending)
+    monkeypatch.setattr(SQLiteJournal, "_validate_live_schema", pause_waiter_validation)
+
+    owner = threading.Thread(target=open_journal, name="migration-owner")
+    waiter = threading.Thread(target=open_journal, name="migration-waiter")
+    owner.start()
+    assert owner_holds_lock.wait(timeout=10)
+    waiter.start()
+    assert waiter_saw_pending.wait(timeout=10)
+    allow_owner.set()
+    assert waiter_is_validating.wait(timeout=10)
+
+    contender = sqlite3.connect(path, isolation_level=None, timeout=0.01)
+    try:
+        contender.execute("PRAGMA busy_timeout = 1")
+        contender.execute("BEGIN IMMEDIATE")
+        contender.execute("ROLLBACK")
+    finally:
+        contender.close()
+        allow_waiter.set()
+        owner.join(timeout=10)
+        waiter.join(timeout=10)
+
+    assert not owner.is_alive()
+    assert not waiter.is_alive()
+    assert failures == []
+    with SQLiteJournal(path) as reopened:
+        assert reopened.schema_version() == _CURRENT_SCHEMA_VERSION
+
+
+@pytest.mark.integration
+def test_migration_lock_contention_is_typed_retryable_and_leaves_no_schema(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "migration-lock.db"
+    locker = sqlite3.connect(path, isolation_level=None)
+    try:
+        assert str(locker.execute("PRAGMA journal_mode = WAL").fetchone()[0]).lower() == "wal"
+        locker.execute("BEGIN IMMEDIATE")
+        original_connect = sqlite3.connect
+
+        def fast_timeout_connect(*args: object, **kwargs: object) -> sqlite3.Connection:
+            kwargs["timeout"] = 0.01
+            return original_connect(*args, **kwargs)
+
+        monkeypatch.setattr(sqlite_storage.sqlite3, "connect", fast_timeout_connect)
+        with pytest.raises(AgentKernelError) as captured:
+            SQLiteJournal(path)
+        assert captured.value.code is ErrorCode.EVIDENCE_UNAVAILABLE
+        assert captured.value.retryable
+        assert isinstance(captured.value.__cause__, sqlite3.OperationalError)
+        assert captured.value.__cause__.sqlite_errorcode & 0xFF in {
+            sqlite3.SQLITE_BUSY,
+            sqlite3.SQLITE_LOCKED,
+        }
+        observer = original_connect(path)
+        try:
+            objects = tuple(
+                observer.execute(
+                    "SELECT name FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'"
+                ).fetchall()
+            )
+        finally:
+            observer.close()
+        assert objects == ()
+        locker.execute("ROLLBACK")
+        with SQLiteJournal(path) as retried:
+            assert retried.schema_version() == _CURRENT_SCHEMA_VERSION
+    finally:
+        if locker.in_transaction:
+            locker.execute("ROLLBACK")
+        locker.close()
+
+
+@pytest.mark.integration
+def test_busy_inside_migration_body_remains_raw_and_rolls_back(
+    tmp_path: Path,
+    now: datetime,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    record = TransactionRecord(
+        transaction_id="tx_body_busy",
+        goal_id="goal_body_busy",
+        created_at=now,
+        updated_at=now,
+    )
+    path = tmp_path / "migration-body-busy.db"
+    _create_current_fixture(path, record)
+    before = _database_dump(path)
+    monkeypatch.setattr(
+        sqlite_storage,
+        "MIGRATIONS",
+        (*sqlite_storage.MIGRATIONS, (_TEST_MIGRATION_VERSION, _ATOMIC_TEST_MIGRATION)),
+    )
+    original_execute = SQLiteJournal._execute_migration_statement
+    injected = False
+
+    def fail_inside_body(
+        journal: SQLiteJournal,
+        statement: str,
+        parameters: tuple[object, ...] = (),
+    ) -> None:
+        nonlocal injected
+        if not injected:
+            injected = True
+            error = sqlite3.OperationalError("synthetic migration-body contention")
+            error.sqlite_errorcode = sqlite3.SQLITE_BUSY
+            error.sqlite_errorname = "SQLITE_BUSY"
+            raise error
+        original_execute(journal, statement, parameters)
+
+    monkeypatch.setattr(SQLiteJournal, "_execute_migration_statement", fail_inside_body)
+    with pytest.raises(sqlite3.OperationalError, match="migration-body contention"):
+        SQLiteJournal(path)
+    assert injected
+    assert _database_dump(path) == before
+
+    monkeypatch.setattr(SQLiteJournal, "_execute_migration_statement", original_execute)
+    with SQLiteJournal(path) as retried:
+        assert retried.schema_version() == _TEST_MIGRATION_VERSION
 
 
 @pytest.mark.integration

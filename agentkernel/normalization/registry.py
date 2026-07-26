@@ -296,6 +296,27 @@ class NormalizerRegistry:
         )
         return normalized
 
+    async def normalize_async(
+        self,
+        proposal: ActionProposal,
+        context: AuthenticatedActionContext,
+        *,
+        adapter_manifest: AdapterManifest,
+        expected_adapter_manifest_digest: str,
+        provenance_records: tuple[ProvenanceRecord, ...],
+        enforcement_profile: bool = True,
+    ) -> NormalizedAction:
+        """Async-first coordinator boundary for bounded, pure built-in normalization."""
+
+        return self.normalize(
+            proposal,
+            context,
+            adapter_manifest=adapter_manifest,
+            expected_adapter_manifest_digest=expected_adapter_manifest_digest,
+            provenance_records=provenance_records,
+            enforcement_profile=enforcement_profile,
+        )
+
     @staticmethod
     def _validate_result(
         normalized: NormalizedAction,

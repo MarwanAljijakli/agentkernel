@@ -37,6 +37,13 @@ class VerificationStatus(StrEnum):
     ERROR = "ERROR"
 
 
+class VerificationPhase(StrEnum):
+    """The exact effect material a read-only verification permit may inspect."""
+
+    STAGED = "STAGED"
+    COMMITTED = "COMMITTED"
+
+
 class ProvenanceTrust(StrEnum):
     TRUSTED_CONTROL = "trusted_control"
     AUTHORIZED_USER = "authorized_user"
@@ -125,3 +132,79 @@ class ActionState(StrEnum):
     COMPENSATED = "COMPENSATED"
     RECOVERY_FAILED = "RECOVERY_FAILED"
     COMPENSATION_FAILED = "COMPENSATION_FAILED"
+
+
+class LeasePurpose(StrEnum):
+    """Single-owner work classes protected by monotonically increasing fencing tokens."""
+
+    STAGING = "STAGING"
+    RECONCILIATION = "RECONCILIATION"
+    RECOVERY = "RECOVERY"
+
+
+class AuthorizationRoundPurpose(StrEnum):
+    """Why a complete authority-and-policy decision round was evaluated."""
+
+    STAGING = "STAGING"
+    PRECOMMIT = "PRECOMMIT"
+    RECOVERY = "RECOVERY"
+
+
+class AuthorizationVerdict(StrEnum):
+    """Fail-closed aggregate outcome of one authorization round."""
+
+    ELIGIBLE = "ELIGIBLE"
+    DENIED = "DENIED"
+    UNKNOWN = "UNKNOWN"
+
+
+class StageMaterialState(StrEnum):
+    """Durable lifecycle of private stage material."""
+
+    ALLOCATED = "ALLOCATED"
+    STAGED = "STAGED"
+    EXECUTED = "EXECUTED"
+    VERIFIED = "VERIFIED"
+    DISCARDED = "DISCARDED"
+    DISCARD_FAILED = "DISCARD_FAILED"
+
+
+class CommitDispatchState(StrEnum):
+    """Durable post-permit classification; no state authorizes an implicit resend."""
+
+    DISPATCHED = "DISPATCHED"
+    COMMITTED = "COMMITTED"
+    NO_EFFECT = "NO_EFFECT"
+    PARTIAL_OR_INVALID = "PARTIAL_OR_INVALID"
+    IN_DOUBT = "IN_DOUBT"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
+
+
+class ReconciliationOutcome(StrEnum):
+    """Evidence-only outcome returned by one reconciliation attempt."""
+
+    COMMITTED = "COMMITTED"
+    NO_EFFECT = "NO_EFFECT"
+    PARTIAL_OR_INVALID = "PARTIAL_OR_INVALID"
+    UNKNOWN = "UNKNOWN"
+
+
+class RecoveryWorkKind(StrEnum):
+    """Explicit recovery operation; each item requires its own authority and deadline."""
+
+    DISCARD_STAGING = "DISCARD_STAGING"
+    RECONCILE_DISPATCH = "RECONCILE_DISPATCH"
+    ROLLBACK = "ROLLBACK"
+    COMPENSATE = "COMPENSATE"
+
+
+class RecoveryWorkState(StrEnum):
+    """Durable execution state for one bounded recovery item."""
+
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    RETRY_SCHEDULED = "RETRY_SCHEDULED"
+    RETRIED = "RETRIED"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"

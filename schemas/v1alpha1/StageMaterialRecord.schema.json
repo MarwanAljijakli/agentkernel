@@ -1,0 +1,250 @@
+{
+  "$defs": {
+    "StageMaterialState": {
+      "description": "Durable lifecycle of private stage material.",
+      "enum": [
+        "ALLOCATED",
+        "STAGED",
+        "EXECUTED",
+        "VERIFIED",
+        "DISCARDED",
+        "DISCARD_FAILED"
+      ],
+      "title": "StageMaterialState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Durable references to private stage artifacts; payload bytes remain out of SQLite.",
+  "properties": {
+    "adapter_manifest_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Adapter Manifest Digest",
+      "type": "string"
+    },
+    "base_state_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Base State Digest"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "discard_evidence_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Discard Evidence Ref"
+    },
+    "fencing_token": {
+      "maximum": 9223372036854775807,
+      "minimum": 1,
+      "title": "Fencing Token",
+      "type": "integer"
+    },
+    "inspection_permit_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Inspection Permit Digest",
+      "type": "string"
+    },
+    "inspection_permit_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Inspection Permit Ref",
+      "type": "string"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "lease_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Lease Id",
+      "type": "string"
+    },
+    "normalized_action_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Normalized Action Digest",
+      "type": "string"
+    },
+    "plan_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plan Digest",
+      "type": "string"
+    },
+    "plan_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plan Ref",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "stage_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Stage Id",
+      "type": "string"
+    },
+    "stage_permit_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Stage Permit Digest",
+      "type": "string"
+    },
+    "stage_permit_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Stage Permit Ref",
+      "type": "string"
+    },
+    "staged_effect_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Staged Effect Ref"
+    },
+    "staged_receipt_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Staged Receipt Ref"
+    },
+    "staged_state_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Staged State Digest"
+    },
+    "state": {
+      "$ref": "#/$defs/StageMaterialState"
+    },
+    "target_version_guard": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Target Version Guard",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "verification_permit_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Verification Permit Digest"
+    },
+    "verification_permit_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Verification Permit Ref"
+    },
+    "verification_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Verification Ref"
+    },
+    "version": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "stage_id",
+    "lease_id",
+    "fencing_token",
+    "intent_hash",
+    "normalized_action_digest",
+    "adapter_manifest_digest",
+    "plan_digest",
+    "plan_ref",
+    "inspection_permit_digest",
+    "inspection_permit_ref",
+    "stage_permit_digest",
+    "stage_permit_ref",
+    "state",
+    "target_version_guard",
+    "version",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "StageMaterialRecord",
+  "type": "object"
+}

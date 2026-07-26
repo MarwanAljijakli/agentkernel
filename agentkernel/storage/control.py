@@ -31,6 +31,22 @@ _MAX_CAPABILITY_CHAIN = 256
 _MAX_SQLITE_INTEGER = (1 << 63) - 1
 
 
+def _sqlite_contention_error(error: sqlite3.OperationalError) -> AgentKernelError | None:
+    """Map only SQLite lock contention to the stable retryable storage boundary."""
+
+    sqlite_code = getattr(error, "sqlite_errorcode", None)
+    if type(sqlite_code) is not int or (sqlite_code & 0xFF) not in {
+        sqlite3.SQLITE_BUSY,
+        sqlite3.SQLITE_LOCKED,
+    }:
+        return None
+    return AgentKernelError(
+        ErrorCode.EVIDENCE_UNAVAILABLE,
+        "SQLite control store is temporarily busy",
+        retryable=True,
+    )
+
+
 class IntentDisposition(StrEnum):
     """Normative duplicate-intent outcomes returned by the owner store."""
 
@@ -106,6 +122,7 @@ class IntentHistoryEntry:
     attempt_state: IntentAttemptState
     owner_transaction_id: str
     owner_version: int
+    effective_idempotency_key: str
     evidence_digest: str | None
     previous_history_digest: str | None
     history_digest: str
@@ -124,6 +141,7 @@ class _ValidatedIntentLedger:
     owner_transaction_id: str
     owner_version: int
     owner_state: IntentAttemptState
+    effective_idempotency_key: str
     head_sequence: int
     head_digest: str
     entries: tuple[IntentHistoryEntry, ...]
@@ -184,6 +202,7 @@ class CapabilityChainReservation:
     release_history_sequence: int | None
     release_history_digest: str | None
     changed: bool
+    budget_reuse: bool = False
 
     @property
     def fence(self) -> CapabilityReservationFence:
@@ -210,6 +229,7 @@ class DecisionSnapshot:
     transaction_id: str
     intent_hash: str
     decision_digest: str
+    row_digest: str
     decision: dict[str, JsonValue]
     recorded_at: datetime
     created: bool
@@ -310,6 +330,78 @@ def _sqlite_integrity(message: str, error: sqlite3.IntegrityError) -> AgentKerne
     )
 
 
+def decision_snapshot_digest(
+    *,
+    tenant_id: str,
+    kind: DecisionKind | str,
+    decision_id: str,
+    transaction_id: str,
+    intent_hash: str,
+    decision: BaseModel | Mapping[str, object],
+) -> str:
+    """Return the canonical durable decision-record digest without writing state."""
+
+    tenant_id = _require_identifier(tenant_id, field="tenant_id")
+    normalized_kind = _coerce_decision_kind(kind)
+    decision_id = _require_identifier(decision_id, field="decision_id")
+    transaction_id = _require_identifier(transaction_id, field="transaction_id")
+    intent_hash = _require_digest(intent_hash, field="intent_hash")
+    material: object = (
+        decision.model_dump(mode="python") if isinstance(decision, BaseModel) else decision
+    )
+    try:
+        parsed = json.loads(canonical_json_text(material))
+    except (AgentKernelError, TypeError, ValueError) as error:
+        raise AgentKernelError(
+            ErrorCode.VALIDATION_ERROR,
+            "Decision snapshot is not valid canonical JSON",
+        ) from error
+    if not isinstance(parsed, dict):
+        raise AgentKernelError(
+            ErrorCode.VALIDATION_ERROR,
+            "Decision snapshot must be a JSON object",
+        )
+    return canonical_digest(
+        {
+            "profile": "agentkernel.control-decision-snapshot/v1",
+            "tenant_id": tenant_id,
+            "decision_kind": normalized_kind.value,
+            "decision_id": decision_id,
+            "transaction_id": transaction_id,
+            "intent_hash": intent_hash,
+            "decision": parsed,
+        }
+    )
+
+
+def decision_snapshot_row_digest(
+    *,
+    tenant_id: str,
+    kind: DecisionKind,
+    decision_id: str,
+    transaction_id: str,
+    intent_hash: str,
+    decision_digest: str,
+    decision_json: str,
+    recorded_at: str,
+) -> str:
+    """Bind every raw decision row column, including its canonical timestamp."""
+
+    return canonical_digest(
+        {
+            "profile": "agentkernel.control-decision-snapshot-row/v2",
+            "tenant_id": tenant_id,
+            "decision_kind": kind.value,
+            "decision_id": decision_id,
+            "transaction_id": transaction_id,
+            "intent_hash": intent_hash,
+            "decision_digest": decision_digest,
+            "decision_json": decision_json,
+            "recorded_at": recorded_at,
+        }
+    )
+
+
 class SQLiteControlStore:
     """Fail-closed, tenant-scoped control state backed by SQLite WAL."""
 
@@ -330,7 +422,10 @@ class SQLiteControlStore:
                     ErrorCode.EVIDENCE_UNAVAILABLE,
                     "SQLite control store is not in WAL mode",
                 )
+            with self._immediate():
+                self._seal_legacy_decision_row_digests_tx()
             with self._read_snapshot():
+                self._validate_all_decision_snapshots()
                 self._validate_all_intent_ledgers()
         except BaseException:
             self._connection.close()
@@ -363,23 +458,60 @@ class SQLiteControlStore:
 
         return self._connection.execute(statement, parameters)
 
+    def _transaction_is_open(self) -> bool:
+        """Read SQLite transaction state without leaking type narrowing across a yield."""
+
+        return bool(self._connection.in_transaction)
+
     @contextmanager
     def _immediate(self) -> Iterator[None]:
-        self._connection.execute("BEGIN IMMEDIATE")
+        if self._transaction_is_open():
+            # Composite v4 operations own the surrounding BEGIN IMMEDIATE.  Public v3
+            # methods remain usable as atomic building blocks without opening or
+            # committing a nested transaction.
+            yield
+            return
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
+        except sqlite3.OperationalError as error:
+            mapped = _sqlite_contention_error(error)
+            if mapped is not None:
+                raise mapped from error
+            raise
         try:
             yield
             self._connection.execute("COMMIT")
+        except sqlite3.OperationalError as error:
+            if self._transaction_is_open():
+                self._connection.execute("ROLLBACK")
+            mapped = _sqlite_contention_error(error)
+            if mapped is not None:
+                raise mapped from error
+            raise
         except BaseException:
-            if self._connection.in_transaction:
+            if self._transaction_is_open():
                 self._connection.execute("ROLLBACK")
             raise
 
     @contextmanager
     def _read_snapshot(self) -> Iterator[None]:
-        self._connection.execute("BEGIN")
+        try:
+            self._connection.execute("BEGIN")
+        except sqlite3.OperationalError as error:
+            mapped = _sqlite_contention_error(error)
+            if mapped is not None:
+                raise mapped from error
+            raise
         try:
             yield
             self._connection.execute("COMMIT")
+        except sqlite3.OperationalError as error:
+            if self._connection.in_transaction:
+                self._connection.execute("ROLLBACK")
+            mapped = _sqlite_contention_error(error)
+            if mapped is not None:
+                raise mapped from error
+            raise
         except BaseException:
             if self._connection.in_transaction:
                 self._connection.execute("ROLLBACK")
@@ -502,56 +634,65 @@ class SQLiteControlStore:
         timestamp = _timestamp(registered_at)
         try:
             with self._immediate():
-                self._execute(
-                    "INSERT OR IGNORE INTO enforced_tenants(tenant_id, created_at) VALUES (?, ?)",
-                    (context.tenant_id, timestamp),
-                )
-                self._execute(
-                    "INSERT OR IGNORE INTO enforced_principals"
-                    "(tenant_id, principal_id, created_at) VALUES (?, ?, ?)",
-                    (context.tenant_id, context.principal_id, timestamp),
-                )
-                self._execute(
-                    "INSERT OR IGNORE INTO enforced_goals"
-                    "(tenant_id, goal_id, principal_id, created_at) VALUES (?, ?, ?, ?)",
-                    (context.tenant_id, context.goal_id, context.principal_id, timestamp),
-                )
-                self._execute(
-                    "INSERT OR IGNORE INTO enforced_runs"
-                    "(tenant_id, run_id, goal_id, principal_id, created_at) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (
-                        context.tenant_id,
-                        context.run_id,
-                        context.goal_id,
-                        context.principal_id,
-                        timestamp,
-                    ),
-                )
-                goal = self._connection.execute(
-                    "SELECT principal_id FROM enforced_goals WHERE tenant_id = ? AND goal_id = ?",
-                    (context.tenant_id, context.goal_id),
-                ).fetchone()
-                run = self._connection.execute(
-                    "SELECT principal_id, goal_id FROM enforced_runs "
-                    "WHERE tenant_id = ? AND run_id = ?",
-                    (context.tenant_id, context.run_id),
-                ).fetchone()
-                if goal is None or str(goal["principal_id"]) != context.principal_id:
-                    raise AgentKernelError(
-                        ErrorCode.INTEGRITY_ERROR,
-                        "Authenticated context conflicts with the durable goal binding",
-                    )
-                if run is None or (str(run["principal_id"]), str(run["goal_id"])) != (
-                    context.principal_id,
-                    context.goal_id,
-                ):
-                    raise AgentKernelError(
-                        ErrorCode.INTEGRITY_ERROR,
-                        "Authenticated context conflicts with the durable run binding",
-                    )
+                self._register_action_context_tx(context, registered_at=timestamp)
         except sqlite3.IntegrityError as error:
             raise _sqlite_integrity("Authenticated context registration failed", error) from error
+
+    def _register_action_context_tx(
+        self,
+        context: AuthenticatedActionContext,
+        *,
+        registered_at: str,
+    ) -> None:
+        """Register an authenticated identity hierarchy inside the caller's transaction."""
+
+        self._execute(
+            "INSERT OR IGNORE INTO enforced_tenants(tenant_id, created_at) VALUES (?, ?)",
+            (context.tenant_id, registered_at),
+        )
+        self._execute(
+            "INSERT OR IGNORE INTO enforced_principals"
+            "(tenant_id, principal_id, created_at) VALUES (?, ?, ?)",
+            (context.tenant_id, context.principal_id, registered_at),
+        )
+        self._execute(
+            "INSERT OR IGNORE INTO enforced_goals"
+            "(tenant_id, goal_id, principal_id, created_at) VALUES (?, ?, ?, ?)",
+            (context.tenant_id, context.goal_id, context.principal_id, registered_at),
+        )
+        self._execute(
+            "INSERT OR IGNORE INTO enforced_runs"
+            "(tenant_id, run_id, goal_id, principal_id, created_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (
+                context.tenant_id,
+                context.run_id,
+                context.goal_id,
+                context.principal_id,
+                registered_at,
+            ),
+        )
+        goal = self._connection.execute(
+            "SELECT principal_id FROM enforced_goals WHERE tenant_id = ? AND goal_id = ?",
+            (context.tenant_id, context.goal_id),
+        ).fetchone()
+        run = self._connection.execute(
+            "SELECT principal_id, goal_id FROM enforced_runs WHERE tenant_id = ? AND run_id = ?",
+            (context.tenant_id, context.run_id),
+        ).fetchone()
+        if goal is None or str(goal["principal_id"]) != context.principal_id:
+            raise AgentKernelError(
+                ErrorCode.INTEGRITY_ERROR,
+                "Authenticated context conflicts with the durable goal binding",
+            )
+        if run is None or (str(run["principal_id"]), str(run["goal_id"])) != (
+            context.principal_id,
+            context.goal_id,
+        ):
+            raise AgentKernelError(
+                ErrorCode.INTEGRITY_ERROR,
+                "Authenticated context conflicts with the durable run binding",
+            )
 
     def put_normalized_action(
         self,
@@ -566,61 +707,80 @@ class SQLiteControlStore:
         action_digest = canonical_digest(action)
         try:
             with self._immediate():
-                existing = self._connection.execute(
-                    "SELECT action_digest FROM enforced_normalized_actions "
-                    "WHERE tenant_id = ? AND transaction_id = ?",
-                    (action.tenant_id, action.transaction_id),
-                ).fetchone()
-                if existing is not None:
-                    if str(existing["action_digest"]) != action_digest:
-                        raise AgentKernelError(
-                            ErrorCode.INTEGRITY_ERROR,
-                            "Normalized action identity already has different immutable content",
-                        )
-                    stored = self._get_normalized_action(action.tenant_id, action.transaction_id)
-                    return StoredNormalizedAction(
-                        action=stored.action,
-                        action_digest=stored.action_digest,
-                        recorded_at=stored.recorded_at,
-                        created=False,
-                    )
-
-                self._execute(
-                    "INSERT INTO enforced_normalized_actions"
-                    "(tenant_id, transaction_id, principal_id, goal_id, run_id, intent_hash, "
-                    "action_digest, action_json, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (
-                        action.tenant_id,
-                        action.transaction_id,
-                        action.principal_id,
-                        action.goal_id,
-                        action.run_id,
-                        action.intent_hash,
-                        action_digest,
-                        action_json,
-                        timestamp,
-                    ),
+                return self._put_normalized_action_tx(
+                    action,
+                    recorded_at=timestamp,
+                    action_json=action_json,
+                    action_digest=action_digest,
                 )
-                for ordinal, resource_use in enumerate(action.resource_uses):
-                    self._execute(
-                        "INSERT INTO enforced_resource_uses"
-                        "(tenant_id, transaction_id, ordinal, canonical_resource, "
-                        "resource_use_digest, resource_use_json) VALUES (?, ?, ?, ?, ?, ?)",
-                        (
-                            action.tenant_id,
-                            action.transaction_id,
-                            ordinal,
-                            resource_use.canonical_resource,
-                            canonical_digest(resource_use),
-                            canonical_json_text(resource_use),
-                        ),
-                    )
         except sqlite3.IntegrityError as error:
             raise _sqlite_integrity("Normalized action persistence failed closed", error) from error
+
+    def _put_normalized_action_tx(
+        self,
+        action: NormalizedAction,
+        *,
+        recorded_at: str,
+        action_json: str | None = None,
+        action_digest: str | None = None,
+    ) -> StoredNormalizedAction:
+        """Persist one normalized action inside an already active write transaction."""
+
+        action_json = action_json or canonical_json_text(action)
+        action_digest = action_digest or canonical_digest(action)
+        existing = self._connection.execute(
+            "SELECT action_digest FROM enforced_normalized_actions "
+            "WHERE tenant_id = ? AND transaction_id = ?",
+            (action.tenant_id, action.transaction_id),
+        ).fetchone()
+        if existing is not None:
+            if str(existing["action_digest"]) != action_digest:
+                raise AgentKernelError(
+                    ErrorCode.INTEGRITY_ERROR,
+                    "Normalized action identity already has different immutable content",
+                )
+            stored = self._get_normalized_action(action.tenant_id, action.transaction_id)
+            return StoredNormalizedAction(
+                action=stored.action,
+                action_digest=stored.action_digest,
+                recorded_at=stored.recorded_at,
+                created=False,
+            )
+
+        self._execute(
+            "INSERT INTO enforced_normalized_actions"
+            "(tenant_id, transaction_id, principal_id, goal_id, run_id, intent_hash, "
+            "action_digest, action_json, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                action.tenant_id,
+                action.transaction_id,
+                action.principal_id,
+                action.goal_id,
+                action.run_id,
+                action.intent_hash,
+                action_digest,
+                action_json,
+                recorded_at,
+            ),
+        )
+        for ordinal, resource_use in enumerate(action.resource_uses):
+            self._execute(
+                "INSERT INTO enforced_resource_uses"
+                "(tenant_id, transaction_id, ordinal, canonical_resource, "
+                "resource_use_digest, resource_use_json) VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    action.tenant_id,
+                    action.transaction_id,
+                    ordinal,
+                    resource_use.canonical_resource,
+                    canonical_digest(resource_use),
+                    canonical_json_text(resource_use),
+                ),
+            )
         return StoredNormalizedAction(
             action=action,
             action_digest=action_digest,
-            recorded_at=_parse_timestamp(timestamp),
+            recorded_at=_parse_timestamp(recorded_at),
             created=True,
         )
 
@@ -760,12 +920,31 @@ class SQLiteControlStore:
                     details={"sequence": sequence},
                 )
             recorded_at_text = str(row["recorded_at"])
-            payload: dict[str, object] = {
+            recorded_at = _parse_timestamp(recorded_at_text)
+            if recorded_at_text != _timestamp(recorded_at):
+                raise AgentKernelError(
+                    ErrorCode.INTEGRITY_ERROR,
+                    "Stored intent history timestamp is not canonical",
+                    details={"sequence": sequence},
+                )
+            transaction_id = str(row["transaction_id"])
+            stored_action = self._get_normalized_action(tenant_id, transaction_id).action
+            effective_idempotency_key = stored_action.idempotency_key or stored_action.intent_hash
+            if (
+                row["effective_idempotency_key"] is None
+                or str(row["effective_idempotency_key"]) != effective_idempotency_key
+            ):
+                raise AgentKernelError(
+                    ErrorCode.INTEGRITY_ERROR,
+                    "Intent history idempotency binding is inconsistent",
+                    details={"sequence": sequence},
+                )
+            legacy_payload: dict[str, object] = {
                 "profile": "agentkernel.intent-attempt-history/v1",
                 "tenant_id": tenant_id,
                 "intent_hash": intent_hash,
                 "sequence": sequence,
-                "transaction_id": str(row["transaction_id"]),
+                "transaction_id": transaction_id,
                 "event_type": str(row["event_type"]),
                 "disposition": disposition.value if disposition is not None else None,
                 "attempt_state": attempt_state.value,
@@ -774,6 +953,11 @@ class SQLiteControlStore:
                 "evidence_digest": evidence,
                 "previous_history_digest": previous_digest,
                 "recorded_at": recorded_at_text,
+            }
+            payload = {
+                **legacy_payload,
+                "profile": "agentkernel.intent-attempt-history/v2",
+                "effective_idempotency_key": effective_idempotency_key,
             }
             history_digest = str(row["history_digest"])
             if (
@@ -784,7 +968,8 @@ class SQLiteControlStore:
                     else str(row["previous_history_digest"])
                 )
                 != previous_digest
-                or canonical_digest(payload) != history_digest
+                or history_digest
+                not in {canonical_digest(legacy_payload), canonical_digest(payload)}
             ):
                 raise AgentKernelError(
                     ErrorCode.INTEGRITY_ERROR,
@@ -796,16 +981,17 @@ class SQLiteControlStore:
                     tenant_id=tenant_id,
                     intent_hash=intent_hash,
                     sequence=sequence,
-                    transaction_id=str(row["transaction_id"]),
+                    transaction_id=transaction_id,
                     event_type=str(row["event_type"]),
                     disposition=disposition,
                     attempt_state=attempt_state,
                     owner_transaction_id=str(row["owner_transaction_id"]),
                     owner_version=int(row["owner_version"]),
+                    effective_idempotency_key=effective_idempotency_key,
                     evidence_digest=evidence,
                     previous_history_digest=previous_digest,
                     history_digest=history_digest,
-                    recorded_at=_parse_timestamp(recorded_at_text),
+                    recorded_at=recorded_at,
                 )
             )
             previous_digest = history_digest
@@ -880,6 +1066,7 @@ class SQLiteControlStore:
         expected_attempts: dict[str, _AttemptProjection] = {}
         current_owner: str | None = None
         current_owner_version = -1
+        current_effective_idempotency_key: str | None = None
         for entry in entries:
             if entry.event_type == "ACQUIRE":
                 if entry.disposition is None or entry.evidence_digest is not None:
@@ -905,6 +1092,7 @@ class SQLiteControlStore:
                         )
                     current_owner = entry.owner_transaction_id
                     current_owner_version = 0
+                    current_effective_idempotency_key = entry.effective_idempotency_key
                     continue
                 if current_owner is None:
                     raise AgentKernelError(
@@ -921,6 +1109,7 @@ class SQLiteControlStore:
                         or entry.owner_transaction_id != entry.transaction_id
                         or entry.owner_version != current_owner_version + 1
                         or entry.attempt_state is not IntentAttemptState.ACTIVE
+                        or entry.effective_idempotency_key != current_effective_idempotency_key
                     ):
                         raise AgentKernelError(
                             ErrorCode.INTEGRITY_ERROR,
@@ -929,6 +1118,7 @@ class SQLiteControlStore:
                         )
                     current_owner = entry.owner_transaction_id
                     current_owner_version = entry.owner_version
+                    current_effective_idempotency_key = entry.effective_idempotency_key
                     continue
                 if (
                     entry.owner_transaction_id != current_owner
@@ -982,6 +1172,7 @@ class SQLiteControlStore:
                     or entry.transaction_id != current_owner
                     or entry.owner_transaction_id != current_owner
                     or entry.owner_version != current_owner_version
+                    or entry.effective_idempotency_key != current_effective_idempotency_key
                 ):
                     raise AgentKernelError(
                         ErrorCode.INTEGRITY_ERROR,
@@ -1012,6 +1203,11 @@ class SQLiteControlStore:
                 ErrorCode.INTEGRITY_ERROR,
                 "Intent ledger has no replayable owner",
             )
+        if current_effective_idempotency_key is None:
+            raise AgentKernelError(
+                ErrorCode.INTEGRITY_ERROR,
+                "Intent ledger has no replayable idempotency binding",
+            )
         attempt_rows = self._connection.execute(
             "SELECT * FROM enforced_intent_attempts "
             "WHERE tenant_id = ? AND intent_hash = ? ORDER BY transaction_id",
@@ -1041,6 +1237,11 @@ class SQLiteControlStore:
         head = entries[-1]
         owner_transaction_id = str(owner["owner_transaction_id"])
         owner_version = int(owner["owner_version"])
+        owner_effective_idempotency_key = (
+            None
+            if owner["effective_idempotency_key"] is None
+            else str(owner["effective_idempotency_key"])
+        )
         head_sequence = int(owner["history_head_sequence"])
         head_digest = (
             None if owner["history_head_digest"] is None else str(owner["history_head_digest"])
@@ -1050,6 +1251,7 @@ class SQLiteControlStore:
         if (
             owner_transaction_id != current_owner
             or owner_version != current_owner_version
+            or owner_effective_idempotency_key != current_effective_idempotency_key
             or head_sequence != head.sequence
             or head_digest != head.history_digest
             or head_digest is None
@@ -1063,6 +1265,7 @@ class SQLiteControlStore:
             owner_transaction_id=owner_transaction_id,
             owner_version=owner_version,
             owner_state=expected_attempts[current_owner].state,
+            effective_idempotency_key=current_effective_idempotency_key,
             head_sequence=head_sequence,
             head_digest=head_digest,
             entries=entries,
@@ -1079,12 +1282,13 @@ class SQLiteControlStore:
         attempt_state: IntentAttemptState,
         owner_transaction_id: str,
         owner_version: int,
+        effective_idempotency_key: str,
         evidence_digest: str | None,
         recorded_at: str,
     ) -> IntentHistoryEntry:
         owner = self._connection.execute(
-            "SELECT owner_transaction_id, owner_version, history_head_sequence, "
-            "history_head_digest FROM enforced_intent_owners "
+            "SELECT owner_transaction_id, owner_version, effective_idempotency_key, "
+            "history_head_sequence, history_head_digest FROM enforced_intent_owners "
             "WHERE tenant_id = ? AND intent_hash = ?",
             (tenant_id, intent_hash),
         ).fetchone()
@@ -1092,6 +1296,7 @@ class SQLiteControlStore:
             owner is None
             or str(owner["owner_transaction_id"]) != owner_transaction_id
             or int(owner["owner_version"]) != owner_version
+            or owner["effective_idempotency_key"] is None
         ):
             raise AgentKernelError(
                 ErrorCode.INTEGRITY_ERROR,
@@ -1108,7 +1313,7 @@ class SQLiteControlStore:
             )
         sequence = previous_sequence + 1
         payload: dict[str, object] = {
-            "profile": "agentkernel.intent-attempt-history/v1",
+            "profile": "agentkernel.intent-attempt-history/v2",
             "tenant_id": tenant_id,
             "intent_hash": intent_hash,
             "sequence": sequence,
@@ -1118,6 +1323,7 @@ class SQLiteControlStore:
             "attempt_state": attempt_state.value,
             "owner_transaction_id": owner_transaction_id,
             "owner_version": owner_version,
+            "effective_idempotency_key": effective_idempotency_key,
             "evidence_digest": evidence_digest,
             "previous_history_digest": previous_digest,
             "recorded_at": recorded_at,
@@ -1126,9 +1332,10 @@ class SQLiteControlStore:
         self._execute(
             "INSERT INTO enforced_intent_attempt_history"
             "(tenant_id, intent_hash, sequence, transaction_id, event_type, disposition, "
-            "attempt_state, owner_transaction_id, owner_version, evidence_digest, "
+            "attempt_state, owner_transaction_id, owner_version, effective_idempotency_key, "
+            "evidence_digest, "
             "previous_history_digest, history_digest, recorded_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 tenant_id,
                 intent_hash,
@@ -1139,6 +1346,7 @@ class SQLiteControlStore:
                 attempt_state.value,
                 owner_transaction_id,
                 owner_version,
+                effective_idempotency_key,
                 evidence_digest,
                 previous_digest,
                 history_digest,
@@ -1178,6 +1386,7 @@ class SQLiteControlStore:
             attempt_state=attempt_state,
             owner_transaction_id=owner_transaction_id,
             owner_version=owner_version,
+            effective_idempotency_key=effective_idempotency_key,
             evidence_digest=evidence_digest,
             previous_history_digest=previous_digest,
             history_digest=history_digest,
@@ -1206,121 +1415,166 @@ class SQLiteControlStore:
         timestamp = _timestamp(attempted_at)
         try:
             with self._immediate():
-                self._require_action_intent(tenant_id, transaction_id, intent_hash)
-                owner_exists = self._connection.execute(
-                    "SELECT 1 FROM enforced_intent_owners WHERE tenant_id = ? AND intent_hash = ?",
-                    (tenant_id, intent_hash),
-                ).fetchone()
-                ledger = (
-                    None
-                    if owner_exists is None
-                    else self._validate_intent_ledger(tenant_id, intent_hash)
-                )
-                if owner_exists is None:
-                    self._assert_intent_ledger_absent(tenant_id, intent_hash)
-                self._execute(
-                    "INSERT OR IGNORE INTO enforced_intent_attempts"
-                    "(tenant_id, intent_hash, transaction_id, attempt_state, state_version, "
-                    "evidence_digest, created_at, updated_at) "
-                    "VALUES (?, ?, ?, 'ACTIVE', 0, NULL, ?, ?)",
-                    (tenant_id, intent_hash, transaction_id, timestamp, timestamp),
-                )
-                previous_owner: str | None = None
-                if ledger is None:
-                    self._execute(
-                        "INSERT INTO enforced_intent_owners"
-                        "(tenant_id, intent_hash, owner_transaction_id, owner_version, "
-                        "history_head_sequence, history_head_digest, acquired_at, updated_at) "
-                        "VALUES (?, ?, ?, 0, -1, NULL, ?, ?)",
-                        (tenant_id, intent_hash, transaction_id, timestamp, timestamp),
-                    )
-                    owner_transaction_id = transaction_id
-                    owner_version = 0
-                    owner_state = IntentAttemptState.ACTIVE
-                    disposition = IntentDisposition.ACQUIRED
-                else:
-                    owner_transaction_id = ledger.owner_transaction_id
-                    owner_version = ledger.owner_version
-                    owner_state = ledger.owner_state
-
-                    if owner_transaction_id == transaction_id:
-                        disposition = IntentDisposition.SAME_TRANSACTION
-                    elif owner_state is IntentAttemptState.ACTIVE:
-                        disposition = IntentDisposition.ALIAS_ACTIVE
-                    elif owner_state is IntentAttemptState.RECONCILE_REQUIRED:
-                        disposition = IntentDisposition.ALIAS_RECONCILE
-                    elif owner_state is IntentAttemptState.COMMITTED:
-                        disposition = IntentDisposition.ALIAS_COMMITTED
-                    elif owner_state is IntentAttemptState.REVIEW_REQUIRED:
-                        disposition = IntentDisposition.REVIEW_REQUIRED
-                    else:
-                        requested_attempt = self._connection.execute(
-                            "SELECT * FROM enforced_intent_attempts "
-                            "WHERE tenant_id = ? AND intent_hash = ? AND transaction_id = ?",
-                            (tenant_id, intent_hash, transaction_id),
-                        ).fetchone()
-                        requested_state = (
-                            None
-                            if requested_attempt is None
-                            else self._intent_attempt_from_row(requested_attempt).state.value
-                        )
-                        active_capability_reservation = self._connection.execute(
-                            "SELECT 1 FROM enforced_capability_chain_reservations "
-                            "WHERE tenant_id = ? AND intent_hash = ? "
-                            "AND reservation_state != 'RELEASED' LIMIT 1",
-                            (tenant_id, intent_hash),
-                        ).fetchone()
-                        if (
-                            requested_state != IntentAttemptState.ACTIVE.value
-                            or active_capability_reservation is not None
-                            or (
-                                expected_owner_version is not None
-                                and expected_owner_version != owner_version
-                            )
-                        ):
-                            disposition = IntentDisposition.REVIEW_REQUIRED
-                        else:
-                            updated = self._execute(
-                                "UPDATE enforced_intent_owners "
-                                "SET owner_transaction_id = ?, owner_version = owner_version + 1, "
-                                "updated_at = ? WHERE tenant_id = ? AND intent_hash = ? "
-                                "AND owner_transaction_id = ? AND owner_version = ? "
-                                "AND history_head_sequence = ? AND history_head_digest IS ?",
-                                (
-                                    transaction_id,
-                                    timestamp,
-                                    tenant_id,
-                                    intent_hash,
-                                    owner_transaction_id,
-                                    owner_version,
-                                    ledger.head_sequence,
-                                    ledger.head_digest,
-                                ),
-                            )
-                            if updated.rowcount != 1:
-                                disposition = IntentDisposition.REVIEW_REQUIRED
-                            else:
-                                previous_owner = owner_transaction_id
-                                owner_transaction_id = transaction_id
-                                owner_version += 1
-                                owner_state = IntentAttemptState.ACTIVE
-                                disposition = IntentDisposition.TRANSFERRED_NO_EFFECT
-
-                self._append_intent_history(
+                return self._acquire_intent_tx(
                     tenant_id=tenant_id,
                     intent_hash=intent_hash,
                     transaction_id=transaction_id,
-                    event_type="ACQUIRE",
-                    disposition=disposition,
-                    attempt_state=owner_state,
-                    owner_transaction_id=owner_transaction_id,
-                    owner_version=owner_version,
-                    evidence_digest=None,
-                    recorded_at=timestamp,
+                    attempted_at=timestamp,
+                    expected_owner_version=expected_owner_version,
                 )
-                self._validate_intent_ledger(tenant_id, intent_hash)
         except sqlite3.IntegrityError as error:
             raise _sqlite_integrity("Intent acquisition failed closed", error) from error
+
+    def _acquire_intent_tx(
+        self,
+        *,
+        tenant_id: str,
+        intent_hash: str,
+        transaction_id: str,
+        attempted_at: str,
+        expected_owner_version: int | None,
+    ) -> IntentAcquisition:
+        """Acquire or alias an intent inside the caller's write transaction."""
+
+        self._require_action_intent(tenant_id, transaction_id, intent_hash)
+        requested_action = self._get_normalized_action(tenant_id, transaction_id).action
+        requested_effective_idempotency_key = (
+            requested_action.idempotency_key or requested_action.intent_hash
+        )
+        owner_exists = self._connection.execute(
+            "SELECT 1 FROM enforced_intent_owners WHERE tenant_id = ? AND intent_hash = ?",
+            (tenant_id, intent_hash),
+        ).fetchone()
+        ledger = (
+            None if owner_exists is None else self._validate_intent_ledger(tenant_id, intent_hash)
+        )
+        if owner_exists is None:
+            self._assert_intent_ledger_absent(tenant_id, intent_hash)
+        self._execute(
+            "INSERT OR IGNORE INTO enforced_intent_attempts"
+            "(tenant_id, intent_hash, transaction_id, attempt_state, state_version, "
+            "evidence_digest, created_at, updated_at) "
+            "VALUES (?, ?, ?, 'ACTIVE', 0, NULL, ?, ?)",
+            (tenant_id, intent_hash, transaction_id, attempted_at, attempted_at),
+        )
+        previous_owner: str | None = None
+        if ledger is None:
+            self._execute(
+                "INSERT INTO enforced_intent_owners"
+                "(tenant_id, intent_hash, owner_transaction_id, owner_version, "
+                "effective_idempotency_key, history_head_sequence, history_head_digest, "
+                "acquired_at, updated_at) "
+                "VALUES (?, ?, ?, 0, ?, -1, NULL, ?, ?)",
+                (
+                    tenant_id,
+                    intent_hash,
+                    transaction_id,
+                    requested_effective_idempotency_key,
+                    attempted_at,
+                    attempted_at,
+                ),
+            )
+            owner_transaction_id = transaction_id
+            owner_version = 0
+            owner_state = IntentAttemptState.ACTIVE
+            disposition = IntentDisposition.ACQUIRED
+        else:
+            owner_transaction_id = ledger.owner_transaction_id
+            owner_version = ledger.owner_version
+            owner_state = ledger.owner_state
+
+            if owner_transaction_id == transaction_id:
+                disposition = IntentDisposition.SAME_TRANSACTION
+            elif owner_state is IntentAttemptState.ACTIVE:
+                disposition = IntentDisposition.ALIAS_ACTIVE
+            elif owner_state is IntentAttemptState.RECONCILE_REQUIRED:
+                disposition = IntentDisposition.ALIAS_RECONCILE
+            elif owner_state is IntentAttemptState.COMMITTED:
+                disposition = IntentDisposition.ALIAS_COMMITTED
+            elif owner_state is IntentAttemptState.REVIEW_REQUIRED:
+                disposition = IntentDisposition.REVIEW_REQUIRED
+            else:
+                requested_attempt = self._connection.execute(
+                    "SELECT * FROM enforced_intent_attempts "
+                    "WHERE tenant_id = ? AND intent_hash = ? AND transaction_id = ?",
+                    (tenant_id, intent_hash, transaction_id),
+                ).fetchone()
+                requested_state = (
+                    None
+                    if requested_attempt is None
+                    else self._intent_attempt_from_row(requested_attempt).state.value
+                )
+                active_capability_reservation = self._connection.execute(
+                    "SELECT 1 FROM enforced_capability_chain_reservations "
+                    "WHERE tenant_id = ? AND intent_hash = ? "
+                    "AND reservation_state = 'RESERVED' LIMIT 1",
+                    (tenant_id, intent_hash),
+                ).fetchone()
+                enforced_owner = self._connection.execute(
+                    "SELECT state FROM enforced_transactions "
+                    "WHERE tenant_id = ? AND transaction_id = ?",
+                    (tenant_id, owner_transaction_id),
+                ).fetchone()
+                enforced_owner_not_terminal = enforced_owner is not None and str(
+                    enforced_owner["state"]
+                ) not in {
+                    "ABORTED",
+                    "STALE_STATE",
+                }
+                if (
+                    requested_state != IntentAttemptState.ACTIVE.value
+                    or active_capability_reservation is not None
+                    or enforced_owner_not_terminal
+                    or requested_effective_idempotency_key != ledger.effective_idempotency_key
+                    or (
+                        expected_owner_version is not None
+                        and expected_owner_version != owner_version
+                    )
+                ):
+                    disposition = IntentDisposition.REVIEW_REQUIRED
+                else:
+                    updated = self._execute(
+                        "UPDATE enforced_intent_owners "
+                        "SET owner_transaction_id = ?, owner_version = owner_version + 1, "
+                        "updated_at = ? WHERE tenant_id = ? AND intent_hash = ? "
+                        "AND owner_transaction_id = ? AND owner_version = ? "
+                        "AND effective_idempotency_key = ? "
+                        "AND history_head_sequence = ? AND history_head_digest IS ?",
+                        (
+                            transaction_id,
+                            attempted_at,
+                            tenant_id,
+                            intent_hash,
+                            owner_transaction_id,
+                            owner_version,
+                            ledger.effective_idempotency_key,
+                            ledger.head_sequence,
+                            ledger.head_digest,
+                        ),
+                    )
+                    if updated.rowcount != 1:
+                        disposition = IntentDisposition.REVIEW_REQUIRED
+                    else:
+                        previous_owner = owner_transaction_id
+                        owner_transaction_id = transaction_id
+                        owner_version += 1
+                        owner_state = IntentAttemptState.ACTIVE
+                        disposition = IntentDisposition.TRANSFERRED_NO_EFFECT
+
+        self._append_intent_history(
+            tenant_id=tenant_id,
+            intent_hash=intent_hash,
+            transaction_id=transaction_id,
+            event_type="ACQUIRE",
+            disposition=disposition,
+            attempt_state=owner_state,
+            owner_transaction_id=owner_transaction_id,
+            owner_version=owner_version,
+            effective_idempotency_key=requested_effective_idempotency_key,
+            evidence_digest=None,
+            recorded_at=attempted_at,
+        )
+        self._validate_intent_ledger(tenant_id, intent_hash)
         return IntentAcquisition(
             disposition=disposition,
             tenant_id=tenant_id,
@@ -1360,88 +1614,110 @@ class SQLiteControlStore:
         evidence_digest = _require_digest(evidence_digest, field="evidence_digest")
         timestamp = _timestamp(recorded_at)
         with self._immediate():
-            ledger = self._validate_intent_ledger(tenant_id, intent_hash)
-            if ledger.owner_transaction_id != transaction_id:
-                raise AgentKernelError(
-                    ErrorCode.VERSION_CONFLICT,
-                    "Only the current intent owner may change attempt state",
-                )
-            row = self._connection.execute(
-                "SELECT * FROM enforced_intent_attempts "
-                "WHERE tenant_id = ? AND intent_hash = ? AND transaction_id = ?",
-                (tenant_id, intent_hash, transaction_id),
-            ).fetchone()
-            if row is None:
-                raise AgentKernelError(
-                    ErrorCode.INTEGRITY_ERROR,
-                    "Current intent owner has no attempt state",
-                )
-            current_state = IntentAttemptState(str(row["attempt_state"]))
-            current_version = int(row["state_version"])
-            current_evidence = (
-                None if row["evidence_digest"] is None else str(row["evidence_digest"])
-            )
-            if current_state is target_state and current_evidence == evidence_digest:
-                return self._intent_attempt_from_row(row)
-            if current_version != expected_version:
-                raise AgentKernelError(
-                    ErrorCode.VERSION_CONFLICT,
-                    "Intent attempt state changed",
-                    details={"expected": expected_version, "actual": current_version},
-                    retryable=True,
-                )
-            if target_state not in _ATTEMPT_TRANSITIONS[current_state]:
-                raise AgentKernelError(
-                    ErrorCode.ILLEGAL_TRANSITION,
-                    "Intent attempt state transition is not legal",
-                    details={"from": current_state.value, "to": target_state.value},
-                )
-            updated = self._execute(
-                "UPDATE enforced_intent_attempts SET attempt_state = ?, "
-                "state_version = state_version + 1, evidence_digest = ?, updated_at = ? "
-                "WHERE tenant_id = ? AND intent_hash = ? AND transaction_id = ? "
-                "AND state_version = ? AND attempt_state = ?",
-                (
-                    target_state.value,
-                    evidence_digest,
-                    timestamp,
-                    tenant_id,
-                    intent_hash,
-                    transaction_id,
-                    expected_version,
-                    current_state.value,
-                ),
-            )
-            if updated.rowcount != 1:
-                raise AgentKernelError(
-                    ErrorCode.VERSION_CONFLICT,
-                    "Intent attempt compare-and-swap failed",
-                    retryable=True,
-                )
-            self._append_intent_history(
+            return self._record_intent_attempt_state_tx(
                 tenant_id=tenant_id,
                 intent_hash=intent_hash,
                 transaction_id=transaction_id,
-                event_type="STATE_CHANGED",
-                disposition=None,
-                attempt_state=target_state,
-                owner_transaction_id=transaction_id,
-                owner_version=ledger.owner_version,
+                expected_version=expected_version,
+                target_state=target_state,
                 evidence_digest=evidence_digest,
                 recorded_at=timestamp,
             )
-            self._validate_intent_ledger(tenant_id, intent_hash)
-            final_row = self._connection.execute(
-                "SELECT * FROM enforced_intent_attempts "
-                "WHERE tenant_id = ? AND intent_hash = ? AND transaction_id = ?",
-                (tenant_id, intent_hash, transaction_id),
-            ).fetchone()
-            if final_row is None:
-                raise AgentKernelError(
-                    ErrorCode.INTEGRITY_ERROR,
-                    "Intent attempt disappeared inside its transaction",
-                )
-            return self._intent_attempt_from_row(final_row)
+
+    def _record_intent_attempt_state_tx(
+        self,
+        *,
+        tenant_id: str,
+        intent_hash: str,
+        transaction_id: str,
+        expected_version: int,
+        target_state: IntentAttemptState,
+        evidence_digest: str,
+        recorded_at: str,
+    ) -> IntentAttemptRecord:
+        """CAS one intent-attempt projection inside the caller's transaction."""
+
+        ledger = self._validate_intent_ledger(tenant_id, intent_hash)
+        if ledger.owner_transaction_id != transaction_id:
+            raise AgentKernelError(
+                ErrorCode.VERSION_CONFLICT,
+                "Only the current intent owner may change attempt state",
+            )
+        row = self._connection.execute(
+            "SELECT * FROM enforced_intent_attempts "
+            "WHERE tenant_id = ? AND intent_hash = ? AND transaction_id = ?",
+            (tenant_id, intent_hash, transaction_id),
+        ).fetchone()
+        if row is None:
+            raise AgentKernelError(
+                ErrorCode.INTEGRITY_ERROR,
+                "Current intent owner has no attempt state",
+            )
+        current_state = IntentAttemptState(str(row["attempt_state"]))
+        current_version = int(row["state_version"])
+        current_evidence = None if row["evidence_digest"] is None else str(row["evidence_digest"])
+        if current_state is target_state and current_evidence == evidence_digest:
+            return self._intent_attempt_from_row(row)
+        if current_version != expected_version:
+            raise AgentKernelError(
+                ErrorCode.VERSION_CONFLICT,
+                "Intent attempt state changed",
+                details={"expected": expected_version, "actual": current_version},
+                retryable=True,
+            )
+        if target_state not in _ATTEMPT_TRANSITIONS[current_state]:
+            raise AgentKernelError(
+                ErrorCode.ILLEGAL_TRANSITION,
+                "Intent attempt state transition is not legal",
+                details={"from": current_state.value, "to": target_state.value},
+            )
+        updated = self._execute(
+            "UPDATE enforced_intent_attempts SET attempt_state = ?, "
+            "state_version = state_version + 1, evidence_digest = ?, updated_at = ? "
+            "WHERE tenant_id = ? AND intent_hash = ? AND transaction_id = ? "
+            "AND state_version = ? AND attempt_state = ?",
+            (
+                target_state.value,
+                evidence_digest,
+                recorded_at,
+                tenant_id,
+                intent_hash,
+                transaction_id,
+                expected_version,
+                current_state.value,
+            ),
+        )
+        if updated.rowcount != 1:
+            raise AgentKernelError(
+                ErrorCode.VERSION_CONFLICT,
+                "Intent attempt compare-and-swap failed",
+                retryable=True,
+            )
+        self._append_intent_history(
+            tenant_id=tenant_id,
+            intent_hash=intent_hash,
+            transaction_id=transaction_id,
+            event_type="STATE_CHANGED",
+            disposition=None,
+            attempt_state=target_state,
+            owner_transaction_id=transaction_id,
+            owner_version=ledger.owner_version,
+            effective_idempotency_key=ledger.effective_idempotency_key,
+            evidence_digest=evidence_digest,
+            recorded_at=recorded_at,
+        )
+        self._validate_intent_ledger(tenant_id, intent_hash)
+        final_row = self._connection.execute(
+            "SELECT * FROM enforced_intent_attempts "
+            "WHERE tenant_id = ? AND intent_hash = ? AND transaction_id = ?",
+            (tenant_id, intent_hash, transaction_id),
+        ).fetchone()
+        if final_row is None:
+            raise AgentKernelError(
+                ErrorCode.INTEGRITY_ERROR,
+                "Intent attempt disappeared inside its transaction",
+            )
+        return self._intent_attempt_from_row(final_row)
 
     @staticmethod
     def _intent_attempt_from_row(row: sqlite3.Row) -> IntentAttemptRecord:
@@ -1910,6 +2186,7 @@ class SQLiteControlStore:
         release_history_digest = (
             None if row["release_history_digest"] is None else str(row["release_history_digest"])
         )
+        budget_reuse = bool(int(row["reuse_without_budget"]))
         activation_values = (
             activation_owner_transaction_id,
             activation_owner_version,
@@ -1934,6 +2211,7 @@ class SQLiteControlStore:
             or version < 0
             or (state is CapabilityReservationState.RESERVED and version % 2 != 0)
             or (state is not CapabilityReservationState.RESERVED and version % 2 != 1)
+            or (budget_reuse and state is not CapabilityReservationState.RESERVED)
             or (
                 activation_history_digest is not None
                 and _DIGEST_PATTERN.fullmatch(activation_history_digest) is None
@@ -2001,7 +2279,7 @@ class SQLiteControlStore:
                         ErrorCode.INTEGRITY_ERROR,
                         "Capability release owner binding differs from intent history",
                     )
-            if state is not CapabilityReservationState.RELEASED and (
+            if state is CapabilityReservationState.RESERVED and (
                 ledger.owner_transaction_id != activation_owner_transaction_id
                 or ledger.owner_version != activation_owner_version
             ):
@@ -2027,6 +2305,7 @@ class SQLiteControlStore:
             release_history_sequence=release_history_sequence,
             release_history_digest=release_history_digest,
             changed=False,
+            budget_reuse=budget_reuse,
         )
 
     def _available_capability_budget_rows(
@@ -2287,6 +2566,187 @@ class SQLiteControlStore:
             changed=True,
         )
 
+    def _reuse_committed_capability_chain_after_no_effect(
+        self,
+        current: CapabilityChainReservation,
+        *,
+        reactivated_at: str,
+    ) -> CapabilityChainReservation:
+        """Rebind one consumed use after authoritative NO_EFFECT without charging again."""
+
+        if (
+            current.state is not CapabilityReservationState.COMMITTED
+            or current.activation_owner_transaction_id is None
+            or current.activation_owner_version is None
+            or current.activation_history_sequence is None
+            or current.activation_history_digest is None
+        ):
+            raise AgentKernelError(
+                ErrorCode.AUTHORITY_MISSING,
+                "Committed capability reuse lacks its prior activation evidence",
+            )
+        ledger = self._validate_intent_ledger(current.tenant_id, current.intent_hash)
+        if (
+            ledger.owner_transaction_id == current.activation_owner_transaction_id
+            or ledger.owner_version <= current.activation_owner_version
+            or ledger.owner_state is not IntentAttemptState.ACTIVE
+        ):
+            raise AgentKernelError(
+                ErrorCode.AUTHORITY_MISSING,
+                "Committed capability reuse requires a new active no-effect owner",
+            )
+        prior_attempt = self._connection.execute(
+            "SELECT attempt_state, evidence_digest FROM enforced_intent_attempts "
+            "WHERE tenant_id = ? AND intent_hash = ? AND transaction_id = ?",
+            (
+                current.tenant_id,
+                current.intent_hash,
+                current.activation_owner_transaction_id,
+            ),
+        ).fetchone()
+        dispatch = self._connection.execute(
+            "SELECT no_effect_evidence_ref FROM enforced_commit_dispatches "
+            "WHERE tenant_id = ? AND transaction_id = ? AND intent_hash = ? "
+            "AND owner_version = ? AND state = 'NO_EFFECT'",
+            (
+                current.tenant_id,
+                current.activation_owner_transaction_id,
+                current.intent_hash,
+                current.activation_owner_version,
+            ),
+        ).fetchone()
+        no_effect_outcome = self._connection.execute(
+            "SELECT outcome_digest FROM enforced_dispatch_outcomes "
+            "WHERE tenant_id = ? AND transaction_id = ? AND intent_hash = ? "
+            "AND owner_version = ? AND classification = 'NO_EFFECT' "
+            "ORDER BY sequence DESC LIMIT 1",
+            (
+                current.tenant_id,
+                current.activation_owner_transaction_id,
+                current.intent_hash,
+                current.activation_owner_version,
+            ),
+        ).fetchone()
+        if (
+            prior_attempt is None
+            or str(prior_attempt["attempt_state"]) != IntentAttemptState.NO_EFFECT_CONFIRMED.value
+            or prior_attempt["evidence_digest"] is None
+            or dispatch is None
+            or dispatch["no_effect_evidence_ref"] is None
+            or no_effect_outcome is None
+            or str(prior_attempt["evidence_digest"]) != str(no_effect_outcome["outcome_digest"])
+        ):
+            raise AgentKernelError(
+                ErrorCode.AUTHORITY_MISSING,
+                "Committed capability reuse lacks authoritative no-effect dispatch evidence",
+            )
+        chain_updated = self._execute(
+            "UPDATE enforced_capability_chain_reservations "
+            "SET reservation_state = 'RESERVED', version = version + 1, "
+            "activation_owner_transaction_id = ?, activation_owner_version = ?, "
+            "activation_history_sequence = ?, activation_history_digest = ?, "
+            "release_history_sequence = NULL, release_history_digest = NULL, "
+            "reuse_without_budget = 1, updated_at = ? "
+            "WHERE tenant_id = ? AND goal_id = ? AND run_id = ? AND intent_hash = ? "
+            "AND request_digest = ? AND reservation_state = 'COMMITTED' AND version = ? "
+            "AND activation_owner_transaction_id = ? AND activation_owner_version = ? "
+            "AND activation_history_sequence = ? AND activation_history_digest = ?",
+            (
+                ledger.owner_transaction_id,
+                ledger.owner_version,
+                ledger.head_sequence,
+                ledger.head_digest,
+                reactivated_at,
+                current.tenant_id,
+                current.goal_id,
+                current.run_id,
+                current.intent_hash,
+                current.request_digest,
+                current.version,
+                current.activation_owner_transaction_id,
+                current.activation_owner_version,
+                current.activation_history_sequence,
+                current.activation_history_digest,
+            ),
+        )
+        if chain_updated.rowcount != 1:
+            raise AgentKernelError(
+                ErrorCode.VERSION_CONFLICT,
+                "Committed no-effect capability rebind compare-and-swap failed",
+                retryable=True,
+            )
+        for capability_id in current.capability_ids:
+            updated = self._execute(
+                "UPDATE enforced_capability_use_reservations "
+                "SET reservation_state = 'RESERVED', updated_at = ? "
+                "WHERE tenant_id = ? AND capability_id = ? AND goal_id = ? "
+                "AND run_id = ? AND intent_hash = ? AND request_digest = ? "
+                "AND reservation_state = 'COMMITTED'",
+                (
+                    reactivated_at,
+                    current.tenant_id,
+                    capability_id,
+                    current.goal_id,
+                    current.run_id,
+                    current.intent_hash,
+                    current.request_digest,
+                ),
+            )
+            if updated.rowcount != 1:
+                raise AgentKernelError(
+                    ErrorCode.INTEGRITY_ERROR,
+                    "Committed no-effect capability items were not rebound atomically",
+                )
+        return CapabilityChainReservation(
+            tenant_id=current.tenant_id,
+            goal_id=current.goal_id,
+            run_id=current.run_id,
+            intent_hash=current.intent_hash,
+            capability_ids=current.capability_ids,
+            request_digest=current.request_digest,
+            state=CapabilityReservationState.RESERVED,
+            version=current.version + 1,
+            activation_owner_transaction_id=ledger.owner_transaction_id,
+            activation_owner_version=ledger.owner_version,
+            activation_history_sequence=ledger.head_sequence,
+            activation_history_digest=ledger.head_digest,
+            release_history_sequence=None,
+            release_history_digest=None,
+            changed=True,
+            budget_reuse=True,
+        )
+
+    def preview_capability_chain_reservation(
+        self,
+        *,
+        tenant_id: str,
+        goal_id: str,
+        run_id: str,
+        intent_hash: str,
+        capability_ids: Sequence[str],
+        reserved_at: datetime,
+    ) -> CapabilityChainReservation:
+        """Predict the exact next reserve fence, rolling every provisional write back."""
+
+        with self._immediate():
+            self._connection.execute("SAVEPOINT capability_reservation_preview")
+            try:
+                predicted = self.reserve_capability_chain(
+                    tenant_id=tenant_id,
+                    goal_id=goal_id,
+                    run_id=run_id,
+                    intent_hash=intent_hash,
+                    capability_ids=capability_ids,
+                    reserved_at=reserved_at,
+                )
+            except BaseException:
+                self._connection.execute("ROLLBACK TO capability_reservation_preview")
+                self._connection.execute("RELEASE capability_reservation_preview")
+                raise
+            self._connection.execute("ROLLBACK TO capability_reservation_preview")
+            self._connection.execute("RELEASE capability_reservation_preview")
+            return predicted
+
     def reserve_capability_chain(
         self,
         *,
@@ -2380,6 +2840,15 @@ class SQLiteControlStore:
                         )
                     if existing.state is CapabilityReservationState.RELEASED:
                         return self._reactivate_released_capability_chain(
+                            existing,
+                            reactivated_at=timestamp,
+                        )
+                    if (
+                        existing.state is CapabilityReservationState.COMMITTED
+                        and ledger is not None
+                        and existing.activation_owner_transaction_id != ledger.owner_transaction_id
+                    ):
+                        return self._reuse_committed_capability_chain_after_no_effect(
                             existing,
                             reactivated_at=timestamp,
                         )
@@ -2578,9 +3047,10 @@ class SQLiteControlStore:
                     "UPDATE enforced_capability_chain_reservations "
                     "SET reservation_state = ?, version = version + 1, "
                     "release_history_sequence = ?, release_history_digest = ?, "
-                    "updated_at = ? "
+                    "reuse_without_budget = 0, updated_at = ? "
                     "WHERE tenant_id = ? AND goal_id = ? AND run_id = ? AND intent_hash = ? "
                     "AND request_digest = ? AND reservation_state = 'RESERVED' AND version = ? "
+                    "AND reuse_without_budget = ? "
                     "AND activation_owner_transaction_id IS ? "
                     "AND activation_owner_version IS ? AND activation_history_sequence IS ? "
                     "AND activation_history_digest IS ?",
@@ -2595,6 +3065,7 @@ class SQLiteControlStore:
                         intent_hash,
                         request_digest,
                         current.version,
+                        int(current.budget_reuse),
                         fence.activation_owner_transaction_id,
                         fence.activation_owner_version,
                         fence.activation_history_sequence,
@@ -2631,6 +3102,8 @@ class SQLiteControlStore:
                             ErrorCode.INTEGRITY_ERROR,
                             "Capability chain item transition was not atomic",
                         )
+                    if current.budget_reuse:
+                        continue
                     if target is CapabilityReservationState.COMMITTED:
                         counter_sql = (
                             "UPDATE enforced_capability_budgets "
@@ -2783,17 +3256,96 @@ class SQLiteControlStore:
         intent_hash: str,
         decision: Mapping[str, JsonValue],
     ) -> str:
-        return canonical_digest(
-            {
-                "profile": "agentkernel.control-decision-snapshot/v1",
-                "tenant_id": tenant_id,
-                "decision_kind": kind.value,
-                "decision_id": decision_id,
-                "transaction_id": transaction_id,
-                "intent_hash": intent_hash,
-                "decision": decision,
-            }
+        return decision_snapshot_digest(
+            tenant_id=tenant_id,
+            kind=kind,
+            decision_id=decision_id,
+            transaction_id=transaction_id,
+            intent_hash=intent_hash,
+            decision=decision,
         )
+
+    def _validated_decision_row_digest(self, row: sqlite3.Row) -> str:
+        try:
+            kind = DecisionKind(str(row["decision_kind"]))
+            tenant_id = str(row["tenant_id"])
+            decision_id = str(row["decision_id"])
+            transaction_id = str(row["transaction_id"])
+            intent_hash = str(row["intent_hash"])
+            decision_json = str(row["decision_json"])
+            document_value = json.loads(decision_json)
+            if not isinstance(document_value, dict):
+                raise TypeError("decision is not an object")
+            document = cast("dict[str, JsonValue]", document_value)
+            recorded_at = str(row["recorded_at"])
+            if recorded_at != _timestamp(_parse_timestamp(recorded_at)):
+                raise ValueError("decision timestamp is not canonical")
+            expected_decision_digest = self._decision_digest(
+                tenant_id=tenant_id,
+                kind=kind,
+                decision_id=decision_id,
+                transaction_id=transaction_id,
+                intent_hash=intent_hash,
+                decision=document,
+            )
+            if (
+                decision_json != canonical_json_text(document)
+                or str(row["decision_digest"]) != expected_decision_digest
+            ):
+                raise ValueError("decision content binding differs")
+            self._require_action_intent(tenant_id, transaction_id, intent_hash)
+        except (AgentKernelError, KeyError, TypeError, ValueError) as error:
+            raise AgentKernelError(
+                ErrorCode.INTEGRITY_ERROR,
+                "Stored decision snapshot raw row is inconsistent",
+            ) from error
+        return decision_snapshot_row_digest(
+            tenant_id=tenant_id,
+            kind=kind,
+            decision_id=decision_id,
+            transaction_id=transaction_id,
+            intent_hash=intent_hash,
+            decision_digest=expected_decision_digest,
+            decision_json=decision_json,
+            recorded_at=recorded_at,
+        )
+
+    def _seal_legacy_decision_row_digests_tx(self) -> None:
+        rows = self._connection.execute(
+            "SELECT * FROM enforced_decision_snapshots "
+            "WHERE decision_row_digest IS NULL ORDER BY tenant_id, decision_kind, decision_id"
+        ).fetchall()
+        for row in rows:
+            row_digest = self._validated_decision_row_digest(row)
+            updated = self._execute(
+                "UPDATE enforced_decision_snapshots SET decision_row_digest = ? "
+                "WHERE tenant_id = ? AND decision_kind = ? AND decision_id = ? "
+                "AND decision_row_digest IS NULL",
+                (
+                    row_digest,
+                    str(row["tenant_id"]),
+                    str(row["decision_kind"]),
+                    str(row["decision_id"]),
+                ),
+            )
+            if updated.rowcount != 1:
+                raise AgentKernelError(
+                    ErrorCode.VERSION_CONFLICT,
+                    "Decision row sealing lost its exact legacy generation",
+                )
+
+    def _validate_all_decision_snapshots(self) -> None:
+        rows = self._connection.execute(
+            "SELECT * FROM enforced_decision_snapshots "
+            "ORDER BY tenant_id, decision_kind, decision_id"
+        ).fetchall()
+        for row in rows:
+            expected = self._validated_decision_row_digest(row)
+            if row["decision_row_digest"] is None or str(row["decision_row_digest"]) != expected:
+                raise AgentKernelError(
+                    ErrorCode.INTEGRITY_ERROR,
+                    "Stored decision snapshot row digest is inconsistent",
+                )
 
     def append_decision_snapshot(
         self,
@@ -2825,47 +3377,90 @@ class SQLiteControlStore:
         )
         try:
             with self._immediate():
-                self._require_action_intent(tenant_id, transaction_id, intent_hash)
-                existing = self._connection.execute(
-                    "SELECT decision_digest FROM enforced_decision_snapshots "
-                    "WHERE tenant_id = ? AND decision_kind = ? AND decision_id = ?",
-                    (tenant_id, kind.value, decision_id),
-                ).fetchone()
-                if existing is not None:
-                    if str(existing["decision_digest"]) != decision_digest:
-                        raise AgentKernelError(
-                            ErrorCode.INTEGRITY_ERROR,
-                            "Decision identity already has different immutable content",
-                        )
-                    snapshot = self._get_decision_snapshot(tenant_id, kind, decision_id)
-                    return DecisionSnapshot(
-                        tenant_id=snapshot.tenant_id,
-                        kind=snapshot.kind,
-                        decision_id=snapshot.decision_id,
-                        transaction_id=snapshot.transaction_id,
-                        intent_hash=snapshot.intent_hash,
-                        decision_digest=snapshot.decision_digest,
-                        decision=snapshot.decision,
-                        recorded_at=snapshot.recorded_at,
-                        created=False,
-                    )
-                self._execute(
-                    "INSERT INTO enforced_decision_snapshots"
-                    "(tenant_id, decision_kind, decision_id, transaction_id, intent_hash, "
-                    "decision_digest, decision_json, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (
-                        tenant_id,
-                        kind.value,
-                        decision_id,
-                        transaction_id,
-                        intent_hash,
-                        decision_digest,
-                        decision_json,
-                        timestamp,
-                    ),
+                return self._append_decision_snapshot_tx(
+                    tenant_id=tenant_id,
+                    kind=kind,
+                    decision_id=decision_id,
+                    transaction_id=transaction_id,
+                    intent_hash=intent_hash,
+                    document=document,
+                    decision_json=decision_json,
+                    decision_digest=decision_digest,
+                    recorded_at=timestamp,
                 )
         except sqlite3.IntegrityError as error:
             raise _sqlite_integrity("Decision snapshot append failed closed", error) from error
+
+    def _append_decision_snapshot_tx(
+        self,
+        *,
+        tenant_id: str,
+        kind: DecisionKind,
+        decision_id: str,
+        transaction_id: str,
+        intent_hash: str,
+        document: dict[str, JsonValue],
+        decision_json: str,
+        decision_digest: str,
+        recorded_at: str,
+    ) -> DecisionSnapshot:
+        """Append one decision snapshot inside the caller's write transaction."""
+
+        self._require_action_intent(tenant_id, transaction_id, intent_hash)
+        existing = self._connection.execute(
+            "SELECT * FROM enforced_decision_snapshots "
+            "WHERE tenant_id = ? AND decision_kind = ? AND decision_id = ?",
+            (tenant_id, kind.value, decision_id),
+        ).fetchone()
+        if existing is not None:
+            if (
+                str(existing["decision_digest"]) != decision_digest
+                or str(existing["recorded_at"]) != recorded_at
+            ):
+                raise AgentKernelError(
+                    ErrorCode.INTEGRITY_ERROR,
+                    "Decision identity already has different immutable row content",
+                )
+            snapshot = self._get_decision_snapshot(tenant_id, kind, decision_id)
+            return DecisionSnapshot(
+                tenant_id=snapshot.tenant_id,
+                kind=snapshot.kind,
+                decision_id=snapshot.decision_id,
+                transaction_id=snapshot.transaction_id,
+                intent_hash=snapshot.intent_hash,
+                decision_digest=snapshot.decision_digest,
+                row_digest=snapshot.row_digest,
+                decision=snapshot.decision,
+                recorded_at=snapshot.recorded_at,
+                created=False,
+            )
+        row_digest = decision_snapshot_row_digest(
+            tenant_id=tenant_id,
+            kind=kind,
+            decision_id=decision_id,
+            transaction_id=transaction_id,
+            intent_hash=intent_hash,
+            decision_digest=decision_digest,
+            decision_json=decision_json,
+            recorded_at=recorded_at,
+        )
+        self._execute(
+            "INSERT INTO enforced_decision_snapshots"
+            "(tenant_id, decision_kind, decision_id, transaction_id, intent_hash, "
+            "decision_digest, decision_json, recorded_at, decision_row_digest) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                tenant_id,
+                kind.value,
+                decision_id,
+                transaction_id,
+                intent_hash,
+                decision_digest,
+                decision_json,
+                recorded_at,
+                row_digest,
+            ),
+        )
         return DecisionSnapshot(
             tenant_id=tenant_id,
             kind=kind,
@@ -2873,8 +3468,9 @@ class SQLiteControlStore:
             transaction_id=transaction_id,
             intent_hash=intent_hash,
             decision_digest=decision_digest,
+            row_digest=row_digest,
             decision=document,
-            recorded_at=_parse_timestamp(timestamp),
+            recorded_at=_parse_timestamp(recorded_at),
             created=True,
         )
 
@@ -2909,6 +3505,8 @@ class SQLiteControlStore:
         document = cast("dict[str, JsonValue]", parsed)
         transaction_id = str(row["transaction_id"])
         intent_hash = str(row["intent_hash"])
+        recorded_at_text = str(row["recorded_at"])
+        recorded_at = _parse_timestamp(recorded_at_text)
         expected_digest = self._decision_digest(
             tenant_id=tenant_id,
             kind=kind,
@@ -2917,12 +3515,25 @@ class SQLiteControlStore:
             intent_hash=intent_hash,
             decision=document,
         )
+        expected_row_digest = decision_snapshot_row_digest(
+            tenant_id=tenant_id,
+            kind=kind,
+            decision_id=decision_id,
+            transaction_id=transaction_id,
+            intent_hash=intent_hash,
+            decision_digest=expected_digest,
+            decision_json=canonical_json_text(document),
+            recorded_at=recorded_at_text,
+        )
         if (
             str(row["tenant_id"]) != tenant_id
             or str(row["decision_kind"]) != kind.value
             or str(row["decision_id"]) != decision_id
             or str(row["decision_digest"]) != expected_digest
             or str(row["decision_json"]) != canonical_json_text(document)
+            or recorded_at_text != _timestamp(recorded_at)
+            or row["decision_row_digest"] is None
+            or str(row["decision_row_digest"]) != expected_row_digest
         ):
             raise AgentKernelError(
                 ErrorCode.INTEGRITY_ERROR,
@@ -2936,8 +3547,9 @@ class SQLiteControlStore:
             transaction_id=transaction_id,
             intent_hash=intent_hash,
             decision_digest=expected_digest,
+            row_digest=expected_row_digest,
             decision=document,
-            recorded_at=_parse_timestamp(row["recorded_at"]),
+            recorded_at=recorded_at,
             created=False,
         )
 

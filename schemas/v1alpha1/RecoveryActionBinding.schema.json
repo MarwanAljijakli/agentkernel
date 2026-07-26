@@ -1,0 +1,172 @@
+{
+  "$defs": {
+    "RecoveryWorkKind": {
+      "description": "Explicit recovery operation; each item requires its own authority and deadline.",
+      "enum": [
+        "DISCARD_STAGING",
+        "RECONCILE_DISPATCH",
+        "ROLLBACK",
+        "COMPENSATE"
+      ],
+      "title": "RecoveryWorkKind",
+      "type": "string"
+    },
+    "RiskClass": {
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "title": "RiskClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Canonical semantic projection that recovery authority must explicitly cover.",
+  "properties": {
+    "absolute_deadline": {
+      "format": "date-time",
+      "title": "Absolute Deadline",
+      "type": "string"
+    },
+    "adapter_manifest_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Adapter Manifest Digest",
+      "type": "string"
+    },
+    "effect_domains": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Effect Domains",
+      "type": "array"
+    },
+    "max_recovery_attempts": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Max Recovery Attempts",
+      "type": "integer"
+    },
+    "not_before": {
+      "format": "date-time",
+      "title": "Not Before",
+      "type": "string"
+    },
+    "predecessor_recovery_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Predecessor Recovery Id"
+    },
+    "recovery_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "recovery_kind": {
+      "$ref": "#/$defs/RecoveryWorkKind"
+    },
+    "recovery_ordinal": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Recovery Ordinal",
+      "type": "integer"
+    },
+    "resource_uses_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Resource Uses Digest",
+      "type": "string"
+    },
+    "risk_class": {
+      "$ref": "#/$defs/RiskClass"
+    },
+    "root_recovery_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Root Recovery Id",
+      "type": "string"
+    },
+    "target_evidence_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Target Evidence Ref",
+      "type": "string"
+    },
+    "target_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Target Intent Hash",
+      "type": "string"
+    },
+    "target_normalized_action_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Target Normalized Action Digest",
+      "type": "string"
+    },
+    "target_owner_history_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Target Owner History Digest",
+      "type": "string"
+    },
+    "target_owner_history_sequence": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Target Owner History Sequence",
+      "type": "integer"
+    },
+    "target_owner_version": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Target Owner Version",
+      "type": "integer"
+    },
+    "target_transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Target Transaction Id",
+      "type": "string"
+    },
+    "target_version_guard": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Target Version Guard",
+      "type": "string"
+    }
+  },
+  "required": [
+    "target_transaction_id",
+    "target_intent_hash",
+    "target_normalized_action_digest",
+    "recovery_kind",
+    "target_id",
+    "target_evidence_ref",
+    "target_version_guard",
+    "target_owner_version",
+    "target_owner_history_sequence",
+    "target_owner_history_digest",
+    "adapter_manifest_digest",
+    "risk_class",
+    "effect_domains",
+    "resource_uses_digest",
+    "recovery_id",
+    "root_recovery_id",
+    "recovery_ordinal",
+    "max_recovery_attempts",
+    "not_before",
+    "absolute_deadline"
+  ],
+  "title": "RecoveryActionBinding",
+  "type": "object"
+}

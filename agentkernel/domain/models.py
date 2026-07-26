@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from ipaddress import ip_address
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, Literal, Self, cast
 from urllib.parse import SplitResult, quote, unquote_to_bytes, urlsplit
 
 from pydantic import (
@@ -17,20 +17,24 @@ from pydantic import (
     ConfigDict,
     Field,
     JsonValue,
+    StrictBool,
+    StrictInt,
     StringConstraints,
     field_validator,
     model_validator,
 )
 
-from agentkernel.canonical import canonical_digest
+from agentkernel.canonical import canonical_digest, validate_canonical_input_bounds
 from agentkernel.domain.enums import (
     ActionState,
     IntendedOutcome,
     ProvenanceTrust,
+    RecoveryWorkKind,
     ResourceAccessMode,
     ResourceUseKind,
     RiskClass,
     TransactionState,
+    VerificationPhase,
     VerificationStatus,
 )
 
@@ -56,6 +60,21 @@ _MAX_SEMANTIC_ARGUMENTS = 4096
 _MAX_PROVENANCE_BINDINGS = 256
 MAX_RESOURCE_DATA_CLASSES = 64
 MAX_CANONICAL_RESOURCE_CHARACTERS = 8192
+MAX_DURABLE_INTEGER = (1 << 63) - 1
+StrictPositiveInt = Annotated[StrictInt, Field(ge=1, le=MAX_DURABLE_INTEGER)]
+StrictNonNegativeInt = Annotated[StrictInt, Field(ge=0, le=MAX_DURABLE_INTEGER)]
+
+
+def _preflight_digest_create(values: dict[str, object]) -> None:
+    validate_canonical_input_bounds(
+        values,
+        max_depth=16,
+        max_container_items=256,
+        max_nodes=4_096,
+        max_string_characters=512,
+        max_total_string_characters=65_536,
+        max_integer_bits=63,
+    )
 
 
 def _validate_percent_encoding(value: str) -> None:
@@ -193,6 +212,10 @@ def _canonical_resource_uri(value: str) -> str:
         raise ValueError("Canonical resource URI contains a control character")
     if "\\" in value or any(character.isspace() for character in value):
         raise ValueError("Canonical resource URI contains a non-canonical character")
+    # ``urlsplit`` cannot distinguish an absent query/fragment from an explicitly
+    # present empty delimiter. Both spellings would otherwise alias the same resource.
+    if "?" in value or "#" in value:
+        raise ValueError("Canonical resource URI cannot contain a query or fragment")
     _validate_percent_encoding(value)
     parsed = urlsplit(value)
     rendered_scheme = value.split(":", 1)[0]
@@ -234,6 +257,18 @@ class StrictModel(BaseModel):
         populate_by_name=True,
         validate_default=True,
     )
+
+
+def _require_canonical_security_text(value: str, *, field_name: str) -> str:
+    """Reject alternate Unicode spellings at digest- and dispatch-boundary fields."""
+
+    try:
+        value.encode("utf-8", errors="strict")
+    except UnicodeEncodeError as error:
+        raise ValueError(f"{field_name} must be valid UTF-8") from error
+    if unicodedata.normalize("NFC", value) != value:
+        raise ValueError(f"{field_name} must use Unicode NFC")
+    return value
 
 
 def _require_sorted_unique_strings(
@@ -629,6 +664,401 @@ class NormalizedAction(_NormalizedIntentFields):
 
 
 create_normalized_action = NormalizedAction.create
+
+
+class InspectionPermit(StrictModel):
+    """Coordinator-issued authority for one fenced, read-only target inspection."""
+
+    api_version: ApiVersion = "agentkernel.io/v1alpha1"
+    tenant_id: Identifier
+    transaction_id: Identifier
+    intent_hash: Digest
+    normalized_action_digest: Digest
+    proposal_ref: Digest
+    adapter_manifest_digest: Digest
+    authorization_round_id: Identifier
+    authorization_round_digest: Digest
+    lease_id: Identifier
+    worker_id: Identifier
+    fencing_token: StrictPositiveInt
+    issued_at: AwareDatetime
+    deadline: AwareDatetime
+    permit_digest: Digest
+
+    @model_validator(mode="after")
+    def _valid_permit(self) -> Self:
+        if self.deadline <= self.issued_at:
+            raise ValueError("Inspection permit deadline must follow issuance")
+        if self.permit_digest != canonical_digest(self.digest_material()):
+            raise ValueError("Inspection permit digest mismatch")
+        return self
+
+    def digest_material(self) -> dict[str, object]:
+        return self.model_dump(mode="python", exclude={"permit_digest"})
+
+    @classmethod
+    def create(cls, **values: object) -> Self:
+        _preflight_digest_create(values)
+        constructor = cast("Any", cls.model_construct)
+        unsigned = cast(
+            "Self",
+            constructor(**values, permit_digest="sha256:" + ("0" * 64)),
+        )
+        return cls.model_validate(
+            {**values, "permit_digest": canonical_digest(unsigned.digest_material())}
+        )
+
+
+class StagePermit(StrictModel):
+    """Coordinator-issued authority to create and mutate exactly one private stage."""
+
+    api_version: ApiVersion = "agentkernel.io/v1alpha1"
+    tenant_id: Identifier
+    transaction_id: Identifier
+    intent_hash: Digest
+    normalized_action_digest: Digest
+    adapter_manifest_digest: Digest
+    authorization_round_id: Identifier
+    authorization_round_digest: Digest
+    inspection_permit_digest: Digest
+    inspection_permit_ref: Digest
+    plan_digest: Digest
+    plan_ref: Digest
+    stage_id: Identifier
+    lease_id: Identifier
+    worker_id: Identifier
+    fencing_token: StrictPositiveInt
+    target_version_guard: NonEmptyStr
+    issued_at: AwareDatetime
+    deadline: AwareDatetime
+    permit_digest: Digest
+
+    @field_validator("target_version_guard")
+    @classmethod
+    def _canonical_target_guard(cls, value: str) -> str:
+        return _require_canonical_security_text(value, field_name="Stage target-version guard")
+
+    @model_validator(mode="after")
+    def _valid_permit(self) -> Self:
+        if self.deadline <= self.issued_at:
+            raise ValueError("Stage permit deadline must follow issuance")
+        if self.permit_digest != canonical_digest(self.digest_material()):
+            raise ValueError("Stage permit digest mismatch")
+        return self
+
+    def digest_material(self) -> dict[str, object]:
+        return self.model_dump(mode="python", exclude={"permit_digest"})
+
+    @classmethod
+    def create(cls, **values: object) -> Self:
+        _preflight_digest_create(values)
+        constructor = cast("Any", cls.model_construct)
+        unsigned = cast(
+            "Self",
+            constructor(**values, permit_digest="sha256:" + ("0" * 64)),
+        )
+        return cls.model_validate(
+            {**values, "permit_digest": canonical_digest(unsigned.digest_material())}
+        )
+
+
+class CommitPermit(StrictModel):
+    """One durable permit for one exact staged receipt and commit dispatch."""
+
+    api_version: ApiVersion = "agentkernel.io/v1alpha1"
+    tenant_id: Identifier
+    transaction_id: Identifier
+    intent_hash: Digest
+    normalized_action_digest: Digest
+    dispatch_id: Identifier
+    stage_id: Identifier
+    plan_digest: Digest
+    plan_ref: Digest
+    stage_permit_digest: Digest
+    stage_permit_ref: Digest
+    lease_id: Identifier
+    worker_id: Identifier
+    fencing_token: StrictPositiveInt
+    idempotency_key: NonEmptyStr
+    target_version_guard: NonEmptyStr
+    staged_receipt_ref: Digest
+    staged_state_digest: Digest
+    staged_verification_permit_digest: Digest
+    staged_verification_permit_ref: Digest
+    staged_verification_ref: Digest
+    precommit_inspection_permit_digest: Digest
+    precommit_inspection_permit_ref: Digest
+    precommit_plan_digest: Digest
+    precommit_plan_ref: Digest
+    approval_required: StrictBool
+    approval_id: Identifier | None = None
+    approval_evidence_ref: Digest
+    adapter_manifest_digest: Digest
+    authority_decision_digest: Digest
+    policy_decision_digest: Digest
+    policy_snapshot_digest: Digest
+    authorization_round_id: Identifier
+    authorization_round_digest: Digest
+    capability_reservation_digest: Digest
+    reservation_version: StrictPositiveInt
+    owner_version: StrictNonNegativeInt
+    owner_history_sequence: StrictNonNegativeInt
+    owner_history_digest: Digest
+    issued_at: AwareDatetime
+    deadline: AwareDatetime
+    permit_digest: Digest
+
+    @field_validator("idempotency_key", "target_version_guard")
+    @classmethod
+    def _canonical_dispatch_text(cls, value: str, info: object) -> str:
+        return _require_canonical_security_text(
+            value,
+            field_name=f"Commit {getattr(info, 'field_name', 'dispatch binding')}",
+        )
+
+    @model_validator(mode="after")
+    def _valid_permit(self) -> Self:
+        if self.deadline <= self.issued_at:
+            raise ValueError("Commit permit deadline must follow issuance")
+        if self.reservation_version % 2 != 1:
+            raise ValueError("Commit permit requires a committed odd reservation version")
+        if self.approval_required != (self.approval_id is not None):
+            raise ValueError("Commit permit approval ID does not match approval requirement")
+        if self.permit_digest != canonical_digest(self.digest_material()):
+            raise ValueError("Commit permit digest mismatch")
+        return self
+
+    def digest_material(self) -> dict[str, object]:
+        return self.model_dump(mode="python", exclude={"permit_digest"})
+
+    @classmethod
+    def create(cls, **values: object) -> Self:
+        _preflight_digest_create(values)
+        constructor = cast("Any", cls.model_construct)
+        unsigned = cast(
+            "Self",
+            constructor(**values, permit_digest="sha256:" + ("0" * 64)),
+        )
+        return cls.model_validate(
+            {**values, "permit_digest": canonical_digest(unsigned.digest_material())}
+        )
+
+
+class VerificationPermit(StrictModel):
+    """Read-only authority for one exact staged or committed subject artifact."""
+
+    api_version: ApiVersion = "agentkernel.io/v1alpha1"
+    tenant_id: Identifier
+    transaction_id: Identifier
+    intent_hash: Digest
+    normalized_action_digest: Digest
+    adapter_manifest_digest: Digest
+    authorization_round_id: Identifier
+    authorization_round_digest: Digest
+    lease_id: Identifier
+    worker_id: Identifier
+    fencing_token: StrictPositiveInt
+    phase: VerificationPhase
+    subject_ref: Digest
+    authority_permit_digest: Digest
+    authority_permit_ref: Digest
+    subject_permit_digest: Digest
+    subject_permit_ref: Digest
+    issued_at: AwareDatetime
+    deadline: AwareDatetime
+    permit_digest: Digest
+
+    @model_validator(mode="after")
+    def _valid_permit(self) -> Self:
+        if self.deadline <= self.issued_at:
+            raise ValueError("Verification permit deadline must follow issuance")
+        if self.permit_digest != canonical_digest(self.digest_material()):
+            raise ValueError("Verification permit digest mismatch")
+        return self
+
+    def digest_material(self) -> dict[str, object]:
+        return self.model_dump(mode="python", exclude={"permit_digest"})
+
+    @classmethod
+    def create(cls, **values: object) -> Self:
+        _preflight_digest_create(values)
+        constructor = cast("Any", cls.model_construct)
+        unsigned = cast(
+            "Self",
+            constructor(**values, permit_digest="sha256:" + ("0" * 64)),
+        )
+        return cls.model_validate(
+            {**values, "permit_digest": canonical_digest(unsigned.digest_material())}
+        )
+
+
+class AdapterObservation(StrictModel):
+    """Content-addressed observation emitted at an enforced effect boundary."""
+
+    schema_version: SchemaVersion = "1.0"
+    evidence_kind: Literal[
+        "staged_verification",
+        "committed_verification",
+        "discard_staging",
+        "rollback",
+        "compensation",
+        "reconciliation",
+    ]
+    adapter: Identifier
+    adapter_manifest_digest: Digest
+    tenant_id: Identifier
+    transaction_id: Identifier
+    intent_hash: Digest
+    normalized_action_digest: Digest
+    subject_ref: Digest
+    operation_permit_ref: Digest
+    authority_permit_ref: Digest
+    subject_authority_ref: Digest
+    operation_status: NonEmptyStr
+    observed_state_digest: Digest
+    durable_state_digest: Digest
+    dispatch_id: Identifier | None = None
+    owner_version: StrictNonNegativeInt | None = None
+    owner_history_sequence: StrictNonNegativeInt | None = None
+    owner_history_digest: Digest | None = None
+    observed_at: AwareDatetime
+
+    @field_validator("observed_at")
+    @classmethod
+    def _observed_at_is_utc(cls, value: datetime) -> datetime:
+        if value.utcoffset() != UTC.utcoffset(value):
+            raise ValueError("Adapter observation time must be UTC")
+        return value
+
+    @model_validator(mode="after")
+    def _complete_dispatch_generation(self) -> Self:
+        generation = (
+            self.dispatch_id,
+            self.owner_version,
+            self.owner_history_sequence,
+            self.owner_history_digest,
+        )
+        if any(value is not None for value in generation) and not all(
+            value is not None for value in generation
+        ):
+            raise ValueError("Adapter observation dispatch generation must be complete")
+        return self
+
+
+RECOVERY_ACTION_BINDING_ARGUMENT = "agentkernel.recovery.binding"
+
+
+class RecoveryActionBinding(StrictModel):
+    """Canonical semantic projection that recovery authority must explicitly cover."""
+
+    target_transaction_id: Identifier
+    target_intent_hash: Digest
+    target_normalized_action_digest: Digest
+    recovery_kind: RecoveryWorkKind
+    target_id: Identifier
+    target_evidence_ref: Digest
+    target_version_guard: NonEmptyStr
+    target_owner_version: StrictNonNegativeInt
+    target_owner_history_sequence: StrictNonNegativeInt
+    target_owner_history_digest: Digest
+    adapter_manifest_digest: Digest
+    risk_class: RiskClass
+    effect_domains: tuple[NonEmptyStr, ...]
+    resource_uses_digest: Digest
+    recovery_id: Identifier
+    root_recovery_id: Identifier
+    predecessor_recovery_id: Identifier | None = None
+    recovery_ordinal: StrictNonNegativeInt
+    max_recovery_attempts: StrictNonNegativeInt
+    not_before: AwareDatetime
+    absolute_deadline: AwareDatetime
+
+    @model_validator(mode="after")
+    def _valid_lineage(self) -> Self:
+        if (
+            self.recovery_ordinal < 1
+            or self.max_recovery_attempts < self.recovery_ordinal
+            or self.not_before >= self.absolute_deadline
+        ):
+            raise ValueError("Recovery binding has an invalid bounded lineage")
+        return self
+
+
+class RecoveryPermit(StrictModel):
+    """Separate fenced authority for one exact recovery or reconciliation action."""
+
+    api_version: ApiVersion = "agentkernel.io/v1alpha1"
+    tenant_id: Identifier
+    transaction_id: Identifier
+    intent_hash: Digest
+    recovery_id: Identifier
+    recovery_action_transaction_id: Identifier
+    recovery_action_intent_hash: Digest
+    recovery_action_digest: Digest
+    adapter_manifest_digest: Digest
+    recovery_kind: RecoveryWorkKind
+    target_id: Identifier
+    target_owner_version: StrictNonNegativeInt
+    target_owner_history_sequence: StrictNonNegativeInt
+    target_owner_history_digest: Digest
+    target_evidence_ref: Digest
+    target_version_guard: NonEmptyStr
+    authorization_round_id: Identifier
+    authorization_round_digest: Digest
+    authority_decision_digest: Digest
+    policy_decision_digest: Digest
+    policy_snapshot_digest: Digest
+    capability_reservation_digest: Digest
+    reservation_version: StrictPositiveInt
+    owner_version: StrictNonNegativeInt
+    owner_history_sequence: StrictNonNegativeInt
+    owner_history_digest: Digest
+    approval_required: StrictBool
+    approval_id: Identifier | None = None
+    approval_evidence_ref: Digest
+    lease_id: Identifier
+    worker_id: Identifier
+    fencing_token: StrictPositiveInt
+    issued_at: AwareDatetime
+    deadline: AwareDatetime
+    permit_digest: Digest
+
+    @field_validator("target_version_guard")
+    @classmethod
+    def _canonical_target_guard(cls, value: str) -> str:
+        return _require_canonical_security_text(
+            value,
+            field_name="Recovery target-version guard",
+        )
+
+    @model_validator(mode="after")
+    def _valid_permit(self) -> Self:
+        if self.deadline <= self.issued_at:
+            raise ValueError("Recovery permit deadline must follow issuance")
+        if self.recovery_action_transaction_id == self.transaction_id:
+            raise ValueError("Recovery permit requires a separate normalized transaction")
+        if self.reservation_version % 2 != 1:
+            raise ValueError("Recovery permit requires a committed odd reservation version")
+        if self.approval_required != (self.approval_id is not None):
+            raise ValueError("Recovery permit approval ID does not match approval requirement")
+        if self.permit_digest != canonical_digest(self.digest_material()):
+            raise ValueError("Recovery permit digest mismatch")
+        return self
+
+    def digest_material(self) -> dict[str, object]:
+        return self.model_dump(mode="python", exclude={"permit_digest"})
+
+    @classmethod
+    def create(cls, **values: object) -> Self:
+        _preflight_digest_create(values)
+        constructor = cast("Any", cls.model_construct)
+        unsigned = cast(
+            "Self",
+            constructor(**values, permit_digest="sha256:" + ("0" * 64)),
+        )
+        return cls.model_validate(
+            {**values, "permit_digest": canonical_digest(unsigned.digest_material())}
+        )
 
 
 class GoalRecord(StrictModel):

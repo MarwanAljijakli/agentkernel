@@ -1,0 +1,88 @@
+{
+  "additionalProperties": false,
+  "description": "Exact evidence identity for one on-time recovery completion.",
+  "properties": {
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "operation_evidence_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Operation Evidence Ref",
+      "type": "string"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
+    "recovery_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "report_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Report Digest",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "succeeded": {
+      "title": "Succeeded",
+      "type": "boolean"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "terminal_work_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Terminal Work Digest",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "recovery_id",
+    "succeeded",
+    "operation_evidence_ref",
+    "evidence_refs",
+    "completed_at",
+    "terminal_work_digest",
+    "report_digest"
+  ],
+  "title": "RecoveryCompletionReportRecord",
+  "type": "object"
+}

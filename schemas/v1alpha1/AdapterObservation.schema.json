@@ -1,0 +1,168 @@
+{
+  "additionalProperties": false,
+  "description": "Content-addressed observation emitted at an enforced effect boundary.",
+  "properties": {
+    "adapter": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Adapter",
+      "type": "string"
+    },
+    "adapter_manifest_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Adapter Manifest Digest",
+      "type": "string"
+    },
+    "authority_permit_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Authority Permit Ref",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dispatch Id"
+    },
+    "durable_state_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Durable State Digest",
+      "type": "string"
+    },
+    "evidence_kind": {
+      "enum": [
+        "staged_verification",
+        "committed_verification",
+        "discard_staging",
+        "rollback",
+        "compensation",
+        "reconciliation"
+      ],
+      "title": "Evidence Kind",
+      "type": "string"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "normalized_action_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Normalized Action Digest",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "observed_state_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Observed State Digest",
+      "type": "string"
+    },
+    "operation_permit_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Operation Permit Ref",
+      "type": "string"
+    },
+    "operation_status": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Operation Status",
+      "type": "string"
+    },
+    "owner_history_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Owner History Digest"
+    },
+    "owner_history_sequence": {
+      "anyOf": [
+        {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Owner History Sequence"
+    },
+    "owner_version": {
+      "anyOf": [
+        {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Owner Version"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "subject_authority_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Subject Authority Ref",
+      "type": "string"
+    },
+    "subject_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Subject Ref",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "evidence_kind",
+    "adapter",
+    "adapter_manifest_digest",
+    "tenant_id",
+    "transaction_id",
+    "intent_hash",
+    "normalized_action_digest",
+    "subject_ref",
+    "operation_permit_ref",
+    "authority_permit_ref",
+    "subject_authority_ref",
+    "operation_status",
+    "observed_state_digest",
+    "durable_state_digest",
+    "observed_at"
+  ],
+  "title": "AdapterObservation",
+  "type": "object"
+}
