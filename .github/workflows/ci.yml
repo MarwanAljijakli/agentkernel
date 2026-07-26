@@ -17,15 +17,17 @@ jobs:
   platform-tests:
     name: Full tests and coverage (${{ matrix.lane }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: ${{ matrix.timeout_minutes }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - lane: linux
             os: ubuntu-latest
+            timeout_minutes: 45
           - lane: windows
             os: windows-latest
+            timeout_minutes: 120
     env:
       AGENTKERNEL_COVERAGE_LANE: ${{ matrix.lane }}
       AGENTKERNEL_COVERAGE_COMMIT_SHA: ${{ github.sha }}

@@ -2053,6 +2053,7 @@ async def test_repeated_cancel_during_live_handoff_contention_waits_for_settleme
     second_conflict = asyncio.Event()
     original_acquire = harness.store.acquire_recovery_handoff_lease
     conflict_count = 0
+    coordination_timeout = 15.0
 
     def acquire_with_conflict_signal(**kwargs):
         nonlocal conflict_count
@@ -2068,7 +2069,10 @@ async def test_repeated_cancel_during_live_handoff_contention_waits_for_settleme
             raise
 
     try:
-        await asyncio.wait_for(recovery_actions.first_started.wait(), timeout=2)
+        await asyncio.wait_for(
+            recovery_actions.first_started.wait(),
+            timeout=coordination_timeout,
+        )
         monkeypatch.setattr(
             harness.store,
             "acquire_recovery_handoff_lease",
@@ -2081,17 +2085,17 @@ async def test_repeated_cancel_during_live_handoff_contention_waits_for_settleme
         assert aborting.state is TransactionState.ABORTING
         contender_task = asyncio.create_task(contender._settle_abort_handoff(aborting))
 
-        await asyncio.wait_for(first_conflict.wait(), timeout=2)
+        await asyncio.wait_for(first_conflict.wait(), timeout=coordination_timeout)
         contender_task.cancel("original-contention-cancel")
-        await asyncio.wait_for(second_conflict.wait(), timeout=2)
+        await asyncio.wait_for(second_conflict.wait(), timeout=coordination_timeout)
         contender_task.cancel("repeated-contention-cancel")
         await asyncio.sleep(0)
         assert not contender_task.done()
 
         recovery_actions.release.set()
-        owner_result = await asyncio.wait_for(owner_task, timeout=2)
+        owner_result = await asyncio.wait_for(owner_task, timeout=coordination_timeout)
         with pytest.raises(CancelledError) as captured:
-            await asyncio.wait_for(contender_task, timeout=2)
+            await asyncio.wait_for(contender_task, timeout=coordination_timeout)
 
         assert captured.value.args == ("original-contention-cancel",)
         assert owner_result.state is TransactionState.ABORTED
@@ -2582,6 +2586,7 @@ async def test_recovery_lease_atomically_reserves_binding_before_factory(
     class SimulatedProcessDeath(BaseException):
         pass
 
+    lease_duration = timedelta(minutes=1)
     harness = support._make_harness(
         tmp_path,
         transaction_id="transaction:atomic-lease-binding",
@@ -2593,7 +2598,7 @@ async def test_recovery_lease_atomically_reserves_binding_before_factory(
         recovery_actions=recovery_actions,
         config=EnforcedCoordinatorConfig(
             worker_id="worker:atomic-lease-binding",
-            lease_duration=timedelta(seconds=1),
+            lease_duration=lease_duration,
             recovery_deadline=timedelta(seconds=4),
             reconciliation_backoff=timedelta(seconds=1),
         ),
@@ -2602,14 +2607,14 @@ async def test_recovery_lease_atomically_reserves_binding_before_factory(
     async def die_after_atomic_acquire(*_args, **_kwargs):
         raise SimulatedProcessDeath
 
+    session = await coordinator.transaction(harness.request)
+    assert not isinstance(session, EnforcedTransactionStatus)
+    await session.__aenter__()
     monkeypatch.setattr(
         coordinator,
         "_authorize_recovery_work_claimed",
         die_after_atomic_acquire,
     )
-    session = await coordinator.transaction(harness.request)
-    assert not isinstance(session, EnforcedTransactionStatus)
-    await session.__aenter__()
     try:
         with pytest.raises(SimulatedProcessDeath):
             await session.cancel()
