@@ -33,6 +33,8 @@ R01_CORE_COMMIT = "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe"
 R01_CORE_DATE = "2026-07-22"
 RECOVERY_CORE_COMMIT = "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043"
 RECOVERY_CORE_DATE = "2026-07-26"
+RECOVERY_ACCEPTANCE_COMMIT = "70d378104abc3c5754abf4774fe8596e638ba574"
+RECOVERY_ACCEPTANCE_DATE = "2026-07-26"
 CI_EVIDENCE = "GitHub Actions CI run 29852865780 succeeded on " + BASELINE_COMMIT
 CODEQL_EVIDENCE = (
     "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is fixed, and "
@@ -49,6 +51,17 @@ RECOVERY_CODEQL_EVIDENCE = (
     "Exact-push GitHub CodeQL run 30213261166 succeeded on "
     + RECOVERY_CORE_COMMIT
     + " with zero open code-scanning alerts; PR merge CodeQL run 30213262221 also succeeded"
+)
+RECOVERY_ACCEPTANCE_CI_EVIDENCE = (
+    "Exact-push GitHub Actions CI run 30217100702 succeeded on "
+    + RECOVERY_ACCEPTANCE_COMMIT
+    + " across Linux and Windows (1664 tests each with zero failures or errors), Docker controls, "
+    "locked install, and the 85.10% cross-platform coverage union; PR run 30217101863 also succeeded"
+)
+RECOVERY_ACCEPTANCE_CODEQL_EVIDENCE = (
+    "Exact-push GitHub CodeQL run 30217100704 succeeded on "
+    + RECOVERY_ACCEPTANCE_COMMIT
+    + " with zero open code-scanning alerts; PR CodeQL run 30217101896 also succeeded"
 )
 
 
@@ -146,6 +159,18 @@ def recovery_core_partial(
         tuple(verification),
         RECOVERY_CORE_COMMIT,
         RECOVERY_CORE_DATE,
+    )
+
+
+def recovery_acceptance_verified(
+    *, implementation: Sequence[str], verification: Sequence[str]
+) -> Evidence:
+    return Evidence(
+        "implemented and verified",
+        tuple(implementation),
+        tuple(verification),
+        RECOVERY_ACCEPTANCE_COMMIT,
+        RECOVERY_ACCEPTANCE_DATE,
     )
 
 
@@ -1003,12 +1028,14 @@ AK_EVIDENCE: dict[str, Evidence] = {
             "test_exact_retry_reports_existing_owner_without_resuming_or_redispatching; test_committed_alias_returns_owner_receipt_without_commit_capability; test_active_alias_returns_read_only_owner_status_without_adapter_io",
         ),
     ),
-    "AK-010": recovery_core_partial(
+    "AK-010": recovery_acceptance_verified(
         implementation=(
             "Timeout or interruption after mock dispatch never resends the original intent; durable recovery either reconciles and attaches the observed outcome or remains bounded IN_DOUBT",
         ),
         verification=(
-            "test_mock_timeout_after_dispatch_waits_for_quiescence_and_never_resends; test_crash_after_dispatch_is_reconciled_without_redispatch; test_cancel_after_durable_dispatch_reports_in_doubt_then_reconciles",
+            "test_mock_timeout_after_dispatch_waits_for_quiescence_and_never_resends; test_crash_after_dispatch_is_reconciled_without_redispatch; test_cancel_after_durable_dispatch_reports_in_doubt_then_reconciles; test_timeout_after_durable_effect_reconciles_without_second_commit_or_dispatch",
+            RECOVERY_ACCEPTANCE_CI_EVIDENCE,
+            RECOVERY_ACCEPTANCE_CODEQL_EVIDENCE,
         ),
     ),
     "AK-011": baseline_verified(
@@ -2450,12 +2477,14 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
     )
     nfr_evidence_by_prefix: dict[str, dict[int, Evidence]] = {
         "NFR-REL-": {
-            1: recovery_core_partial(
+            1: recovery_acceptance_verified(
                 implementation=(
                     "A transaction is classified COMMITTED only with a durable dispatch outcome, receipt reference, and committed verification; reopened status fails closed when commit history or receipt evidence is missing or tampered",
                 ),
                 verification=(
-                    "test_enforced_happy_commit_binds_full_request_and_lease_deadlines; test_status_rejects_commit_history_after_dispatch_is_deleted; test_status_revalidates_committed_effect_receipt_artifact; test_effect_receipt_does_not_imply_commit",
+                    "test_enforced_happy_commit_binds_full_request_and_lease_deadlines; test_status_rejects_commit_history_after_dispatch_is_deleted; test_status_revalidates_committed_effect_receipt_artifact; test_effect_receipt_does_not_imply_commit; test_committed_outcome_event_and_receipt_survive_crash_reopen",
+                    RECOVERY_ACCEPTANCE_CI_EVIDENCE,
+                    RECOVERY_ACCEPTANCE_CODEQL_EVIDENCE,
                 ),
             ),
             2: recovery_core_partial(

@@ -129,6 +129,7 @@ def test_ledger_advances_only_verified_core_rows_and_keeps_broader_rows_partial(
     rows = {row["id"]: row for row in value["requirements"]}
     core_commit = "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe"
     recovery_commit = "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043"
+    recovery_acceptance_commit = "70d378104abc3c5754abf4774fe8596e638ba574"
     verified_core_ids = {
         "NORM-S11-010",
         "NORM-S11-011",
@@ -203,12 +204,22 @@ def test_ledger_advances_only_verified_core_rows_and_keeps_broader_rows_partial(
         rows[requirement_id]["last_verified_date"] == "2026-07-26"
         for requirement_id in verified_recovery_ids
     )
+    verified_recovery_acceptance_ids = {"AK-010", "NFR-REL-01"}
+    assert {
+        requirement_id
+        for requirement_id, row in rows.items()
+        if row["status"] == "implemented and verified"
+        and row["last_verified_commit"] == recovery_acceptance_commit
+    } == verified_recovery_acceptance_ids
+    assert all(
+        rows[requirement_id]["last_verified_date"] == "2026-07-26"
+        for requirement_id in verified_recovery_acceptance_ids
+    )
     recovery_partial_ids = {
         "REL-R01-D05",
         "AK-005",
         "AK-007",
         "AK-008",
-        "AK-010",
         "AK-018",
         "AK-071",
         "AK-075",
@@ -218,7 +229,6 @@ def test_ledger_advances_only_verified_core_rows_and_keeps_broader_rows_partial(
         "NORM-S21-004",
         "TEST-INT-04",
         "TEST-CHAOS-01",
-        "NFR-REL-01",
         "NFR-REL-02",
         "USR-005",
         "USR-009",
@@ -256,8 +266,10 @@ def test_recovery_freeze_evidence_names_exact_hosted_gates_without_overclaiming(
         rows["AK-008"]["implementation_evidence"]
     )
     assert rows["AK-075"]["status"] == "partially implemented"
-    assert rows["AK-010"]["status"] == "partially implemented"
-    assert rows["NFR-REL-01"]["status"] == "partially implemented"
+    assert rows["AK-010"]["status"] == "implemented and verified"
+    assert rows["NFR-REL-01"]["status"] == "implemented and verified"
+    assert rows["AK-010"]["last_verified_commit"] == "70d378104abc3c5754abf4774fe8596e638ba574"
+    assert rows["NFR-REL-01"]["last_verified_commit"] == "70d378104abc3c5754abf4774fe8596e638ba574"
     assert rows["NFR-REL-02"]["status"] == "partially implemented"
     assert rows["AK-077"]["status"] == "missing"
     assert rows["COMP-SAGA"]["status"] == "missing"
@@ -270,6 +282,16 @@ def test_recovery_freeze_evidence_names_exact_hosted_gates_without_overclaiming(
     )
     assert "30213261164" in recovery_evidence
     assert "30213261166" in recovery_evidence
+    recovery_acceptance_evidence = " ".join(
+        evidence
+        for row in rows.values()
+        if row["last_verified_commit"] == "70d378104abc3c5754abf4774fe8596e638ba574"
+        for evidence in row["verification_evidence"]
+    )
+    assert "30217100702" in recovery_acceptance_evidence
+    assert "30217100704" in recovery_acceptance_evidence
+    assert "30217101863" in recovery_acceptance_evidence
+    assert "30217101896" in recovery_acceptance_evidence
     assert "enforced coordinator and recovery scanner are absent" not in json.dumps(
         value, sort_keys=True
     )

@@ -18,8 +18,8 @@
     "catalog_row_count": 446,
     "total_row_count": 806,
     "status_counts": {
-      "implemented and verified": 67,
-      "partially implemented": 148,
+      "implemented and verified": 69,
+      "partially implemented": 146,
       "missing": 591,
       "blocked": 0
     },
@@ -12438,15 +12438,17 @@
         "Timeout or interruption after mock dispatch never resends the original intent; durable recovery either reconciles and attaches the observed outcome or remains bounded IN_DOUBT"
       ],
       "verification_evidence": [
-        "test_mock_timeout_after_dispatch_waits_for_quiescence_and_never_resends; test_crash_after_dispatch_is_reconciled_without_redispatch; test_cancel_after_durable_dispatch_reports_in_doubt_then_reconciles"
+        "test_mock_timeout_after_dispatch_waits_for_quiescence_and_never_resends; test_crash_after_dispatch_is_reconciled_without_redispatch; test_cancel_after_durable_dispatch_reports_in_doubt_then_reconciles; test_timeout_after_durable_effect_reconciles_without_second_commit_or_dispatch",
+        "Exact-push GitHub Actions CI run 30217100702 succeeded on 70d378104abc3c5754abf4774fe8596e638ba574 across Linux and Windows (1664 tests each with zero failures or errors), Docker controls, locked install, and the 85.10% cross-platform coverage union; PR run 30217101863 also succeeded",
+        "Exact-push GitHub CodeQL run 30217100704 succeeded on 70d378104abc3c5754abf4774fe8596e638ba574 with zero open code-scanning alerts; PR CodeQL run 30217101896 also succeeded"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [
         "REL-R01"
       ],
-      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_commit": "70d378104abc3c5754abf4774fe8596e638ba574",
       "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
@@ -32640,13 +32642,15 @@
         "A transaction is classified COMMITTED only with a durable dispatch outcome, receipt reference, and committed verification; reopened status fails closed when commit history or receipt evidence is missing or tampered"
       ],
       "verification_evidence": [
-        "test_enforced_happy_commit_binds_full_request_and_lease_deadlines; test_status_rejects_commit_history_after_dispatch_is_deleted; test_status_revalidates_committed_effect_receipt_artifact; test_effect_receipt_does_not_imply_commit"
+        "test_enforced_happy_commit_binds_full_request_and_lease_deadlines; test_status_rejects_commit_history_after_dispatch_is_deleted; test_status_revalidates_committed_effect_receipt_artifact; test_effect_receipt_does_not_imply_commit; test_committed_outcome_event_and_receipt_survive_crash_reopen",
+        "Exact-push GitHub Actions CI run 30217100702 succeeded on 70d378104abc3c5754abf4774fe8596e638ba574 across Linux and Windows (1664 tests each with zero failures or errors), Docker controls, locked install, and the 85.10% cross-platform coverage union; PR run 30217101863 also succeeded",
+        "Exact-push GitHub CodeQL run 30217100704 succeeded on 70d378104abc3c5754abf4774fe8596e638ba574 with zero open code-scanning alerts; PR CodeQL run 30217101896 also succeeded"
       ],
-      "status": "partially implemented",
+      "status": "implemented and verified",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043",
+      "last_verified_commit": "70d378104abc3c5754abf4774fe8596e638ba574",
       "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
