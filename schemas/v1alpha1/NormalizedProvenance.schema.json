@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "ProvenanceTrust": {
+      "enum": [
+        "trusted_control",
+        "authorized_user",
+        "project_data",
+        "external_untrusted",
+        "model_generated",
+        "unknown"
+      ],
+      "title": "ProvenanceTrust",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Trusted provenance facts and an integrity binding to their complete source record.",
+  "properties": {
+    "data_classes": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Data Classes",
+      "type": "array"
+    },
+    "integrity_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Integrity Ref"
+    },
+    "provenance_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Provenance Id",
+      "type": "string"
+    },
+    "record_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Record Digest",
+      "type": "string"
+    },
+    "trust": {
+      "$ref": "#/$defs/ProvenanceTrust"
+    }
+  },
+  "required": [
+    "provenance_id",
+    "trust",
+    "record_digest"
+  ],
+  "title": "NormalizedProvenance",
+  "type": "object"
+}

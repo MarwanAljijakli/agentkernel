@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # Branch pushes bind checkout, coverage evidence, and artifacts to the exact
+    # immutable head SHA. Pull requests remain a separate merge-compatibility gate.
+    branches: [main, "codex/**"]
   pull_request:
   workflow_dispatch:
 
@@ -10,55 +12,128 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Supersede obsolete PR merge runs, but retain every immutable push-SHA gate.
+  group: ci-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  quality:
-    name: Python 3.12 quality and contracts
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  platform-tests:
+    name: Full tests and coverage (${{ matrix.lane }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ matrix.timeout_minutes }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lane: linux
+            os: ubuntu-latest
+            timeout_minutes: 45
+          - lane: windows
+            os: windows-latest
+            timeout_minutes: 120
+    env:
+      AGENTKERNEL_COVERAGE_LANE: ${{ matrix.lane }}
+      AGENTKERNEL_COVERAGE_COMMIT_SHA: ${{ github.sha }}
+      AGENTKERNEL_COVERAGE_WORKFLOW_RUN_ID: ${{ github.run_id }}
+      AGENTKERNEL_COVERAGE_WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
           # Trace evidence is verified against frozen historical commits.
           fetch-depth: 0
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: "0.11.28"
           enable-cache: true
-      - name: Install locked environment
-        run: uv sync --frozen
-      - name: Check formatting
-        run: uv run ruff format --check .
-      - name: Lint
-        run: uv run ruff check .
-      - name: Type-check trusted core
-        run: uv run mypy agentkernel
-      - name: Static security scan
-        run: uv run bandit -q -r agentkernel
-      - name: Audit locked dependencies
-        run: uv run pip-audit
-      - name: Validate frozen requirements traceability
-        run: uv run python scripts/validate_traceability.py
-      - name: Test with branch coverage
-        run: >-
-          uv run pytest --cov=agentkernel --cov-report=term-missing
-          --cov-report=xml --junitxml=test-results/junit.xml
+      - name: Run the complete Linux check
+        if: matrix.lane == 'linux'
+        shell: bash
+        run: bash scripts/check.sh
+      - name: Run the complete Windows check
+        if: matrix.lane == 'windows'
+        shell: pwsh
+        run: ./scripts/check.ps1
       - name: Verify generated schemas are current
+        if: matrix.lane == 'linux'
         run: |
           uv run agentkernel schema export --output schemas/v1alpha1
           git diff --exit-code -- schemas/v1alpha1
-      - name: Build source and wheel artifacts
-        run: uv build
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: success()
+        with:
+          name: coverage-evidence-${{ matrix.lane }}-attempt-${{ github.run_attempt }}
+          path: test-results/coverage-evidence/${{ matrix.lane }}/run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          include-hidden-files: true
+          if-no-files-found: error
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: phase-0-evidence
+          name: test-report-${{ matrix.lane }}-attempt-${{ github.run_attempt }}
+          path: test-results/junit-${{ matrix.lane }}.xml
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: success()
+        with:
+          name: distributions-${{ matrix.lane }}-attempt-${{ github.run_attempt }}
+          path: dist/*
+          if-no-files-found: error
+
+  coverage-union:
+    name: Cross-platform coverage union (85%)
+    needs: platform-tests
+    if: ${{ always() && !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Require both full-test lanes
+        env:
+          PLATFORM_TEST_RESULT: ${{ needs.platform-tests.result }}
+        run: test "$PLATFORM_TEST_RESULT" = "success"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: true
+      - name: Install locked coverage tooling
+        run: uv sync --frozen
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: coverage-evidence-linux-attempt-${{ github.run_attempt }}
+          path: downloaded-coverage/coverage-evidence/linux/run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: coverage-evidence-windows-attempt-${{ github.run_attempt }}
+          path: downloaded-coverage/coverage-evidence/windows/run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+      - name: Verify exact-run databases and enforce the union gate
+        env:
+          COVERAGE_COMMIT_SHA: ${{ github.sha }}
+          COVERAGE_WORKFLOW_RUN_ID: ${{ github.run_id }}
+          COVERAGE_WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          uv run python scripts/coverage_evidence.py union \
+            --repo-root . \
+            --evidence-root downloaded-coverage/coverage-evidence \
+            --output-dir "test-results/coverage-union/run-$COVERAGE_WORKFLOW_RUN_ID-attempt-$COVERAGE_WORKFLOW_RUN_ATTEMPT" \
+            --lane linux \
+            --lane windows \
+            --commit-sha "$COVERAGE_COMMIT_SHA" \
+            --workflow-run-id "$COVERAGE_WORKFLOW_RUN_ID" \
+            --workflow-run-attempt "$COVERAGE_WORKFLOW_RUN_ATTEMPT" \
+            --fail-under 85
+          cat "test-results/coverage-union/run-$COVERAGE_WORKFLOW_RUN_ID-attempt-$COVERAGE_WORKFLOW_RUN_ATTEMPT/coverage-union.txt"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: coverage-union-attempt-${{ github.run_attempt }}
           path: |
-            coverage.xml
-            test-results/junit.xml
-            dist/*
+            test-results/coverage-union/run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+            downloaded-coverage/coverage-evidence/*/run-${{ github.run_id }}-attempt-${{ github.run_attempt }}/coverage-evidence.json
+          include-hidden-files: true
           if-no-files-found: warn
 
   locked-install:
@@ -67,6 +142,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: "0.11.28"
@@ -81,6 +159,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: "0.11.28"

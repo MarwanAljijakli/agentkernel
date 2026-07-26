@@ -1,0 +1,140 @@
+{
+  "$defs": {
+    "VerificationPhase": {
+      "description": "The exact effect material a read-only verification permit may inspect.",
+      "enum": [
+        "STAGED",
+        "COMMITTED"
+      ],
+      "title": "VerificationPhase",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Read-only authority for one exact staged or committed subject artifact.",
+  "properties": {
+    "adapter_manifest_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Adapter Manifest Digest",
+      "type": "string"
+    },
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "authority_permit_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Authority Permit Digest",
+      "type": "string"
+    },
+    "authority_permit_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Authority Permit Ref",
+      "type": "string"
+    },
+    "authorization_round_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Authorization Round Digest",
+      "type": "string"
+    },
+    "authorization_round_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Authorization Round Id",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "fencing_token": {
+      "maximum": 9223372036854775807,
+      "minimum": 1,
+      "title": "Fencing Token",
+      "type": "integer"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "lease_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Lease Id",
+      "type": "string"
+    },
+    "normalized_action_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Normalized Action Digest",
+      "type": "string"
+    },
+    "permit_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Permit Digest",
+      "type": "string"
+    },
+    "phase": {
+      "$ref": "#/$defs/VerificationPhase"
+    },
+    "subject_permit_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Subject Permit Digest",
+      "type": "string"
+    },
+    "subject_permit_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Subject Permit Ref",
+      "type": "string"
+    },
+    "subject_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Subject Ref",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    },
+    "worker_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Worker Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "intent_hash",
+    "normalized_action_digest",
+    "adapter_manifest_digest",
+    "authorization_round_id",
+    "authorization_round_digest",
+    "lease_id",
+    "worker_id",
+    "fencing_token",
+    "phase",
+    "subject_ref",
+    "authority_permit_digest",
+    "authority_permit_ref",
+    "subject_permit_digest",
+    "subject_permit_ref",
+    "issued_at",
+    "deadline",
+    "permit_digest"
+  ],
+  "title": "VerificationPermit",
+  "type": "object"
+}

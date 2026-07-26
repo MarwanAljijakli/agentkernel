@@ -1,0 +1,132 @@
+{
+  "additionalProperties": false,
+  "description": "Coordinator-issued authority to create and mutate exactly one private stage.",
+  "properties": {
+    "adapter_manifest_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Adapter Manifest Digest",
+      "type": "string"
+    },
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "authorization_round_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Authorization Round Digest",
+      "type": "string"
+    },
+    "authorization_round_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Authorization Round Id",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "fencing_token": {
+      "maximum": 9223372036854775807,
+      "minimum": 1,
+      "title": "Fencing Token",
+      "type": "integer"
+    },
+    "inspection_permit_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Inspection Permit Digest",
+      "type": "string"
+    },
+    "inspection_permit_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Inspection Permit Ref",
+      "type": "string"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "lease_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Lease Id",
+      "type": "string"
+    },
+    "normalized_action_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Normalized Action Digest",
+      "type": "string"
+    },
+    "permit_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Permit Digest",
+      "type": "string"
+    },
+    "plan_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plan Digest",
+      "type": "string"
+    },
+    "plan_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Plan Ref",
+      "type": "string"
+    },
+    "stage_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Stage Id",
+      "type": "string"
+    },
+    "target_version_guard": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Target Version Guard",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    },
+    "worker_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Worker Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "intent_hash",
+    "normalized_action_digest",
+    "adapter_manifest_digest",
+    "authorization_round_id",
+    "authorization_round_digest",
+    "inspection_permit_digest",
+    "inspection_permit_ref",
+    "plan_digest",
+    "plan_ref",
+    "stage_id",
+    "lease_id",
+    "worker_id",
+    "fencing_token",
+    "target_version_guard",
+    "issued_at",
+    "deadline",
+    "permit_digest"
+  ],
+  "title": "StagePermit",
+  "type": "object"
+}

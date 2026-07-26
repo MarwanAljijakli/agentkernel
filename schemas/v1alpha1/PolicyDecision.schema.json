@@ -1,0 +1,147 @@
+{
+  "$defs": {
+    "PolicyVerdict": {
+      "enum": [
+        "ELIGIBLE",
+        "DENY",
+        "ABSTAIN"
+      ],
+      "title": "PolicyVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "allowed_modes": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Allowed Modes",
+      "type": "array"
+    },
+    "blocking_unknown_facts": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Blocking Unknown Facts",
+      "type": "array"
+    },
+    "blocking_unknown_rules": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2048,
+      "title": "Blocking Unknown Rules",
+      "type": "array"
+    },
+    "bundle_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Bundle Digest",
+      "type": "string"
+    },
+    "matched_approvals": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2048,
+      "title": "Matched Approvals",
+      "type": "array"
+    },
+    "matched_denials": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2048,
+      "title": "Matched Denials",
+      "type": "array"
+    },
+    "matched_grants": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2048,
+      "title": "Matched Grants",
+      "type": "array"
+    },
+    "matched_shadows": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2048,
+      "title": "Matched Shadows",
+      "type": "array"
+    },
+    "obligations": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Obligations",
+      "type": "array"
+    },
+    "reason_code": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "unknown_facts": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Unknown Facts",
+      "type": "array"
+    },
+    "unknown_rules": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2048,
+      "title": "Unknown Rules",
+      "type": "array"
+    },
+    "verdict": {
+      "$ref": "#/$defs/PolicyVerdict"
+    }
+  },
+  "required": [
+    "verdict",
+    "reason_code",
+    "bundle_digest"
+  ],
+  "title": "PolicyDecision",
+  "type": "object"
+}

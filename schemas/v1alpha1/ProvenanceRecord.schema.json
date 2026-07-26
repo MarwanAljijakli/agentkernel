@@ -34,6 +34,7 @@
         "minLength": 1,
         "type": "string"
       },
+      "maxItems": 64,
       "title": "Data Classes",
       "type": "array"
     },
@@ -56,6 +57,7 @@
         "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
         "type": "string"
       },
+      "maxItems": 256,
       "title": "Parent Ids",
       "type": "array"
     },
@@ -77,6 +79,7 @@
         "minLength": 1,
         "type": "string"
       },
+      "maxItems": 256,
       "title": "Transformations",
       "type": "array"
     },

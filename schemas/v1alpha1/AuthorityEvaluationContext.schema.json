@@ -1,0 +1,76 @@
+{
+  "additionalProperties": false,
+  "description": "Authenticated coordinator facts; ``evaluated_at`` is the snapshot capture instant.",
+  "properties": {
+    "actor_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Actor Id",
+      "type": "string"
+    },
+    "audience": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Audience",
+      "type": "string"
+    },
+    "authority_snapshot_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Authority Snapshot Digest",
+      "type": "string"
+    },
+    "configuration_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Configuration Digest",
+      "type": "string"
+    },
+    "evaluated_at": {
+      "format": "date-time",
+      "title": "Evaluated At",
+      "type": "string"
+    },
+    "goal_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Goal Id",
+      "type": "string"
+    },
+    "on_behalf_of": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "On Behalf Of",
+      "type": "string"
+    },
+    "principal_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Principal Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "subject": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Subject",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "principal_id",
+    "subject",
+    "audience",
+    "goal_id",
+    "run_id",
+    "actor_id",
+    "on_behalf_of",
+    "configuration_digest",
+    "evaluated_at",
+    "authority_snapshot_digest"
+  ],
+  "title": "AuthorityEvaluationContext",
+  "type": "object"
+}

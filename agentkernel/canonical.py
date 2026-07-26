@@ -8,7 +8,7 @@ import json
 import math
 import unicodedata
 from collections.abc import Mapping, Sequence, Set
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
@@ -16,8 +16,186 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
+from pydantic_core import TzInfo
 
 from agentkernel.errors import AgentKernelError, ErrorCode
+
+_PYDANTIC_UTC = TzInfo(0)
+
+
+def _is_trusted_utc_timezone(value: object) -> bool:
+    """Recognize fixed UTC implementations without calling an untrusted tzinfo object."""
+
+    return (type(value) is timezone and value == UTC) or (
+        type(value) is TzInfo and value == _PYDANTIC_UTC
+    )
+
+
+def validate_canonical_input_bounds(
+    value: Any,
+    *,
+    max_depth: int,
+    max_container_items: int,
+    max_nodes: int,
+    max_string_characters: int,
+    max_total_string_characters: int,
+    max_integer_bits: int,
+) -> None:
+    """Bound unvalidated material before canonicalization can copy or normalize it.
+
+    The traversal is iterative, counts repeated aliases each time they are serialized, and
+    rejects cycles.  Callers still perform their normal schema validation afterwards.
+    """
+
+    stack: list[tuple[Any, int, bool]] = [(value, 0, False)]
+    active_containers: set[int] = set()
+    nodes = 0
+    string_characters = 0
+    while stack:
+        current, depth, leaving = stack.pop()
+        if leaving:
+            active_containers.remove(id(current))
+            continue
+        nodes += 1
+        if nodes > max_nodes:
+            raise AgentKernelError(
+                ErrorCode.RESOURCE_LIMIT_EXCEEDED,
+                "Canonical input exceeds the node bound",
+            )
+        if depth > max_depth:
+            raise AgentKernelError(
+                ErrorCode.RESOURCE_LIMIT_EXCEEDED,
+                "Canonical input exceeds the nesting-depth bound",
+            )
+        if isinstance(current, Enum):
+            children = (object.__getattribute__(current, "_value_"),)
+        elif type(current) in {str, bytes, bytearray}:
+            length = len(current)
+            if length > max_string_characters:
+                raise AgentKernelError(
+                    ErrorCode.RESOURCE_LIMIT_EXCEEDED,
+                    "Canonical input contains an oversized scalar",
+                )
+            string_characters += length
+            if string_characters > max_total_string_characters:
+                raise AgentKernelError(
+                    ErrorCode.RESOURCE_LIMIT_EXCEEDED,
+                    "Canonical input exceeds the aggregate text bound",
+                )
+            if type(current) is str:
+                try:
+                    current.encode("utf-8", errors="strict")
+                except UnicodeEncodeError as error:
+                    raise AgentKernelError(
+                        ErrorCode.VALIDATION_ERROR,
+                        "Pre-hash canonical input must contain valid UTF-8 text",
+                    ) from error
+            continue
+        elif isinstance(current, str | bytes | bytearray):
+            raise AgentKernelError(
+                ErrorCode.VALIDATION_ERROR,
+                "Pre-hash canonical input requires a built-in scalar",
+            )
+        elif current is None or type(current) is bool:
+            continue
+        elif type(current) is int:
+            if current.bit_length() > max_integer_bits:
+                raise AgentKernelError(
+                    ErrorCode.RESOURCE_LIMIT_EXCEEDED,
+                    "Canonical input contains an oversized integer",
+                )
+            continue
+        elif isinstance(current, int):
+            raise AgentKernelError(
+                ErrorCode.VALIDATION_ERROR,
+                "Pre-hash canonical input requires a built-in scalar",
+            )
+        elif type(current) is float:
+            continue
+        elif isinstance(current, float):
+            raise AgentKernelError(
+                ErrorCode.VALIDATION_ERROR,
+                "Pre-hash canonical input requires a built-in scalar",
+            )
+        elif type(current) is Decimal:
+            decimal_tuple = current.as_tuple()
+            exponent = decimal_tuple.exponent
+            if not isinstance(exponent, int):
+                continue
+            digit_count = len(decimal_tuple.digits)
+            if (
+                digit_count > max_string_characters
+                or abs(exponent) > max_string_characters
+                or digit_count + abs(exponent) + 3 > max_string_characters
+            ):
+                raise AgentKernelError(
+                    ErrorCode.RESOURCE_LIMIT_EXCEEDED,
+                    "Canonical input contains an oversized decimal",
+                )
+            continue
+        elif isinstance(current, Decimal):
+            raise AgentKernelError(
+                ErrorCode.VALIDATION_ERROR,
+                "Pre-hash canonical input requires a built-in scalar",
+            )
+        elif type(current) is datetime:
+            if not _is_trusted_utc_timezone(current.tzinfo):
+                raise AgentKernelError(
+                    ErrorCode.VALIDATION_ERROR,
+                    "Pre-hash timestamps require a built-in timezone",
+                )
+            continue
+        elif type(current) in {date, UUID}:
+            continue
+        elif isinstance(current, datetime | date | UUID):
+            raise AgentKernelError(
+                ErrorCode.VALIDATION_ERROR,
+                "Pre-hash canonical input requires a built-in scalar",
+            )
+        else:
+            children = None
+        if isinstance(current, BaseModel):
+            raise AgentKernelError(
+                ErrorCode.VALIDATION_ERROR,
+                "Pre-hash canonical input cannot contain an unvalidated model",
+            )
+        if isinstance(current, Mapping):
+            if type(current) is not dict:
+                raise AgentKernelError(
+                    ErrorCode.VALIDATION_ERROR,
+                    "Pre-hash canonical input requires a built-in mapping",
+                )
+            if len(current) > max_container_items:
+                raise AgentKernelError(
+                    ErrorCode.RESOURCE_LIMIT_EXCEEDED,
+                    "Canonical input mapping exceeds the item bound",
+                )
+            children = tuple(item for pair in current.items() for item in pair)
+        elif isinstance(current, Set | Sequence) and not isinstance(
+            current, str | bytes | bytearray
+        ):
+            if type(current) not in {list, tuple, set, frozenset}:
+                raise AgentKernelError(
+                    ErrorCode.VALIDATION_ERROR,
+                    "Pre-hash canonical input requires a built-in sequence or set",
+                )
+            if len(current) > max_container_items:
+                raise AgentKernelError(
+                    ErrorCode.RESOURCE_LIMIT_EXCEEDED,
+                    "Canonical input sequence exceeds the item bound",
+                )
+            children = tuple(current)
+        if children is None:
+            continue
+        identity = id(current)
+        if identity in active_containers:
+            raise AgentKernelError(
+                ErrorCode.VALIDATION_ERROR,
+                "Canonical input cannot contain a reference cycle",
+            )
+        active_containers.add(identity)
+        stack.append((current, depth, True))
+        stack.extend((child, depth + 1, False) for child in reversed(children))
 
 
 def _normalized_string(value: str) -> str:
@@ -28,7 +206,7 @@ def _normalize(value: Any) -> Any:
     if isinstance(value, BaseModel):
         return _normalize(value.model_dump(mode="python"))
     if isinstance(value, Enum):
-        return _normalize(value.value)
+        return _normalize(object.__getattribute__(value, "_value_"))
     if value is None or isinstance(value, bool | int):
         return value
     if isinstance(value, str):

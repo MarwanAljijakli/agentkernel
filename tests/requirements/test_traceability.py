@@ -124,14 +124,35 @@ def test_release_completeness_uses_external_mandatory_map_and_remains_red(
     assert "release gate incomplete" in completed.stderr
 
 
-def test_baseline_does_not_overclaim_unproven_atomic_behaviors() -> None:
+def test_ledger_advances_only_verified_core_rows_and_keeps_broader_rows_partial() -> None:
     value = json.loads(MANIFEST.read_text(encoding="utf-8"))
     rows = {row["id"]: row for row in value["requirements"]}
+    core_commit = "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe"
+    recovery_commit = "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043"
+    recovery_acceptance_commit = "70d378104abc3c5754abf4774fe8596e638ba574"
+    kernel_api_commit = "7f4674898c4c0d95c63d0c65f2d772104a8a6823"
+    verified_core_ids = {
+        "NORM-S11-010",
+        "NORM-S11-011",
+        "POL-AGG-01",
+        "POL-AGG-02",
+        "POL-AGG-03",
+        "POL-AGG-04",
+        "POL-AGG-05",
+        "POL-AGG-06",
+        "POL-AGG-07",
+        "POL-AGG-10",
+        "AK-006",
+        "AK-015",
+        "OPS-STORE-02",
+        "TEST-UNIT-02",
+        "TEST-UNIT-03",
+        "TEST-UNIT-04",
+    }
     conservative_ids = {
         "AK-002",
         "AK-003",
         "AK-005",
-        "AK-006",
         "AK-012",
         "AK-013",
         "REL-R01-D03",
@@ -146,14 +167,96 @@ def test_baseline_does_not_overclaim_unproven_atomic_behaviors() -> None:
     }
 
     assert all(
+        rows[requirement_id]["status"] == "implemented and verified"
+        and rows[requirement_id]["last_verified_commit"] == core_commit
+        for requirement_id in verified_core_ids
+    )
+    assert {
+        requirement_id
+        for requirement_id, row in rows.items()
+        if row["status"] == "implemented and verified"
+        and row["last_verified_commit"] == core_commit
+    } == verified_core_ids
+    assert all(
         rows[requirement_id]["status"] == "partially implemented"
         for requirement_id in conservative_ids
+    )
+    verified_recovery_ids = {
+        "NORM-S11-019",
+        "AK-009",
+        "SM-TX-20",
+        "SM-TX-21",
+        "SM-TX-24",
+        "SM-TX-28",
+        "SM-TX-34",
+        "SM-TX-35",
+        "SM-TX-36",
+        "SM-TX-37",
+        "SM-TX-38",
+        "TEST-INT-07",
+    }
+    assert {
+        requirement_id
+        for requirement_id, row in rows.items()
+        if row["status"] == "implemented and verified"
+        and row["last_verified_commit"] == recovery_commit
+    } == verified_recovery_ids
+    assert all(
+        rows[requirement_id]["last_verified_date"] == "2026-07-26"
+        for requirement_id in verified_recovery_ids
+    )
+    verified_recovery_acceptance_ids = {"AK-010", "NFR-REL-01"}
+    assert {
+        requirement_id
+        for requirement_id, row in rows.items()
+        if row["status"] == "implemented and verified"
+        and row["last_verified_commit"] == recovery_acceptance_commit
+    } == verified_recovery_acceptance_ids
+    assert all(
+        rows[requirement_id]["last_verified_date"] == "2026-07-26"
+        for requirement_id in verified_recovery_acceptance_ids
+    )
+    kernel_api_partial_ids = {"NORM-S09-005", "COMP-SVC-KERNELAPI"}
+    assert {
+        requirement_id
+        for requirement_id, row in rows.items()
+        if row["status"] == "partially implemented"
+        and row["last_verified_commit"] == kernel_api_commit
+    } == kernel_api_partial_ids
+    assert all(
+        rows[requirement_id]["last_verified_date"] == "2026-07-26"
+        for requirement_id in kernel_api_partial_ids
+    )
+    recovery_partial_ids = {
+        "REL-R01-D05",
+        "AK-005",
+        "AK-007",
+        "AK-008",
+        "AK-018",
+        "AK-071",
+        "AK-075",
+        "COMP-RECOVERY-SCANNER",
+        "NORM-S11-020",
+        "NORM-S11-021",
+        "NORM-S21-004",
+        "TEST-INT-04",
+        "TEST-CHAOS-01",
+        "NFR-REL-02",
+        "USR-005",
+        "USR-009",
+    }
+    assert all(
+        rows[requirement_id]["status"] == "partially implemented"
+        and rows[requirement_id]["last_verified_commit"] == recovery_commit
+        for requirement_id in recovery_partial_ids
     )
     assert all(
         row["status"] == "partially implemented"
         for requirement_id, row in rows.items()
-        if requirement_id.startswith("SM-TX-")
+        if requirement_id.startswith("SM-TX-") and requirement_id not in verified_recovery_ids
     )
+    assert rows["AK-077"]["status"] == "missing"
+    assert rows["COMP-SAGA"]["status"] == "missing"
 
 
 def test_traceability_bundle_points_to_its_first_containing_commit() -> None:
@@ -164,6 +267,87 @@ def test_traceability_bundle_points_to_its_first_containing_commit() -> None:
     assert rows["USR-002"]["status"] == "partially implemented"
     assert rows["USR-002"]["last_verified_commit"] == "1f1c6a243e51b5552bcdb1304af8bf0a486f7de7"
     assert rows["USR-002"]["last_verified_date"] == "2026-07-22"
+
+
+def test_recovery_freeze_evidence_names_exact_hosted_gates_without_overclaiming() -> None:
+    value = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    rows = {row["id"]: row for row in value["requirements"]}
+
+    assert rows["AK-008"]["status"] == "partially implemented"
+    assert "not every CoordinatorCrashPoint is kill-tested" in " ".join(
+        rows["AK-008"]["implementation_evidence"]
+    )
+    assert rows["AK-075"]["status"] == "partially implemented"
+    assert rows["AK-010"]["status"] == "implemented and verified"
+    assert rows["NFR-REL-01"]["status"] == "implemented and verified"
+    assert rows["AK-010"]["last_verified_commit"] == "70d378104abc3c5754abf4774fe8596e638ba574"
+    assert rows["NFR-REL-01"]["last_verified_commit"] == "70d378104abc3c5754abf4774fe8596e638ba574"
+    assert rows["NFR-REL-02"]["status"] == "partially implemented"
+    assert rows["AK-077"]["status"] == "missing"
+    assert rows["COMP-SAGA"]["status"] == "missing"
+
+    recovery_evidence = " ".join(
+        evidence
+        for row in rows.values()
+        if row["last_verified_commit"] == "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043"
+        for evidence in row["verification_evidence"]
+    )
+    assert "30213261164" in recovery_evidence
+    assert "30213261166" in recovery_evidence
+    recovery_acceptance_evidence = " ".join(
+        evidence
+        for row in rows.values()
+        if row["last_verified_commit"] == "70d378104abc3c5754abf4774fe8596e638ba574"
+        for evidence in row["verification_evidence"]
+    )
+    assert "30217100702" in recovery_acceptance_evidence
+    assert "30217100704" in recovery_acceptance_evidence
+    assert "30217101863" in recovery_acceptance_evidence
+    assert "30217101896" in recovery_acceptance_evidence
+    assert "enforced coordinator and recovery scanner are absent" not in json.dumps(
+        value, sort_keys=True
+    )
+
+
+def test_kernel_api_boundary_evidence_is_exact_hosted_and_remains_conservative() -> None:
+    value = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    rows = {row["id"]: row for row in value["requirements"]}
+    kernel_commit = "7f4674898c4c0d95c63d0c65f2d772104a8a6823"
+
+    assert value["metadata"]["status_counts"] == {
+        "implemented and verified": 69,
+        "partially implemented": 148,
+        "missing": 589,
+        "blocked": 0,
+    }
+    assert value["metadata"]["release_readiness"] == "FAIL"
+    assert rows["NORM-S09-005"]["status"] == "partially implemented"
+    assert rows["COMP-SVC-KERNELAPI"]["status"] == "partially implemented"
+    assert rows["NORM-S09-005"]["last_verified_commit"] == kernel_commit
+    assert rows["COMP-SVC-KERNELAPI"]["last_verified_commit"] == kernel_commit
+
+    evidence = " ".join(
+        evidence
+        for row in rows.values()
+        if row["last_verified_commit"] == kernel_commit
+        for evidence in row["verification_evidence"]
+    )
+    assert "30222068042" in evidence
+    assert "30222068033" in evidence
+    assert "30222069443" in evidence
+    assert "30222069424" in evidence
+
+    assert rows["NORM-S11-001"]["status"] == "missing"
+    assert rows["NORM-S11-002"]["status"] == "missing"
+    assert rows["USR-012"]["status"] == "missing"
+    joined_implementation = " ".join(
+        text
+        for requirement_id in ("NORM-S09-005", "COMP-SVC-KERNELAPI")
+        for text in rows[requirement_id]["implementation_evidence"]
+    )
+    assert "trusted in-process" in joined_implementation
+    assert "authenticated transport" in joined_implementation
+    assert "complete SDK boundary remain absent" in joined_implementation
 
 
 def test_current_only_traceability_path_cannot_claim_baseline_commit(tmp_path: Path) -> None:

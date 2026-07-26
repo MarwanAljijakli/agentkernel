@@ -1,0 +1,176 @@
+{
+  "$defs": {
+    "CompiledPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "bundle": {
+          "$ref": "#/$defs/PolicyBundle"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bundle",
+        "digest"
+      ],
+      "title": "CompiledPolicy",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "PolicyBundle": {
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "const": "agentkernel.io/v1alpha1",
+          "default": "agentkernel.io/v1alpha1",
+          "title": "Api Version",
+          "type": "string"
+        },
+        "default": {
+          "$ref": "#/$defs/PolicyDefault",
+          "default": "deny"
+        },
+        "kind": {
+          "const": "PolicyBundle",
+          "default": "PolicyBundle",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "rules": {
+          "items": {
+            "$ref": "#/$defs/PolicyRule"
+          },
+          "maxItems": 2048,
+          "title": "Rules",
+          "type": "array"
+        },
+        "version": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "rules"
+      ],
+      "title": "PolicyBundle",
+      "type": "object"
+    },
+    "PolicyDefault": {
+      "enum": [
+        "deny",
+        "abstain"
+      ],
+      "title": "PolicyDefault",
+      "type": "string"
+    },
+    "PolicyEffect": {
+      "enum": [
+        "grant",
+        "deny",
+        "require_approval",
+        "require_shadow"
+      ],
+      "title": "PolicyEffect",
+      "type": "string"
+    },
+    "PolicyLayer": {
+      "description": "Normative policy layers in their evidence-rendering order.",
+      "enum": [
+        "system",
+        "deployment",
+        "tenant",
+        "user",
+        "goal",
+        "adapter",
+        "data"
+      ],
+      "title": "PolicyLayer",
+      "type": "string"
+    },
+    "PolicyRule": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "$ref": "#/$defs/PolicyEffect"
+        },
+        "modes": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Modes",
+          "type": "array"
+        },
+        "rule_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "when": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "maxProperties": 1,
+          "minProperties": 1,
+          "title": "When",
+          "type": "object"
+        }
+      },
+      "required": [
+        "rule_id",
+        "effect",
+        "when"
+      ],
+      "title": "PolicyRule",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A compiled bundle plus caller-declared unknown evidence for that layer.",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/PolicyLayer"
+    },
+    "policy": {
+      "$ref": "#/$defs/CompiledPolicy"
+    },
+    "scope_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "unknown_facts": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Unknown Facts",
+      "type": "array"
+    }
+  },
+  "required": [
+    "layer",
+    "scope_id",
+    "policy"
+  ],
+  "title": "PolicyLayerInput",
+  "type": "object"
+}

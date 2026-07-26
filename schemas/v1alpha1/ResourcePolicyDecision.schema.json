@@ -1,0 +1,529 @@
+{
+  "$defs": {
+    "AuthorityEvaluationVerdict": {
+      "description": "Fail-closed result of the enforced authority evaluator.",
+      "enum": [
+        "ALLOW",
+        "DENY"
+      ],
+      "title": "AuthorityEvaluationVerdict",
+      "type": "string"
+    },
+    "AuthorityReasonCode": {
+      "description": "Stable, evidence-safe reasons emitted by the pure evaluator.",
+      "enum": [
+        "AUTHORITY_GRANTED",
+        "AUTHORITY_MISSING",
+        "ACTION_CONTEXT_MISMATCH",
+        "SNAPSHOT_MISMATCH",
+        "SNAPSHOT_FROM_FUTURE",
+        "SNAPSHOT_STALE",
+        "TENANT_MISMATCH",
+        "SUBJECT_MISMATCH",
+        "AUDIENCE_MISMATCH",
+        "GOAL_MISMATCH",
+        "RUN_MISMATCH",
+        "ROOT_ISSUER_MISMATCH",
+        "UNKNOWN_KEY",
+        "UNSUPPORTED_TOKEN_VERSION",
+        "CAPABILITY_NOT_YET_VALID",
+        "CAPABILITY_EXPIRED",
+        "CAPABILITY_REVOKED",
+        "CAPABILITY_BUDGET_STATE_MISSING",
+        "CAPABILITY_BUDGET_STATE_MISMATCH",
+        "CAPABILITY_BUDGET_EXHAUSTED",
+        "CAPABILITY_RESERVATION_PLAN_TOO_LARGE",
+        "AUTHORITY_COMPLEXITY_LIMIT",
+        "DELEGATION_PARENT_MISSING",
+        "DELEGATION_CYCLE",
+        "DELEGATION_CHAIN_TOO_DEEP",
+        "DELEGATION_ISSUER_MISMATCH",
+        "DELEGATION_ACTION_WIDENED",
+        "DELEGATION_RESOURCE_WIDENED",
+        "DELEGATION_DATA_CLASS_WIDENED",
+        "DELEGATION_TIME_WIDENED",
+        "DELEGATION_DEPTH_INVALID",
+        "DELEGATION_BUDGET_WIDENED",
+        "ACTION_NOT_GRANTED",
+        "RESOURCE_NOT_GRANTED",
+        "RESOURCE_ALIAS_REJECTED",
+        "DATA_CLASS_NOT_GRANTED",
+        "WILDCARD_SCOPE_FORBIDDEN",
+        "FORBIDDEN_RISK_CLASS",
+        "PARTIAL_RESOURCE_DENIAL",
+        "MULTIPLE_RESOURCE_DENIALS"
+      ],
+      "title": "AuthorityReasonCode",
+      "type": "string"
+    },
+    "PolicyDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_modes": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Allowed Modes",
+          "type": "array"
+        },
+        "blocking_unknown_facts": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Blocking Unknown Facts",
+          "type": "array"
+        },
+        "blocking_unknown_rules": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 2048,
+          "title": "Blocking Unknown Rules",
+          "type": "array"
+        },
+        "bundle_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Bundle Digest",
+          "type": "string"
+        },
+        "matched_approvals": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 2048,
+          "title": "Matched Approvals",
+          "type": "array"
+        },
+        "matched_denials": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 2048,
+          "title": "Matched Denials",
+          "type": "array"
+        },
+        "matched_grants": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 2048,
+          "title": "Matched Grants",
+          "type": "array"
+        },
+        "matched_shadows": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 2048,
+          "title": "Matched Shadows",
+          "type": "array"
+        },
+        "obligations": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Obligations",
+          "type": "array"
+        },
+        "reason_code": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "unknown_facts": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Unknown Facts",
+          "type": "array"
+        },
+        "unknown_rules": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 2048,
+          "title": "Unknown Rules",
+          "type": "array"
+        },
+        "verdict": {
+          "$ref": "#/$defs/PolicyVerdict"
+        }
+      },
+      "required": [
+        "verdict",
+        "reason_code",
+        "bundle_digest"
+      ],
+      "title": "PolicyDecision",
+      "type": "object"
+    },
+    "PolicyLayer": {
+      "description": "Normative policy layers in their evidence-rendering order.",
+      "enum": [
+        "system",
+        "deployment",
+        "tenant",
+        "user",
+        "goal",
+        "adapter",
+        "data"
+      ],
+      "title": "PolicyLayer",
+      "type": "string"
+    },
+    "PolicyLayerDecisionEvidence": {
+      "additionalProperties": false,
+      "description": "The complete deterministic result of one bundle for one resource use.",
+      "properties": {
+        "context_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Context Digest",
+          "type": "string"
+        },
+        "decision": {
+          "$ref": "#/$defs/PolicyDecision"
+        },
+        "decision_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Decision Digest",
+          "type": "string"
+        },
+        "identity": {
+          "$ref": "#/$defs/PolicyLayerIdentity"
+        },
+        "input_unknown_facts": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Input Unknown Facts",
+          "type": "array"
+        },
+        "resource_use_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Resource Use Ref",
+          "type": "string"
+        },
+        "unknown_facts": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Unknown Facts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "identity",
+        "resource_use_ref",
+        "context_digest",
+        "decision",
+        "decision_digest"
+      ],
+      "title": "PolicyLayerDecisionEvidence",
+      "type": "object"
+    },
+    "PolicyLayerIdentity": {
+      "additionalProperties": false,
+      "description": "Immutable identity of one compiled bundle at one policy layer.",
+      "properties": {
+        "bundle_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Bundle Digest",
+          "type": "string"
+        },
+        "bundle_name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Bundle Name",
+          "type": "string"
+        },
+        "bundle_version": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Bundle Version",
+          "type": "string"
+        },
+        "layer": {
+          "$ref": "#/$defs/PolicyLayer"
+        },
+        "scope_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Scope Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layer",
+        "scope_id",
+        "bundle_name",
+        "bundle_version",
+        "bundle_digest"
+      ],
+      "title": "PolicyLayerIdentity",
+      "type": "object"
+    },
+    "PolicyVerdict": {
+      "enum": [
+        "ELIGIBLE",
+        "DENY",
+        "ABSTAIN"
+      ],
+      "title": "PolicyVerdict",
+      "type": "string"
+    },
+    "ResourceAuthorityDecision": {
+      "additionalProperties": false,
+      "description": "Deterministic evidence for one independently authorized resource use.",
+      "properties": {
+        "authority_action": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Authority Action",
+          "type": "string"
+        },
+        "canonical_resource": {
+          "maxLength": 8192,
+          "minLength": 1,
+          "title": "Canonical Resource",
+          "type": "string"
+        },
+        "capability_chain_ids": {
+          "default": [],
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+            "type": "string"
+          },
+          "maxItems": 65,
+          "title": "Capability Chain Ids",
+          "type": "array"
+        },
+        "data_classes": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Data Classes",
+          "type": "array"
+        },
+        "evidence_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Evidence Digest",
+          "type": "string"
+        },
+        "provenance_ids": {
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Provenance Ids",
+          "type": "array"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/AuthorityReasonCode"
+        },
+        "resource_index": {
+          "minimum": 0,
+          "title": "Resource Index",
+          "type": "integer"
+        },
+        "resource_use_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Resource Use Digest",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/AuthorityEvaluationVerdict"
+        }
+      },
+      "required": [
+        "resource_index",
+        "resource_use_digest",
+        "authority_action",
+        "canonical_resource",
+        "data_classes",
+        "provenance_ids",
+        "verdict",
+        "reason_code",
+        "evidence_digest"
+      ],
+      "title": "ResourceAuthorityDecision",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Aggregate policy outcome for exactly one typed resource-use reference.",
+  "properties": {
+    "aggregate_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Aggregate Digest",
+      "type": "string"
+    },
+    "allowed_modes": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Allowed Modes",
+      "type": "array"
+    },
+    "authority_decision_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Authority Decision Digest",
+      "type": "string"
+    },
+    "authority_resource_decision": {
+      "$ref": "#/$defs/ResourceAuthorityDecision"
+    },
+    "authority_verdict": {
+      "$ref": "#/$defs/AuthorityEvaluationVerdict"
+    },
+    "bundle_digests": {
+      "default": [],
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Bundle Digests",
+      "type": "array"
+    },
+    "context_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Context Digest",
+      "type": "string"
+    },
+    "explanation": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Explanation",
+      "type": "string"
+    },
+    "layer_decisions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PolicyLayerDecisionEvidence"
+      },
+      "maxItems": 64,
+      "title": "Layer Decisions",
+      "type": "array"
+    },
+    "matched_denials": {
+      "default": [],
+      "items": {
+        "maxLength": 640,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 4096,
+      "title": "Matched Denials",
+      "type": "array"
+    },
+    "matched_grants": {
+      "default": [],
+      "items": {
+        "maxLength": 640,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 4096,
+      "title": "Matched Grants",
+      "type": "array"
+    },
+    "obligations": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Obligations",
+      "type": "array"
+    },
+    "reason_code": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "resource_use_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Resource Use Ref",
+      "type": "string"
+    },
+    "unknown_facts": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Unknown Facts",
+      "type": "array"
+    },
+    "verdict": {
+      "$ref": "#/$defs/PolicyVerdict"
+    }
+  },
+  "required": [
+    "resource_use_ref",
+    "context_digest",
+    "authority_decision_digest",
+    "authority_verdict",
+    "authority_resource_decision",
+    "verdict",
+    "reason_code",
+    "explanation",
+    "aggregate_digest"
+  ],
+  "title": "ResourcePolicyDecision",
+  "type": "object"
+}

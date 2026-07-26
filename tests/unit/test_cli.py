@@ -27,6 +27,16 @@ def test_schema_export_writes_versioned_contracts(tmp_path: Path) -> None:
     )
     assert proposal_schema["additionalProperties"] is False
     assert "api_version" in proposal_schema["properties"]
+    authority_schema = json.loads(
+        (output / "EnforcedAuthorityDecision.schema.json").read_text(encoding="utf-8")
+    )
+    aggregate_policy_schema = json.loads(
+        (output / "AggregatePolicyDecision.schema.json").read_text(encoding="utf-8")
+    )
+    assert authority_schema["additionalProperties"] is False
+    assert "reservation_plan" in authority_schema["properties"]
+    assert aggregate_policy_schema["additionalProperties"] is False
+    assert "resource_decisions" in aggregate_policy_schema["properties"]
 
 
 def test_ledger_validate_command(tmp_path: Path, capsys) -> None:

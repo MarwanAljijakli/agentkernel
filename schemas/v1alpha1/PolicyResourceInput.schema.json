@@ -1,0 +1,247 @@
+{
+  "$defs": {
+    "PolicyContext": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Action",
+          "type": "string"
+        },
+        "data_classes": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Classes"
+        },
+        "destination_external": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Destination External"
+        },
+        "provenance_trust": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ProvenanceTrust"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provenance Trust"
+        },
+        "requested_scope_expands": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requested Scope Expands"
+        },
+        "resource": {
+          "maxLength": 8192,
+          "minLength": 1,
+          "title": "Resource",
+          "type": "string"
+        },
+        "risk_class": {
+          "$ref": "#/$defs/RiskClass"
+        }
+      },
+      "required": [
+        "action",
+        "resource",
+        "risk_class"
+      ],
+      "title": "PolicyContext",
+      "type": "object"
+    },
+    "ProvenanceTrust": {
+      "enum": [
+        "trusted_control",
+        "authorized_user",
+        "project_data",
+        "external_untrusted",
+        "model_generated",
+        "unknown"
+      ],
+      "title": "ProvenanceTrust",
+      "type": "string"
+    },
+    "ResourceAccessMode": {
+      "description": "The primitive access requested for one canonical resource.",
+      "enum": [
+        "read",
+        "write",
+        "execute",
+        "connect"
+      ],
+      "title": "ResourceAccessMode",
+      "type": "string"
+    },
+    "ResourceUse": {
+      "additionalProperties": false,
+      "description": "One independently authorizable use of one canonical resource.",
+      "properties": {
+        "access_mode": {
+          "$ref": "#/$defs/ResourceAccessMode"
+        },
+        "authority_action": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Authority Action",
+          "type": "string"
+        },
+        "canonical_resource": {
+          "maxLength": 8192,
+          "minLength": 1,
+          "title": "Canonical Resource",
+          "type": "string"
+        },
+        "data_classes": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Data Classes",
+          "type": "array"
+        },
+        "destination_external": {
+          "title": "Destination External",
+          "type": "boolean"
+        },
+        "effect_domain": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Effect Domain",
+          "type": "string"
+        },
+        "provenance_ids": {
+          "default": [],
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Provenance Ids",
+          "type": "array"
+        },
+        "purpose": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Purpose",
+          "type": "string"
+        },
+        "use_kind": {
+          "$ref": "#/$defs/ResourceUseKind"
+        }
+      },
+      "required": [
+        "authority_action",
+        "access_mode",
+        "canonical_resource",
+        "effect_domain",
+        "purpose",
+        "use_kind",
+        "destination_external"
+      ],
+      "title": "ResourceUse",
+      "type": "object"
+    },
+    "ResourceUseKind": {
+      "description": "Why an action needs a resource, independent of the access mode.",
+      "enum": [
+        "authoritative_effect",
+        "precondition_read",
+        "verifier_read",
+        "process_execution",
+        "egress"
+      ],
+      "title": "ResourceUseKind",
+      "type": "string"
+    },
+    "RiskClass": {
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "title": "RiskClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One lightweight resource context, bound to action and authority by its aggregate.",
+  "properties": {
+    "context": {
+      "$ref": "#/$defs/PolicyContext"
+    },
+    "resource_index": {
+      "maximum": 511,
+      "minimum": 0,
+      "title": "Resource Index",
+      "type": "integer"
+    },
+    "resource_use": {
+      "$ref": "#/$defs/ResourceUse"
+    },
+    "resource_use_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Resource Use Ref",
+      "type": "string"
+    },
+    "unknown_facts": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Unknown Facts",
+      "type": "array"
+    }
+  },
+  "required": [
+    "resource_index",
+    "resource_use_ref",
+    "resource_use",
+    "context"
+  ],
+  "title": "PolicyResourceInput",
+  "type": "object"
+}

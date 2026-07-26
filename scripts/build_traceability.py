@@ -29,10 +29,52 @@ EXPECTED_SPEC_SHA256 = "b5bef98ca2397b87cff8a87f950488dc6f224610fa0d40b6d8bbf63d
 DEFAULT_SPEC_PATH = Path("requirements/source") / SPEC_NAME
 BASELINE_COMMIT = "a7292ea9ca157fdcb76369d9e61977c7316c8782"
 BASELINE_DATE = "2026-07-22"
+R01_CORE_COMMIT = "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe"
+R01_CORE_DATE = "2026-07-22"
+RECOVERY_CORE_COMMIT = "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043"
+RECOVERY_CORE_DATE = "2026-07-26"
+RECOVERY_ACCEPTANCE_COMMIT = "70d378104abc3c5754abf4774fe8596e638ba574"
+RECOVERY_ACCEPTANCE_DATE = "2026-07-26"
+KERNEL_API_COMMIT = "7f4674898c4c0d95c63d0c65f2d772104a8a6823"
+KERNEL_API_DATE = "2026-07-26"
 CI_EVIDENCE = "GitHub Actions CI run 29852865780 succeeded on " + BASELINE_COMMIT
-CODEQL_ALERT = (
-    "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is open at high "
-    "severity on main as of 2026-07-22"
+CODEQL_EVIDENCE = (
+    "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is fixed, and "
+    "CodeQL run 29941854489 succeeded on "
+    "cf34418fbc273c4daf9f09007f02105499d7a849, verified 2026-07-23"
+)
+RECOVERY_CI_EVIDENCE = (
+    "Exact-push GitHub Actions CI run 30213261164 succeeded on "
+    + RECOVERY_CORE_COMMIT
+    + " across Linux, Windows, Docker controls, locked install, and the cross-platform "
+    "coverage union; PR merge run 30213262222 also succeeded"
+)
+RECOVERY_CODEQL_EVIDENCE = (
+    "Exact-push GitHub CodeQL run 30213261166 succeeded on "
+    + RECOVERY_CORE_COMMIT
+    + " with zero open code-scanning alerts; PR merge CodeQL run 30213262221 also succeeded"
+)
+RECOVERY_ACCEPTANCE_CI_EVIDENCE = (
+    "Exact-push GitHub Actions CI run 30217100702 succeeded on "
+    + RECOVERY_ACCEPTANCE_COMMIT
+    + " across Linux and Windows (1664 tests each with zero failures or errors), Docker controls, "
+    "locked install, and the 85.10% cross-platform coverage union; PR run 30217101863 also succeeded"
+)
+RECOVERY_ACCEPTANCE_CODEQL_EVIDENCE = (
+    "Exact-push GitHub CodeQL run 30217100704 succeeded on "
+    + RECOVERY_ACCEPTANCE_COMMIT
+    + " with zero open code-scanning alerts; PR CodeQL run 30217101896 also succeeded"
+)
+KERNEL_API_CI_EVIDENCE = (
+    "Exact-push GitHub Actions CI run 30222068042 succeeded on "
+    + KERNEL_API_COMMIT
+    + " across Linux and Windows (1685 tests each with zero failures or errors), Docker controls, "
+    "locked install, and the 85.13% cross-platform coverage union; PR run 30222069443 also succeeded"
+)
+KERNEL_API_CODEQL_EVIDENCE = (
+    "Exact-push GitHub CodeQL run 30222068033 succeeded on "
+    + KERNEL_API_COMMIT
+    + " with zero open code-scanning alerts; PR CodeQL run 30222069424 also succeeded"
 )
 
 
@@ -86,6 +128,72 @@ def committed_partial(
         tuple(verification),
         commit,
         verified_date,
+    )
+
+
+def r01_core_verified(*, implementation: Sequence[str], verification: Sequence[str]) -> Evidence:
+    return Evidence(
+        "implemented and verified",
+        tuple(implementation),
+        tuple(verification),
+        R01_CORE_COMMIT,
+        R01_CORE_DATE,
+    )
+
+
+def r01_core_partial(*, implementation: Sequence[str], verification: Sequence[str]) -> Evidence:
+    return Evidence(
+        "partially implemented",
+        tuple(implementation),
+        tuple(verification),
+        R01_CORE_COMMIT,
+        R01_CORE_DATE,
+    )
+
+
+def recovery_core_verified(
+    *, implementation: Sequence[str], verification: Sequence[str]
+) -> Evidence:
+    return Evidence(
+        "implemented and verified",
+        tuple(implementation),
+        tuple(verification),
+        RECOVERY_CORE_COMMIT,
+        RECOVERY_CORE_DATE,
+    )
+
+
+def recovery_core_partial(
+    *, implementation: Sequence[str], verification: Sequence[str]
+) -> Evidence:
+    return Evidence(
+        "partially implemented",
+        tuple(implementation),
+        tuple(verification),
+        RECOVERY_CORE_COMMIT,
+        RECOVERY_CORE_DATE,
+    )
+
+
+def recovery_acceptance_verified(
+    *, implementation: Sequence[str], verification: Sequence[str]
+) -> Evidence:
+    return Evidence(
+        "implemented and verified",
+        tuple(implementation),
+        tuple(verification),
+        RECOVERY_ACCEPTANCE_COMMIT,
+        RECOVERY_ACCEPTANCE_DATE,
+    )
+
+
+def kernel_api_partial(*, implementation: Sequence[str], verification: Sequence[str]) -> Evidence:
+    return Evidence(
+        "partially implemented",
+        tuple(implementation),
+        tuple(verification),
+        KERNEL_API_COMMIT,
+        KERNEL_API_DATE,
     )
 
 
@@ -368,45 +476,120 @@ NORM_EVIDENCE: dict[tuple[int, int], Evidence] = {
             "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py",
         ),
     ),
-    (335, 1): baseline_partial(
+    (335, 1): recovery_core_partial(
         implementation=(
-            "agentkernel/transactions/state_machine.py and versioned domain enums/schemas encode the structural rules; a durable CAS-plus-event proof for every transition is absent",
-        ),
-        verification=("tests/unit/test_state_machine.py; tests/unit/test_models.py",),
-    ),
-    (378, 1): baseline_partial(
-        implementation=(
-            "IN_DOUBT and STALE_STATE exist; general redispatch/recovery scanner is absent",
-        ),
-        verification=("tests/integration/test_coordinator.py",),
-    ),
-    (522, 1): baseline_partial(
-        implementation=("Current coordinator revalidates target version and adapter identity",),
-        verification=("tests/integration/test_coordinator.py",),
-    ),
-    (532, 1): baseline_partial(
-        implementation=(
-            "Current filesystem/mock path discards stale staged work and links a retry",
-        ),
-        verification=("test_target_drift_aborts_as_stale_before_commit_dispatch",),
-    ),
-    (532, 2): baseline_partial(
-        implementation=("Unversioned blind promotion is rejected in the current adapter path",),
-        verification=("test_target_drift_aborts_as_stale_before_commit_dispatch",),
-    ),
-    (647, 1): baseline_partial(
-        implementation=(
-            "Strict Pydantic contracts and filesystem canonicalization exist; network normalization does not",
-        ),
-        verification=("tests/unit/test_models.py; tests/unit/test_filesystem_snapshots.py",),
-    ),
-    (659, 1): baseline_partial(
-        implementation=(
-            "Traversal, symlink/junction, case-fold and replacement checks exist for filesystem scope",
+            "The complete oracle is enforced through durable compare-and-swap transitions and events for the supported single-action coordinator path; approval, compensation, saga, and every-row end-to-end evidence remain incomplete",
         ),
         verification=(
-            "tests/unit/test_filesystem_snapshots.py; tests/contract/test_filesystem_adapter.py",
+            "agentkernel/transactions/state_machine.py; tests/unit/test_state_machine.py; tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; "
+            + RECOVERY_CI_EVIDENCE,
         ),
+    ),
+    (378, 1): recovery_core_partial(
+        implementation=(
+            "Terminal naming and no-redispatch are enforced durably; separately authorized linked recovery actions and restart reconciliation exist for supported single-action adapters. Automatic stale replanning and the complete later-compensation/saga profile remain incomplete",
+        ),
+        verification=(
+            "tests/unit/test_state_machine.py; tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py",
+        ),
+    ),
+    (475, 1): kernel_api_partial(
+        implementation=(
+            "A strict versioned embedded KernelAPI protocol and implementation establish a logical transaction, status, recovery-scan, and explicit-reconciliation boundary over the enforced coordinator; goal/proposal ingress and the remaining logical service interfaces are incomplete",
+        ),
+        verification=(
+            "tests/unit/test_kernel_api.py; test_kernel_api_preserves_explicit_commit_duplicate_idempotency_and_tenant_scope; test_kernel_api_context_exit_aborts_without_authoritative_effect; test_kernel_api_recover_once_resumes_tenant_aborting_work; test_kernel_api_explicit_reconciliation_never_redispatches_original_intent; test_every_public_kernel_api_request_is_exported_in_logical_order",
+            KERNEL_API_CI_EVIDENCE,
+            KERNEL_API_CODEQL_EVIDENCE,
+        ),
+    ),
+    (522, 1): recovery_core_partial(
+        implementation=(
+            "The enforced mock/filesystem path revalidates authority, policy, target version, idempotency ownership, reservation version, lease/fence, and adapter identity before commit; approval and every future ingress surface are incomplete",
+        ),
+        verification=(
+            "test_capability_expiry_bounds_every_stage_and_commit_permit; test_precommit_policy_change_aborts_before_authoritative_effect; test_target_drift_aborts_as_stale_before_commit_dispatch",
+        ),
+    ),
+    (532, 1): recovery_core_partial(
+        implementation=(
+            "The enforced path discards stale staged work, records STALE_STATE, and preserves linked intent ownership without authoritative promotion; an integrated automatic replanning workflow remains incomplete",
+        ),
+        verification=(
+            "test_target_drift_aborts_as_stale_before_commit_dispatch; tests/integration/test_enforced_control_store.py",
+        ),
+    ),
+    (532, 2): recovery_core_partial(
+        implementation=(
+            "Enforced commit permits require an exact target-version guard and stale drift aborts before adapter commit; the rule is not yet certified across every future adapter",
+        ),
+        verification=(
+            "test_target_drift_aborts_as_stale_before_commit_dispatch; test_enforced_happy_commit_binds_full_request_and_lease_deadlines",
+        ),
+    ),
+    (647, 1): r01_core_partial(
+        implementation=(
+            "The admitted write_files normalizer is pure, schema-strict, bounded, Unicode/encoding aware, and emits canonical filesystem resource identifiers; network target normalization is absent",
+        ),
+        verification=("tests/unit/test_normalization.py; independent core verification",),
+    ),
+    (659, 1): r01_core_partial(
+        implementation=(
+            "Pure normalization rejects traversal, aliases, ambiguous Unicode/encoding, Windows reserved names, and scope escapes without following links; bind-mount and replacement-race enforcement remains an adapter/harness responsibility",
+        ),
+        verification=(
+            "tests/unit/test_normalization.py; tests/unit/test_filesystem_snapshots.py; tests/contract/test_filesystem_adapter.py",
+        ),
+    ),
+    (723, 1): r01_core_verified(
+        implementation=(
+            "NormalizedIntentProjection binds normalized operation, canonical resources, semantic arguments, goal, principal, run, actor, adapter protocol/manifest, normalizer, schema, risk, and provenance",
+        ),
+        verification=(
+            "tests/unit/test_normalization.py::test_hash_and_tuple_order_are_deterministic_and_transport_fields_are_excluded; tests/unit/test_normalization.py::test_model_validation_rejects_tampered_intent_hash; independent core verification",
+        ),
+    ),
+    (723, 2): r01_core_verified(
+        implementation=(
+            "NormalizedAction computes intent_hash only from its canonical semantic projection and excludes transaction, trace, deadline, and idempotency transport metadata",
+        ),
+        verification=(
+            "tests/unit/test_normalization.py::test_hash_and_tuple_order_are_deterministic_and_transport_fields_are_excluded; tests/unit/test_normalization.py::test_normalized_action_rejects_noncanonical_idempotency_key_alias",
+        ),
+    ),
+    (892, 1): recovery_core_partial(
+        implementation=(
+            "The enforced mock/filesystem path validates and durably binds issuer, subject, audience, goal, run, key/version, time, revocation, delegation, scope, labels, and atomic budgets at staging and before commit; model-gateway dispatch and every future adapter ingress are not covered",
+        ),
+        verification=(
+            "tests/unit/test_authority_evaluator.py; test_enforced_happy_commit_binds_full_request_and_lease_deadlines; test_capability_expiry_bounds_every_stage_and_commit_permit",
+        ),
+    ),
+    (892, 2): recovery_core_partial(
+        implementation=(
+            "Immediate pre-commit authority/policy revalidation is enforced for mock/filesystem, including consumed reservation version and lease/fence evidence; model-gateway and every future adapter dispatch remain incomplete",
+        ),
+        verification=(
+            "test_capability_expiry_bounds_every_stage_and_commit_permit; test_precommit_policy_change_aborts_before_authoritative_effect; tests/integration/test_enforced_transaction_coordinator.py",
+        ),
+    ),
+    (894, 1): r01_core_partial(
+        implementation=(
+            "Authority snapshots reject unknown, retired, and mismatched key versions and bind supported keys by digest; cryptographic signature validation and production key custody are absent",
+        ),
+        verification=("tests/unit/test_authority_evaluator.py",),
+    ),
+    (954, 1): r01_core_partial(
+        implementation=(
+            "Layered policy is deny-dominant, versioned, digest-bound, and cannot be weakened by a lower layer; production policy signatures are absent",
+        ),
+        verification=("tests/unit/test_policy_aggregation.py; independent core verification",),
+    ),
+    (973, 1): r01_core_partial(
+        implementation=(
+            "The deterministic compiler and evaluator share a typed bounded policy representation for the supported subset; general constraints and Z3 parity remain absent",
+        ),
+        verification=("tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py",),
     ),
     (688, 1): baseline_partial(
         implementation=(
@@ -416,33 +599,58 @@ NORM_EVIDENCE: dict[tuple[int, int], Evidence] = {
             "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py",
         ),
     ),
-    (703, 1): baseline_partial(
+    (703, 1): recovery_core_partial(
         implementation=(
-            "Durable CAS coordinator covers the current single-action A0 path; scanner/saga are absent",
+            "The enforced coordinator is the authoritative CAS owner for durable single-action ingress, staged execution, commit dispatch, receipt classification, leases/fences, reconciliation, and recovery scanning; approval service, saga/per-action ordering, nested scopes, and all ingress surfaces remain incomplete",
         ),
         verification=(
-            "tests/integration/test_coordinator.py; tests/integration/test_sqlite_journal.py",
+            "tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_enforced_transaction_store_v4.py; "
+            + RECOVERY_CI_EVIDENCE,
         ),
     ),
-    (719, 1): baseline_partial(
-        implementation=("Mock and filesystem execute paths preserve authoritative state",),
+    (719, 1): recovery_core_partial(
+        implementation=(
+            "The enforced mock/filesystem execute paths remain inside staged state and durable commit permits carry exact version, fence, idempotency, and authority bindings; short-lived credential brokerage and every future adapter are incomplete",
+        ),
         verification=(
-            "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py",
+            "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py; tests/integration/test_fenced_adapter_crash_recovery.py",
         ),
     ),
-    (719, 2): baseline_partial(
-        implementation=("Explicit commit is the authoritative boundary for current adapters",),
-        verification=("test_explicit_commit_is_the_only_authoritative_effect",),
+    (719, 2): recovery_core_partial(
+        implementation=(
+            "Explicit coordinator-authorized commit is the only authoritative boundary for enforced mock/filesystem operations; unsupported staging declarations and future adapter coverage remain incomplete",
+        ),
+        verification=(
+            "test_explicit_commit_is_the_only_authoritative_effect; test_enforced_process_kill_never_resends_and_recovery_is_explicit",
+        ),
     ),
     (737, 1): baseline_partial(
         implementation=("Filesystem content-addressed snapshots and typed diffs exist",),
         verification=("tests/unit/test_filesystem_snapshots.py",),
     ),
-    (769, 1): baseline_partial(
+    (769, 1): recovery_core_verified(
         implementation=(
-            "Coordinator aborts current staged work on UNKNOWN verification; the ERROR branch is not equivalently proven",
+            "Staged FAIL, UNKNOWN, and ERROR remain distinct durable non-PASS outcomes and cannot commit; committed UNKNOWN or ERROR remains IN_DOUBT instead of being treated as PASS or blindly rolled back",
         ),
-        verification=("test_unknown_verification_fails_closed",),
+        verification=(
+            "test_staged_nonpass_is_distinct_and_discards_exactly_once; test_committed_inconclusive_verification_stays_in_doubt_without_rollback",
+        ),
+    ),
+    (781, 1): recovery_core_partial(
+        implementation=(
+            "Supported single-action recovery is independently normalized and authorized, journaled as a handoff/work lineage, separately deadline/lease/fence bounded, verified, and evidence preserving; saga/all-adapter recovery and the full operator workflow remain incomplete",
+        ),
+        verification=(
+            "test_capability_expiry_bounds_recovery_lease_and_permit; test_recovery_authorization_atomically_releases_handoff_before_crash; test_recovery_completion_report_binds_exact_operation_evidence; test_status_revalidates_successful_recovery_operation_artifact",
+        ),
+    ),
+    (781, 2): recovery_core_partial(
+        implementation=(
+            "Recovery authority and immutable operation evidence are bound separately from the target action for the enforced single-action path; broader service, saga, and adapter certification remain incomplete",
+        ),
+        verification=(
+            "test_capability_expiry_bounds_recovery_lease_and_permit; test_recovery_authorization_atomically_releases_handoff_before_crash; test_status_revalidates_successful_recovery_operation_artifact",
+        ),
     ),
     (819, 2): baseline_partial(
         implementation=(
@@ -528,9 +736,21 @@ NORM_EVIDENCE: dict[tuple[int, int], Evidence] = {
             "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py",
         ),
     ),
-    (1861, 2): baseline_partial(
-        implementation=("Context exit abort is covered; the full crash-boundary matrix is absent",),
-        verification=("test_context_exit_without_commit_aborts_and_preserves_target",),
+    (1861, 1): recovery_core_partial(
+        implementation=(
+            "Crash injection covers representative boundaries before and after stage, commit dispatch/call/receipt, reconciliation, and recovery; the shared suite does not yet kill before and after every stage, commit, receipt, verification, abort, rollback, reconciliation, and compensation boundary",
+        ),
+        verification=(
+            "test_predispatch_crash_boundaries_recover_after_fence_expiry; test_crash_after_dispatch_is_reconciled_without_redispatch; test_enforced_process_kill_never_resends_and_recovery_is_explicit; tests/integration/test_enforced_coordinator_edge_cases.py",
+        ),
+    ),
+    (1861, 2): recovery_core_partial(
+        implementation=(
+            "Context exit invokes abort and preserves the authoritative target, while representative crash boundaries are restart-tested; the complete shared every-boundary matrix remains incomplete",
+        ),
+        verification=(
+            "test_context_exit_without_commit_aborts_and_preserves_target; test_predispatch_crash_boundaries_recover_after_fence_expiry; test_enforced_process_kill_never_resends_and_recovery_is_explicit",
+        ),
     ),
     (2320, 1): baseline_verified(
         implementation=(
@@ -669,12 +889,13 @@ ROADMAP_EVIDENCE: dict[str, Evidence] = {
         implementation=("Filesystem copy-on-write staging under an out-of-workspace state root",),
         verification=("tests/contract/test_filesystem_adapter.py",),
     ),
-    "REL-R01-D05": baseline_partial(
+    "REL-R01-D05": recovery_core_partial(
         implementation=(
-            "Commit/abort/rollback and durable records exist; recovery scanner is absent",
+            "Commit, abort, rollback, and a restartable single-action recovery journal are enforced with leased, fenced, authorized, deadline-bounded discard/rollback/compensation/reconciliation; the complete enumerated crash matrix and saga ordering remain incomplete",
         ),
         verification=(
-            "tests/integration/test_coordinator.py; tests/contract/test_filesystem_adapter.py",
+            "tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_fenced_adapter_crash_recovery.py; tests/integration/test_filesystem_enforced_edge_cases.py; "
+            + RECOVERY_CI_EVIDENCE,
         ),
     ),
     "REL-R01-D06": baseline_verified(
@@ -707,11 +928,13 @@ ROADMAP_EVIDENCE: dict[str, Evidence] = {
         implementation=("README quick start and scripted no-key demo",),
         verification=("tests/end_to_end/test_no_key_demo.py; " + CI_EVIDENCE,),
     ),
-    "REL-R01-G05": baseline_partial(
+    "REL-R01-G05": recovery_core_partial(
         implementation=(
-            "Normal filesystem rollback restores a captured workspace digest; rollback after a failed staged or authoritative partial commit is not proven",
+            "Filesystem rollback restores exact pre-effect content after normal commit and injected authoritative partial-write failure; the integrated A1 demonstration gate is not complete",
         ),
-        verification=("test_filesystem_stage_commit_verify_and_rollback",),
+        verification=(
+            "test_filesystem_stage_commit_verify_and_rollback; test_enforced_process_kill_never_resends_and_recovery_is_explicit; test_recovery_v1_partial_effect_preserves_applied_path_evidence_through_rollback",
+        ),
     ),
     "REL-R01-G06": baseline_partial(
         implementation=(
@@ -729,6 +952,20 @@ ROADMAP_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("tests/unit/test_authority.py",),
     ),
+    "REL-R03-D01": r01_core_partial(
+        implementation=(
+            "A bounded capability graph evaluator implements attenuation, expiry, revocation, delegation, and atomic use reservations; signed grant admission is absent",
+        ),
+        verification=(
+            "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py",
+        ),
+    ),
+    "REL-R03-D03": r01_core_partial(
+        implementation=(
+            "A typed deterministic policy representation and bounded compiler exist; Z3 constraint lowering is absent",
+        ),
+        verification=("tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py",),
+    ),
     "REL-R03-D05": baseline_partial(
         implementation=("Deterministic policy tests exist; mutation testing/Z3 parity do not",),
         verification=("tests/unit/test_policy.py",),
@@ -736,6 +973,12 @@ ROADMAP_EVIDENCE: dict[str, Evidence] = {
     "REL-R03-D07": baseline_partial(
         implementation=("Adapter digest/review admission exists; cryptographic signing does not",),
         verification=("tests/contract/test_mock_adapter.py",),
+    ),
+    "REL-R03-G05": r01_core_partial(
+        implementation=(
+            "Policy decisions retain matched grants, denials, obligations, unknown facts, bundle digests, resource evidence, and explanations; solver assertion evidence is absent",
+        ),
+        verification=("tests/unit/test_policy_aggregation.py; independent core verification",),
     ),
     "REL-R10-D07": baseline_partial(
         implementation=("Unsigned wheel/sdist build and checksum automation exists",),
@@ -749,23 +992,27 @@ ROADMAP_EVIDENCE: dict[str, Evidence] = {
     ),
     "REL-R10-G05": Evidence(
         "missing",
-        verification=(CODEQL_ALERT,),
+        verification=(CODEQL_EVIDENCE,),
     ),
 }
 
 
 AK_EVIDENCE: dict[str, Evidence] = {
-    "AK-002": baseline_partial(
+    "AK-002": r01_core_partial(
         implementation=(
-            "The authority layer rejects a manufactured protected-path proposal before dispatch; an integrated agent-generated attack proposal is not proven",
+            "Normalized filesystem resources and authority scopes reject manufactured protected-path access; an integrated confined agent-generated attack proposal is not proven",
         ),
-        verification=("tests/end_to_end/test_no_key_demo.py; tests/unit/test_authority.py",),
+        verification=(
+            "tests/unit/test_normalization.py; tests/unit/test_authority_evaluator.py; tests/end_to_end/test_no_key_demo.py",
+        ),
     ),
-    "AK-003": baseline_partial(
+    "AK-003": r01_core_partial(
         implementation=(
-            "Project-data provenance cannot expand authority for a manufactured proposal; integrated model/agent consumption of adversarial project data is not proven",
+            "Normalized provenance labels cannot expand authority and policy rejects provenance-driven scope widening; integrated model/agent consumption inside the A1 harness is not proven",
         ),
-        verification=("test_project_data_cannot_expand_authority; no-key demo tests",),
+        verification=(
+            "tests/unit/test_normalization.py; tests/unit/test_authority_evaluator.py; tests/unit/test_policy_aggregation.py; no-key demo tests",
+        ),
     ),
     "AK-004": baseline_partial(
         implementation=(
@@ -773,41 +1020,56 @@ AK_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("tests/integration/test_docker_sandbox.py",),
     ),
-    "AK-005": baseline_partial(
+    "AK-005": recovery_core_partial(
         implementation=(
-            "Filesystem staging applies a staged single-file write on explicit commit; an exact multi-file staged-diff test is absent",
+            "The enforced filesystem adapter stages a two-file diff without touching the target and commits/reconciles only the staged paths; one integrated multi-file coordinator transaction asserting COMMITTED remains absent",
         ),
-        verification=("test_filesystem_stage_commit_verify_and_rollback",),
+        verification=(
+            "test_filesystem_stage_commit_verify_and_rollback; test_enforced_process_kill_never_resends_and_recovery_is_explicit",
+        ),
     ),
-    "AK-006": baseline_partial(
+    "AK-006": r01_core_verified(
         implementation=(
-            "Pre-commit cancellation/deadline paths avoid authoritative effects, but NEW plus deadline reaches REJECTED rather than the required ABORTING then ABORTED path",
+            "Every enumerated pre-commit transaction state handles cancellation, deadline, and context exit through ABORTING to ABORTED, invokes staged abort when applicable, and preserves the target",
         ),
-        verification=("test_every_precommit_state_exits_without_authoritative_effect",),
+        verification=(
+            "tests/integration/test_coordinator.py::test_every_precommit_state_exits_without_authoritative_effect; test_task_cancellation_during_inspection_durably_aborts_new_transaction; test_deadline_during_inspection_durably_aborts_new_transaction; test_deadline_elapsing_before_session_entry_aborts_new_transaction",
+        ),
     ),
-    "AK-007": baseline_partial(
+    "AK-007": recovery_core_partial(
         implementation=(
-            "Exact filesystem restoration is tested; the named partial-write fault schedule is absent",
+            "A named crash after the first of two filesystem changes is durably classified PARTIAL_OR_INVALID and rollback restores the exact prior tree digest; the integrated transaction/user-flow assertion remains incomplete",
         ),
-        verification=("test_filesystem_stage_commit_verify_and_rollback",),
+        verification=(
+            "test_crash_after_one_file_is_truthfully_classified_as_partial; test_recovery_v1_partial_effect_preserves_applied_path_evidence_through_rollback; test_enforced_process_kill_never_resends_and_recovery_is_explicit",
+        ),
     ),
-    "AK-008": baseline_partial(
+    "AK-008": recovery_core_partial(
         implementation=(
-            "Durable non-terminal records exist; automatic recovery scanner/crash matrix is absent",
+            "Process-kill/reopen and scanner recovery are implemented for representative pre-dispatch, post-dispatch, receipt, reconciliation, and recovery boundaries without implicit redispatch; not every CoordinatorCrashPoint is kill-tested",
         ),
-        verification=("tests/integration/test_sqlite_journal.py",),
+        verification=(
+            "test_real_process_kill_after_pre_effect_dispatch_reopens_without_redispatch; test_enforced_process_kill_never_resends_and_recovery_is_explicit; test_predispatch_crash_boundaries_recover_after_fence_expiry; tests/integration/test_enforced_coordinator_edge_cases.py; "
+            + RECOVERY_CI_EVIDENCE,
+        ),
     ),
-    "AK-009": baseline_partial(
+    "AK-009": recovery_core_verified(
         implementation=(
-            "SQLite intent reservation has one owner; end-to-end duplicate submission is incomplete",
+            "The enforced mock path gives each normalized intent one durable owner; exact retries and aliases return the owner outcome or receipt and cannot acquire commit authority or dispatch twice",
         ),
-        verification=("test_intent_reservation_has_one_owner",),
+        verification=(
+            "test_exact_retry_reports_existing_owner_without_resuming_or_redispatching; test_committed_alias_returns_owner_receipt_without_commit_capability; test_active_alias_returns_read_only_owner_status_without_adapter_io",
+        ),
     ),
-    "AK-010": baseline_partial(
+    "AK-010": recovery_acceptance_verified(
         implementation=(
-            "Lost acknowledgement durably enters IN_DOUBT; retry/reconcile flow is incomplete",
+            "Timeout or interruption after mock dispatch never resends the original intent; durable recovery either reconciles and attaches the observed outcome or remains bounded IN_DOUBT",
         ),
-        verification=("test_lost_commit_acknowledgement_is_persisted_in_doubt",),
+        verification=(
+            "test_mock_timeout_after_dispatch_waits_for_quiescence_and_never_resends; test_crash_after_dispatch_is_reconciled_without_redispatch; test_cancel_after_durable_dispatch_reports_in_doubt_then_reconciles; test_timeout_after_durable_effect_reconciles_without_second_commit_or_dispatch",
+            RECOVERY_ACCEPTANCE_CI_EVIDENCE,
+            RECOVERY_ACCEPTANCE_CODEQL_EVIDENCE,
+        ),
     ),
     "AK-011": baseline_verified(
         implementation=("UNKNOWN staged verification aborts and blocks commit",),
@@ -825,11 +1087,13 @@ AK_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("test_no_key_cli_demo_denies_attack_commits_and_replays",),
     ),
-    "AK-015": baseline_partial(
+    "AK-015": r01_core_verified(
         implementation=(
-            "Unknown policy fields/predicates and duplicate YAML keys fail; size/depth fuzz gate is absent",
+            "The safe policy loader/compiler rejects unknown fields and predicates, duplicate-key ambiguity, incompatible semantics, and bounded file/node/depth violations before evaluation",
         ),
-        verification=("tests/unit/test_policy.py",),
+        verification=(
+            "tests/unit/test_policy.py::test_unknown_predicate_is_rejected_before_evaluation; test_compile_policy_enforces_direct_model_nesting_limit; test_compile_policy_enforces_direct_model_node_limit; test_policy_loader_rejects_a_sparse_oversized_file; test_duplicate_yaml_keys_are_rejected_instead_of_overriding_deny; independent core review and verification",
+        ),
     ),
     "AK-016": baseline_verified(
         implementation=(
@@ -845,11 +1109,11 @@ AK_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("tests/unit/test_cli.py; tests/end_to_end/test_no_key_demo.py",),
     ),
-    "AK-018": baseline_partial(
+    "AK-018": recovery_core_partial(
         implementation=(
-            "Current CI runs quality/security/unit/integration/e2e checks; full R0.1 suites are absent",
+            "Exact-commit Linux, Windows, Docker, locked-install, cross-platform coverage-union, and CodeQL gates pass for the enforced recovery core; the complete R0.1 A1/A2/process/ingress suite is absent",
         ),
-        verification=(CI_EVIDENCE,),
+        verification=(RECOVERY_CI_EVIDENCE, RECOVERY_CODEQL_EVIDENCE),
     ),
     "AK-020": baseline_verified(
         implementation=("doctor names missing Docker controls and refuses requested containment",),
@@ -859,12 +1123,32 @@ AK_EVIDENCE: dict[str, Evidence] = {
         implementation=("Target drift produces STALE_STATE without promoting the staged effect",),
         verification=("test_target_drift_aborts_as_stale_before_commit_dispatch",),
     ),
-    "AK-043": Evidence("missing", verification=(CODEQL_ALERT,)),
+    "AK-034": r01_core_partial(
+        implementation=(
+            "The pure evaluator denies wrong subject/audience/goal/run/key-version, expiry, revocation, scope/delegation, nonce reuse, and atomic budget exhaustion; cryptographic forgery admission and dispatch integration are absent",
+        ),
+        verification=(
+            "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py; independent core verification",
+        ),
+    ),
+    "AK-036": r01_core_partial(
+        implementation=(
+            "The deterministic policy compiler rejects unknown predicates, duplicate or contradictory rule identities, unsupported modes/effects, invalid versions, and bounded-input violations; the full typed/Z3 compiler remains absent",
+        ),
+        verification=("tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py",),
+    ),
+    "AK-043": Evidence("missing", verification=(CODEQL_EVIDENCE,)),
+    "AK-060": r01_core_partial(
+        implementation=(
+            "The SQLite authority/action/decision/budget/reservation/intent-history control plane is tenant-first and cross-tenant access is rejected; API, object, cache, telemetry, and artifact-wide isolation are absent",
+        ),
+        verification=("tests/integration/test_enforced_control_store.py",),
+    ),
     "AK-064": baseline_partial(
         implementation=("An A0 no-key demo works; v1 attack/recovery/replay flow is incomplete",),
         verification=("tests/end_to_end/test_no_key_demo.py",),
     ),
-    "AK-067": Evidence("missing", verification=(CODEQL_ALERT,)),
+    "AK-067": Evidence("missing", verification=(CODEQL_EVIDENCE,)),
     "AK-068": baseline_partial(
         implementation=(
             "Current documentation scopes A0 claims; future release documentation is absent",
@@ -877,11 +1161,19 @@ AK_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("tests/security/test_model_gateway.py",),
     ),
-    "AK-071": baseline_partial(
+    "AK-071": recovery_core_partial(
         implementation=(
-            "Current R1 adapters preserve stage boundary; full crash matrix is absent",
+            "Mock and Linux filesystem R1 paths preserve the stage boundary and representative crashes around commit, reconciliation, and rollback yield one verifiable effect, verified recovery, or IN_DOUBT; not every R1+ adapter or enumerated boundary is certified",
         ),
-        verification=("tests/contract; test_lost_commit_acknowledgement_is_persisted_in_doubt",),
+        verification=(
+            "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py; test_enforced_process_kill_never_resends_and_recovery_is_explicit; test_crash_after_dispatch_is_reconciled_without_redispatch",
+        ),
+    ),
+    "AK-072": r01_core_partial(
+        implementation=(
+            "The deterministic aggregation suite proves deny dominance, deny/abstain defaults, non-granting obligations, obligation union for supported obligations, mode intersection, and fail-closed unknown evidence; general constraint reduction and Z3 parity are absent",
+        ),
+        verification=("tests/unit/test_policy_aggregation.py; independent core verification",),
     ),
     "AK-073": baseline_partial(
         implementation=(
@@ -889,17 +1181,21 @@ AK_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("tests/contract/test_mock_adapter.py; docs/security/threat-model.md",),
     ),
-    "AK-074": baseline_partial(
+    "AK-074": r01_core_partial(
         implementation=(
-            "Expiry and atomic multi-use budgets exist; signed binding/revocation matrix does not",
+            "All listed identity/time/key/revocation/scope/budget cases are evaluated against bounded snapshots and valid multi-use reservations are distinguished from replay; signed grant admission and dispatch/precommit integration are absent",
         ),
-        verification=("tests/unit/test_authority.py",),
+        verification=(
+            "tests/unit/test_authority_evaluator.py; tests/integration/test_enforced_control_store.py; independent storage/core review and verification",
+        ),
     ),
-    "AK-075": baseline_partial(
+    "AK-075": recovery_core_partial(
         implementation=(
-            "Normative transition table and precommit cancellation paths are tested; crash matrix is absent",
+            "The generated oracle covers all 38 normative transaction rows plus illegal transitions, stale naming, deadlines, and precommit cancellation/context exit; representative pre/post-dispatch, receipt, reconciliation, and recovery crashes are tested, but not every declared CoordinatorCrashPoint",
         ),
-        verification=("tests/unit/test_state_machine.py; tests/integration/test_coordinator.py",),
+        verification=(
+            "tests/unit/test_state_machine.py; test_predispatch_crash_boundaries_recover_after_fence_expiry; test_crash_after_dispatch_is_reconciled_without_redispatch; test_recovery_authorization_atomically_releases_handoff_before_crash; tests/integration/test_enforced_coordinator_edge_cases.py",
+        ),
     ),
 }
 
@@ -1333,11 +1629,13 @@ COMPONENT_SPECS = (
 
 
 COMPONENT_EVIDENCE: dict[str, Evidence] = {
-    "COMP-ADAPTER-FILESYSTEM": baseline_partial(
+    "COMP-ADAPTER-FILESYSTEM": recovery_core_partial(
         implementation=(
-            "agentkernel/adapters/filesystem.py passes focused contract/security tests; crash recovery and full user-flow coverage are incomplete",
+            "The Linux handle-relative filesystem adapter has durable tenant-scoped dispatch fencing, crash/reopen reconciliation, explicit rollback, and tamper-fail-closed recovery tests; native Windows enforced mode is explicitly refused and complete user-flow/every-boundary certification is absent",
         ),
-        verification=("tests/contract/test_filesystem_adapter.py",),
+        verification=(
+            "agentkernel/adapters/filesystem.py; tests/contract/test_filesystem_adapter.py; tests/integration/test_fenced_adapter_crash_recovery.py; tests/integration/test_filesystem_enforced_edge_cases.py",
+        ),
     ),
     "COMP-MODEL-LOCAL": baseline_partial(
         implementation=(
@@ -1345,17 +1643,21 @@ COMPONENT_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=("tests/security/test_model_gateway.py",),
     ),
-    "COMP-STORE-SQLITE": baseline_partial(
+    "COMP-STORE-SQLITE": recovery_core_partial(
         implementation=(
-            "agentkernel/storage/sqlite.py passes WAL, migration, CAS, reservation, and reopen tests; full recovery and user-flow coverage are incomplete",
+            "The SQLite WAL store persists and reopens ingress, authorization, leases, stage material, dispatch/outcome chains, recovery handoffs/work, reconciliation attempts, immutable deadlines, and evidence-audit checkpoints; PostgreSQL/distributed and complete user-flow coverage remain absent",
         ),
-        verification=("tests/integration/test_sqlite_journal.py",),
+        verification=(
+            "tests/integration/test_sqlite_journal.py; tests/integration/test_enforced_control_store.py; tests/integration/test_enforced_transaction_store_v4.py; tests/integration/test_enforced_store_edge_cases.py; tests/integration/test_recovery_handoff_evidence_audit.py",
+        ),
     ),
-    "COMP-ARTIFACT-LOCAL": baseline_partial(
+    "COMP-ARTIFACT-LOCAL": recovery_core_partial(
         implementation=(
-            "agentkernel/evidence/artifacts.py passes focused round-trip, corruption, and traversal tests; full recovery and user-flow coverage are incomplete",
+            "The content-addressed local artifact store rejects corruption, traversal, symlink substitution, insecure modes, and oversized writes; coordinator recovery uses typed unavailable evidence when storage fails, while distributed backends and complete user-flow coverage remain absent",
         ),
-        verification=("tests/unit/test_artifacts.py",),
+        verification=(
+            "agentkernel/evidence/artifacts.py; tests/unit/test_artifacts.py; tests/integration/test_enforced_coordinator_edge_cases.py",
+        ),
     ),
     "COMP-SANDBOX-DOCKER": baseline_partial(
         implementation=(
@@ -1363,6 +1665,44 @@ COMPONENT_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=(
             "tests/unit/test_docker_backend_unit.py; tests/integration/test_docker_sandbox.py",
+        ),
+    ),
+    "COMP-SVC-KERNELAPI": kernel_api_partial(
+        implementation=(
+            "The trusted in-process KernelAPI receives versioned transaction requests and exposes tenant-scoped status, bounded recovery scans, and explicit dispatch reconciliation through the real enforced coordinator; goal/proposal ingress, an authenticated transport, and the complete SDK boundary remain absent",
+        ),
+        verification=(
+            "agentkernel/api/contracts.py; agentkernel/api/service.py; tests/unit/test_kernel_api.py; test_kernel_api_preserves_explicit_commit_duplicate_idempotency_and_tenant_scope; test_kernel_api_context_exit_aborts_without_authoritative_effect; test_kernel_api_recover_once_resumes_tenant_aborting_work; test_kernel_api_explicit_reconciliation_never_redispatches_original_intent; tests/unit/test_exported_schemas.py",
+            KERNEL_API_CI_EVIDENCE,
+            KERNEL_API_CODEQL_EVIDENCE,
+        ),
+    ),
+    "COMP-SVC-AUTHORITYSERVICE": r01_core_partial(
+        implementation=(
+            "A pure AuthorityEvaluator validates bounded snapshots, grants, delegation chains, resource/data scope, revocation, and budgets; authenticated service admission/dispatch is absent",
+        ),
+        verification=("tests/unit/test_authority_evaluator.py; independent core verification",),
+    ),
+    "COMP-SVC-POLICYSERVICE": r01_core_partial(
+        implementation=(
+            "The bounded compiler and aggregate evaluator return digest-bound per-layer/per-resource decisions and explanations; a deployed service and Z3 proof artifacts are absent",
+        ),
+        verification=("tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py",),
+    ),
+    "COMP-SVC-TRANSACTIONSERVICE": recovery_core_partial(
+        implementation=(
+            "The transaction-service core owns durable state/idempotency, leases/fences, staged and commit permits, dispatch outcomes, and scanner-driven single-action recovery; approval, saga, distributed service/API, and full ingress remain absent",
+        ),
+        verification=(
+            "tests/unit/test_state_machine.py; tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_enforced_transaction_store_v4.py",
+        ),
+    ),
+    "COMP-RECOVERY-SCANNER": recovery_core_partial(
+        implementation=(
+            "A tenant-scoped paged recovery scanner reopens SQLite state, isolates candidate failures, respects lease/fence/backoff/deadline bounds, reconciles unknown dispatches without resend, and runs authorized discard/rollback/compensation for supported single-action adapters; complete contract/security/user-flow certification and every abandoned-lease shape are not proven",
+        ),
+        verification=(
+            "test_recovery_scanner_isolates_one_candidate_failure_and_continues; test_recovery_limit_does_not_starve_later_work_behind_typed_stop; test_restart_after_partial_reconciliation_creates_one_follow_on_recovery; test_concurrent_scanners_after_terminal_reconciliation_create_one_follow_on",
         ),
     ),
 }
@@ -1392,6 +1732,7 @@ def _component_catalog(lines: Sequence[str], sections: Sequence[str]) -> list[di
                 release_gate=("R10",),
                 component=(slug.lower(),),
                 pass_condition=summary,
+                evidence=COMPONENT_EVIDENCE.get(f"COMP-SVC-{slug}", MISSING),
             )
         )
     for requirement_id, marker, summary, gate, mandatory in COMPONENT_SPECS:
@@ -1427,14 +1768,95 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
         for line_number, cells in tx_table
     ]
     tx_evidence = {
-        index: baseline_partial(
+        index: r01_core_partial(
             implementation=(
-                "The structural transaction transition is encoded; its required durable action is not proven end-to-end for this row",
+                "The structural transition, guard, outcome, reason code, and illegal-transition behavior are encoded in the complete oracle; its required durable action is not proven end-to-end for this row",
             ),
-            verification=("tests/unit/test_state_machine.py",),
+            verification=(
+                "tests/unit/test_state_machine.py; tests/integration/test_coordinator.py",
+            ),
         )
         for index in range(1, len(tx_items) + 1)
     }
+    tx_evidence.update(
+        {
+            20: recovery_core_verified(
+                implementation=(
+                    "READY_TO_COMMIT enters COMMITTING by atomically journaling the immutable dispatch intent and permit before adapter commit can begin",
+                ),
+                verification=(
+                    "test_effect_receipt_does_not_imply_commit; test_enforced_happy_commit_binds_full_request_and_lease_deadlines",
+                ),
+            ),
+            21: recovery_core_verified(
+                implementation=(
+                    "Only a durable receipt, committed-state PASS verification, and matching dispatch outcome can promote COMMITTING to COMMITTED",
+                ),
+                verification=(
+                    "test_enforced_happy_commit_binds_full_request_and_lease_deadlines; test_status_revalidates_committed_effect_receipt_artifact; test_status_rejects_commit_history_after_dispatch_is_deleted",
+                ),
+            ),
+            24: recovery_core_verified(
+                implementation=(
+                    "Unknown post-dispatch outcomes atomically enter IN_DOUBT, block duplicate intent dispatch, and remain eligible for explicit or scanner reconciliation",
+                ),
+                verification=(
+                    "test_crash_after_dispatch_is_reconciled_without_redispatch; test_cancel_after_durable_dispatch_reports_in_doubt_then_reconciles",
+                ),
+            ),
+            28: recovery_core_verified(
+                implementation=(
+                    "ABORTING uses the persisted intended outcome, runs a separately authorized staged discard, verifies no authoritative effect, and terminalizes as ABORTED or STALE_STATE",
+                ),
+                verification=(
+                    "test_recovery_scanner_resumes_an_already_aborting_transaction; test_target_drift_aborts_as_stale_before_commit_dispatch",
+                ),
+            ),
+            34: recovery_core_verified(
+                implementation=(
+                    "IN_DOUBT reconciliation starts under a durable fenced lease and attempt record without redispatching the original intent",
+                ),
+                verification=(
+                    "test_reconciliation_is_durably_started_resumable_and_exact_retry_bound; test_crash_after_dispatch_is_reconciled_without_redispatch",
+                ),
+            ),
+            35: recovery_core_verified(
+                implementation=(
+                    "A reconciled committed effect is independently verified and attaches the authoritative receipt without resending before promotion to COMMITTED",
+                ),
+                verification=(
+                    "test_reconciled_commit_is_independently_verified_before_classification; test_crash_after_dispatch_is_reconciled_without_redispatch",
+                ),
+            ),
+            36: recovery_core_verified(
+                implementation=(
+                    "A reconciled NO_EFFECT outcome enters ABORTING and completes the staged discard without issuing the original effect",
+                ),
+                verification=(
+                    "test_restart_after_no_effect_reconciliation_finishes_abort_once; test_cancel_between_coordinator_and_adapter_dispatch_recovers_truthful_no_effect",
+                ),
+            ),
+            37: recovery_core_verified(
+                implementation=(
+                    "A reconciled PARTIAL_OR_INVALID outcome enters FAILED and schedules the supported authorized recovery classification from durable effect evidence",
+                ),
+                verification=(
+                    "test_restart_after_partial_reconciliation_creates_one_follow_on_recovery; test_terminal_reconciliation_follow_on_revalidates_operation_evidence",
+                ),
+            ),
+            38: recovery_core_verified(
+                implementation=(
+                    "Insufficient reconciliation evidence returns to IN_DOUBT with durable bounded backoff and ends in review at the absolute deadline or policy attempt limit",
+                ),
+                verification=(
+                    "test_unknown_reconciliation_honors_backoff_then_commits_successor; "
+                    "test_reconciliation_backoff_past_absolute_deadline_requires_review; "
+                    "test_late_reconciliation_closes_attempt_without_retry_or_redispatch; "
+                    "test_reconciliation_attempt_limit_cannot_be_bypassed_by_repeated_scans",
+                ),
+            ),
+        }
+    )
     rows.extend(
         _catalog_rows(
             lines,
@@ -1472,15 +1894,25 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
         "The compiler and evaluator MUST apply these rules identically:",
         "The precedence list",
     )
-    policy_partial = {
-        index: baseline_partial(
+    policy_evidence = {
+        index: r01_core_partial(
             implementation=(
-                "A deterministic subset exists; Z3 parity and the complete algebra are absent",
+                "The bounded deterministic compiler/aggregator implements this rule for its supported typed subset; general constraints, solver evidence, coordinator mapping, or Z3 parity needed by the broader rule remain absent",
             ),
-            verification=("tests/unit/test_policy.py",),
+            verification=("tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py",),
         )
         for index in range(1, len(policy_items) + 1)
     }
+    verified_policy_rule = r01_core_verified(
+        implementation=(
+            "The bounded deterministic compiler and all-and-only layer/resource aggregator implement this atomic rule with digest-bound authority and policy evidence",
+        ),
+        verification=(
+            "tests/unit/test_policy.py; tests/unit/test_policy_aggregation.py; independent core review and verification",
+        ),
+    )
+    for index in (1, 2, 3, 4, 5, 6, 7, 10):
+        policy_evidence[index] = verified_policy_rule
     rows.extend(
         _catalog_rows(
             lines,
@@ -1490,7 +1922,7 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
             category="policy-aggregation",
             release_gate=("R03",),
             component=("policy", "policy/z3"),
-            evidence_by_index=policy_partial,
+            evidence_by_index=policy_evidence,
         )
     )
     saga_items = _numbered_rows_between(
@@ -1723,6 +2155,46 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
     storage_invariants = _bullet_rows_between(
         lines, "### 22.2 Storage invariants", "### 22.3 Retention"
     )
+    storage_evidence = {
+        2: r01_core_verified(
+            implementation=(
+                "SQLiteJournal applies compare-and-swap transaction transitions and increments the durable transaction version only after a successful transition",
+            ),
+            verification=(
+                "tests/integration/test_sqlite_journal.py::test_compare_and_swap_rejects_stale_writer",
+            ),
+        ),
+        3: recovery_core_partial(
+            implementation=(
+                "Single-action dispatches have CAS state/version, one active intent/dispatch lineage, immutable outcome chains, and append-only receipt references; normative per-action (transaction_id, ordinal) saga records remain absent",
+            ),
+            verification=(
+                "tests/integration/test_enforced_transaction_store_v4.py; tests/integration/test_enforced_transaction_coordinator.py; test_status_revalidates_committed_effect_receipt_artifact",
+            ),
+        ),
+        7: r01_core_partial(
+            implementation=(
+                "Every new authority/action/decision/budget/reservation/intent control table and access path is tenant-first; the wider production storage surface is pending",
+            ),
+            verification=("tests/integration/test_enforced_control_store.py",),
+        ),
+        8: r01_core_partial(
+            implementation=(
+                "Normalized actions and typed authority decisions bind immutable snapshot, grant-chain, budget, and policy digests; generic legacy decision snapshots do not yet enforce all typed references",
+            ),
+            verification=(
+                "tests/unit/test_authority_evaluator.py; tests/unit/test_policy_aggregation.py; tests/integration/test_enforced_control_store.py",
+            ),
+        ),
+        10: r01_core_partial(
+            implementation=(
+                "SQLite migrations are digest-checked, forward-applied, and reject empty/deleted/tampered ledger rows; rollback documentation and production backup verification are pending",
+            ),
+            verification=(
+                "tests/integration/test_sqlite_journal.py; tests/integration/test_enforced_control_store.py",
+            ),
+        ),
+    }
     rows.extend(
         _catalog_rows(
             lines,
@@ -1732,6 +2204,7 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
             category="storage-invariant",
             release_gate=("R02", "R10"),
             component=("storage",),
+            evidence_by_index=storage_evidence,
         )
     )
 
@@ -1750,6 +2223,94 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
         ("TEST-CI-", "### 26.3 CI matrix", "### 26.4 Test evidence", "ci-matrix"),
         ("TEST-EVID-", "CI MUST archive:", "Flaky tests MUST", "test-evidence"),
     )
+    test_evidence_by_prefix: dict[str, dict[int, Evidence]] = {
+        "TEST-UNIT-": {
+            2: r01_core_verified(
+                implementation=(
+                    "The generated state-machine unit suite covers all normative rows, legal and illegal transitions, terminal semantics, and typed reason codes",
+                ),
+                verification=("tests/unit/test_state_machine.py",),
+            ),
+            3: r01_core_verified(
+                implementation=(
+                    "The normalization unit suite covers canonical paths/resources, Unicode and encoded aliases, traversal, semantic hashing, provenance flow, and configured bounds",
+                ),
+                verification=("tests/unit/test_normalization.py; independent core verification",),
+            ),
+            4: r01_core_verified(
+                implementation=(
+                    "The authority unit suite covers capability subset/delegation, identity and key binding, expiry, revocation, resource/data scope, and bounded budgets",
+                ),
+                verification=(
+                    "tests/unit/test_authority_evaluator.py; independent core verification",
+                ),
+            ),
+            7: recovery_core_partial(
+                implementation=(
+                    "Atomic capability reservation, intent ownership dispositions, exact retry, no-redispatch, and bounded reconciliation decisions are exercised end to end; the required property/unit-test breadth remains incomplete",
+                ),
+                verification=(
+                    "tests/integration/test_enforced_control_store.py; tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py",
+                ),
+            ),
+        },
+        "TEST-INT-": {
+            1: recovery_core_partial(
+                implementation=(
+                    "Enforced coordinator plus SQLite integration, reopen, and recovery suites pass; PostgreSQL remains absent",
+                ),
+                verification=(
+                    "tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_enforced_transaction_store_v4.py; tests/integration/test_sqlite_journal.py",
+                ),
+            ),
+            2: recovery_core_partial(
+                implementation=(
+                    "Local artifact corruption, substitution, missing-object, write-outage, and typed-unavailable recovery paths are integration-tested; distributed/unavailable backend coverage remains incomplete",
+                ),
+                verification=(
+                    "tests/unit/test_artifacts.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_recovery_handoff_evidence_audit.py",
+                ),
+            ),
+            4: recovery_core_partial(
+                implementation=(
+                    "Representative pre-dispatch, dispatch, receipt, reconciliation, and recovery journal crash transitions reopen without illegal transitions or implicit redispatch; not every declared crash point is injected",
+                ),
+                verification=(
+                    "test_predispatch_crash_boundaries_recover_after_fence_expiry; test_crash_after_dispatch_is_reconciled_without_redispatch; test_enforced_process_kill_never_resends_and_recovery_is_explicit; tests/integration/test_enforced_coordinator_edge_cases.py",
+                ),
+            ),
+            6: recovery_core_partial(
+                implementation=(
+                    "Blocking policy evaluation is bounded by the transaction deadline and aborts durably without late dispatch; a deployed policy-service transport timeout matrix is absent",
+                ),
+                verification=(
+                    "test_asyncio_timeout_during_blocking_policy_provider_aborts_without_late_dispatch; test_recovery_policy_deadline_closes_registered_recovery_intent",
+                ),
+            ),
+            7: recovery_core_verified(
+                implementation=(
+                    "Worker and recovery leases are durable, expiry-bounded, and fenced across reopen and competing scanners/adapters; stale generations cannot dispatch or recover",
+                ),
+                verification=(
+                    "test_predispatch_crash_boundaries_recover_after_fence_expiry; test_expired_running_recovery_is_not_reclaimed_or_dispatched; test_filesystem_absence_observation_fences_cross_instance_stale_commit; test_cross_instance_verification_is_serialized_by_sqlite_fence",
+                ),
+            ),
+        },
+        "TEST-SEC-": {
+            7: r01_core_partial(
+                implementation=(
+                    "Expiry, revocation, delegation, replay-budget, subject/audience/goal/run/key-version, and resource-scope cases are tested; signed-token forgery admission is pending",
+                ),
+                verification=("tests/unit/test_authority_evaluator.py",),
+            ),
+            9: r01_core_partial(
+                implementation=(
+                    "Cross-tenant SQLite control records and operations are rejected; the full API/object/cache/telemetry matrix is pending",
+                ),
+                verification=("tests/integration/test_enforced_control_store.py",),
+            ),
+        },
+    }
     for prefix, start_marker, end_marker, category in test_sections:
         items = _bullet_rows_between(lines, start_marker, end_marker)
         rows.extend(
@@ -1761,6 +2322,7 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
                 category=category,
                 release_gate=("R10",),
                 component=("testing",),
+                evidence_by_index=test_evidence_by_prefix.get(prefix),
             )
         )
     for requirement_id, marker, summary in (
@@ -1781,6 +2343,30 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
         ),
     ):
         line_number = _find_line(lines, marker)
+        special_evidence = {
+            "TEST-CONTRACT-01": recovery_core_partial(
+                implementation=(
+                    "Mock/filesystem suites cover truthfulness, staged isolation, commit, recovery, deadlines, and representative process-kill boundaries; not every adapter or lifecycle boundary is covered by one shared suite",
+                ),
+                verification=(
+                    "tests/contract/test_mock_adapter.py; tests/contract/test_filesystem_adapter.py; tests/integration/test_fenced_adapter_crash_recovery.py",
+                ),
+            ),
+            "TEST-CHAOS-01": recovery_core_partial(
+                implementation=(
+                    "Real process kills and injected storage/artifact failures cover multiple pre-effect and post-effect boundaries; every process, storage, and network failure on both sides of every boundary is not covered",
+                ),
+                verification=(
+                    "test_real_process_kill_after_pre_effect_dispatch_reopens_without_redispatch; test_enforced_process_kill_never_resends_and_recovery_is_explicit; tests/integration/test_enforced_coordinator_edge_cases.py",
+                ),
+            ),
+            "TEST-E2E-01": baseline_partial(
+                implementation=(
+                    "The A0 no-key demo covers one bounded end-to-end environment; every benchmark environment and the enforced A1/A2 user flow remain absent",
+                ),
+                verification=("tests/end_to_end/test_no_key_demo.py",),
+            ),
+        }
         rows.append(
             _row(
                 requirement_id=requirement_id,
@@ -1792,16 +2378,7 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
                 release_gate=("R10",),
                 component=("testing",),
                 pass_condition=summary,
-                evidence=(
-                    baseline_partial(
-                        implementation=(
-                            "Current mock/filesystem contracts and A0 demo cover a bounded subset",
-                        ),
-                        verification=("tests/contract; tests/end_to_end",),
-                    )
-                    if requirement_id in {"TEST-CONTRACT-01", "TEST-E2E-01"}
-                    else MISSING
-                ),
+                evidence=special_evidence[requirement_id],
             )
         )
 
@@ -1941,6 +2518,28 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
         ("NFR-REL-", "### 33.2 Reliability targets", "### 33.3 Accessibility", "reliability"),
         ("NFR-USE-", "### 33.3 Accessibility and usability", "### 33.4 Portability", "usability"),
     )
+    nfr_evidence_by_prefix: dict[str, dict[int, Evidence]] = {
+        "NFR-REL-": {
+            1: recovery_acceptance_verified(
+                implementation=(
+                    "A transaction is classified COMMITTED only with a durable dispatch outcome, receipt reference, and committed verification; reopened status fails closed when commit history or receipt evidence is missing or tampered",
+                ),
+                verification=(
+                    "test_enforced_happy_commit_binds_full_request_and_lease_deadlines; test_status_rejects_commit_history_after_dispatch_is_deleted; test_status_revalidates_committed_effect_receipt_artifact; test_effect_receipt_does_not_imply_commit; test_committed_outcome_event_and_receipt_survive_crash_reopen",
+                    RECOVERY_ACCEPTANCE_CI_EVIDENCE,
+                    RECOVERY_ACCEPTANCE_CODEQL_EVIDENCE,
+                ),
+            ),
+            2: recovery_core_partial(
+                implementation=(
+                    "The scanner classifies representative expired or released staging, recovery, and reconciliation leases and terminalizes bounded failures; every abandoned-lease shape is not yet proven",
+                ),
+                verification=(
+                    "test_predispatch_crash_boundaries_recover_after_fence_expiry; test_typed_reconciliation_attached_prework_crash_waits_for_lease_expiry; test_typed_reconciliation_unattached_prework_deadline_closes_once; test_expired_running_recovery_is_not_reclaimed_or_dispatched",
+                ),
+            ),
+        }
+    }
     for prefix, start_marker, end_marker, category in nfr_sections:
         items = _bullet_rows_between(lines, start_marker, end_marker)
         rows.extend(
@@ -1952,6 +2551,7 @@ def _catalogs(lines: Sequence[str], sections: Sequence[str]) -> list[dict[str, A
                 category=f"nonfunctional-{category}",
                 release_gate=("R10",),
                 component=("nonfunctional",),
+                evidence_by_index=nfr_evidence_by_prefix.get(prefix),
             )
         )
     portability_line = _find_line(lines, "Linux is the security and production reference platform")
@@ -2236,6 +2836,22 @@ USER_EVIDENCE: dict[str, Evidence] = {
         commit="1f1c6a243e51b5552bcdb1304af8bf0a486f7de7",
         verified_date="2026-07-22",
     ),
+    "USR-005": recovery_core_partial(
+        implementation=(
+            "Transactional staging, commit, abort, rollback, reconciliation, and crash recovery are enforced for supported single-action mock/filesystem paths; saga ordering and cross-adapter recovery remain missing",
+        ),
+        verification=(
+            "tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_fenced_adapter_crash_recovery.py; tests/integration/test_filesystem_enforced_edge_cases.py",
+        ),
+    ),
+    "USR-006": recovery_core_partial(
+        implementation=(
+            "Durable authority/policy decisions and reservations now bind enforced staged/commit/recovery permits, dispatch outcome chains, receipt references, control evidence, and recovery evidence audits; complete cross-service, observability, and operations integration remains incomplete",
+        ),
+        verification=(
+            "tests/unit/test_authority_evaluator.py; tests/unit/test_policy_aggregation.py; tests/integration/test_enforced_transaction_store_v4.py; tests/integration/test_recovery_handoff_evidence_audit.py; tests/integration/test_enforced_coordinator_edge_cases.py",
+        ),
+    ),
     "USR-008": baseline_partial(
         implementation=(
             "A scripted no-key workflow exists; a supported real local/offline model workflow is absent",
@@ -2243,6 +2859,21 @@ USER_EVIDENCE: dict[str, Evidence] = {
         verification=(
             "tests/security/test_model_gateway.py; tests/end_to_end/test_no_key_demo.py",
         ),
+    ),
+    "USR-009": recovery_core_partial(
+        implementation=(
+            "Cancellation/deadline races, real process-kill boundaries, restart/reopen reconciliation, scanner isolation/backoff/deadline behavior, and authorized rollback/compensation are exercised; not every declared crash point, storage/network boundary, or saga transition is covered",
+        ),
+        verification=(
+            "tests/unit/test_state_machine.py; tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py; tests/integration/test_fenced_adapter_crash_recovery.py; "
+            + RECOVERY_CI_EVIDENCE,
+        ),
+    ),
+    "USR-018": recovery_core_partial(
+        implementation=(
+            "The coherent enforced-recovery milestone was committed and pushed through the exact reviewed commit; later milestones and the final release commit still require the same workflow",
+        ),
+        verification=(RECOVERY_CI_EVIDENCE, RECOVERY_CODEQL_EVIDENCE),
     ),
     "USR-021": baseline_partial(
         implementation=(
@@ -2254,7 +2885,7 @@ USER_EVIDENCE: dict[str, Evidence] = {
         implementation=(
             "README/ROADMAP prohibit premature v1 claims; automated full-release gate is not complete",
         ),
-        verification=("Manual documentation review; " + CODEQL_ALERT,),
+        verification=("Manual documentation review; " + CODEQL_EVIDENCE,),
     ),
 }
 
@@ -2383,8 +3014,8 @@ def _markdown(manifest: dict[str, Any]) -> str:
             f"- Catalog and authoritative user rows: **{len(catalogs)}**.",
             f"- Total rows: **{len(rows)}**.",
             "- Stable release readiness: **FAIL**.",
-            "- Reason: mandatory rows remain partial/missing and a high-severity CodeQL alert is open. "
-            "No stable v1 release is supported by this baseline.",
+            "- Reason: mandatory rows remain partial/missing and clean full-release verification "
+            "is absent. No stable v1 release is supported by this baseline.",
             "",
             "The four allowed status strings are exact: `implemented and verified`, "
             "`partially implemented`, `missing`, and `blocked`. No row is marked blocked unless an "
@@ -2447,9 +3078,10 @@ def _markdown(manifest: dict[str, Any]) -> str:
             "## Known release blockers versus implementation gaps",
             "",
             "There is no externally blocked row in this baseline. Missing A1/A2 confinement, the "
-            "process and heterogeneous adapters, recovery scanner/saga, Z3, benchmark/data/TraceWorld, "
-            "distributed operations, release artifacts, clean cross-platform verification, and the "
-            "open high CodeQL finding are implementation or verification work—not external blockers.",
+            "process and heterogeneous adapters, complete recovery crash matrix/saga, Z3, benchmark/data/TraceWorld, "
+            "distributed operations, release artifacts, and clean cross-platform verification are "
+            "implementation or verification work—not external blockers. The previously open high "
+            "CodeQL finding is fixed and retained as positive scan evidence.",
             "",
             f"Source category count checksum: `{_sha256(json.dumps(dict(sorted(source_counts.items())), sort_keys=True).encode())}`.",
             "",
@@ -2519,7 +3151,6 @@ def build_manifest(spec_path: Path) -> dict[str, Any]:
             "release_readiness": "FAIL",
             "release_readiness_reasons": [
                 "Mandatory rows are not all implemented and verified",
-                CODEQL_ALERT,
                 "Clean Windows/Linux/Docker/public-clone full release verification is absent",
             ],
         },

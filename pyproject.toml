@@ -77,7 +77,17 @@ markers = [
 
 [tool.coverage.run]
 branch = true
+relative_files = true
 source = ["agentkernel"]
+
+[tool.coverage.paths]
+source = [
+  "agentkernel",
+  "*/repo/agentkernel",
+  "*\\repo\\agentkernel",
+  "*/project-agent/agentkernel",
+  "*\\project-agent\\agentkernel",
+]
 
 [tool.coverage.report]
 fail_under = 85

@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "description": "One key/version pair already admitted for capability validation.",
+  "properties": {
+    "key_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Key Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "token_version": {
+      "minimum": 1,
+      "title": "Token Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "key_id",
+    "token_version"
+  ],
+  "title": "CapabilityKeyVersion",
+  "type": "object"
+}

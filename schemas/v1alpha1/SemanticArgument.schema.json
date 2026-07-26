@@ -1,0 +1,54 @@
+{
+  "additionalProperties": false,
+  "description": "Non-secret metadata binding one semantic argument value to its artifact digest.",
+  "properties": {
+    "argument_name": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Argument Name",
+      "type": "string"
+    },
+    "digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Digest",
+      "type": "string"
+    },
+    "media_type": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Media Type",
+      "type": "string"
+    },
+    "provenance_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Provenance Ids",
+      "type": "array"
+    },
+    "resource": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Resource",
+      "type": "string"
+    },
+    "size_bytes": {
+      "maximum": 1073741824,
+      "minimum": 0,
+      "title": "Size Bytes",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "argument_name",
+    "resource",
+    "digest",
+    "size_bytes",
+    "media_type"
+  ],
+  "title": "SemanticArgument",
+  "type": "object"
+}

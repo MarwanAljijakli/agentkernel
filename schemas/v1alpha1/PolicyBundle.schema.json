@@ -32,6 +32,7 @@
             "minLength": 1,
             "type": "string"
           },
+          "maxItems": 16,
           "title": "Modes",
           "type": "array"
         },
@@ -44,6 +45,8 @@
           "additionalProperties": {
             "$ref": "#/$defs/JsonValue"
           },
+          "maxProperties": 1,
+          "minProperties": 1,
           "title": "When",
           "type": "object"
         }
@@ -84,6 +87,7 @@
       "items": {
         "$ref": "#/$defs/PolicyRule"
       },
+      "maxItems": 2048,
       "title": "Rules",
       "type": "array"
     },

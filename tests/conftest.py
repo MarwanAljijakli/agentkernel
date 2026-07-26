@@ -18,7 +18,7 @@ def proposal(now: datetime) -> ActionProposal:
         transaction_id="tx_demo",
         agent_id="agent:scripted:demo",
         adapter="mock",
-        adapter_version="0.1.0",
+        adapter_version="0.2.0",
         operation="set_values",
         arguments={"values": {"answer": "42"}},
         provenance_ids=("prov_model_1",),

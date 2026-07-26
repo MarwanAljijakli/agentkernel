@@ -1,0 +1,56 @@
+{
+  "additionalProperties": false,
+  "description": "Deployment-owned logical filesystem mapping used without target inspection.",
+  "properties": {
+    "max_path_bytes": {
+      "default": 4096,
+      "maximum": 4096,
+      "minimum": 1,
+      "title": "Max Path Bytes",
+      "type": "integer"
+    },
+    "max_segment_bytes": {
+      "default": 255,
+      "maximum": 255,
+      "minimum": 1,
+      "title": "Max Segment Bytes",
+      "type": "integer"
+    },
+    "path_case_mode": {
+      "default": "sensitive",
+      "enum": [
+        "sensitive",
+        "insensitive"
+      ],
+      "title": "Path Case Mode",
+      "type": "string"
+    },
+    "resource_root": {
+      "default": "fs://workspace",
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Resource Root",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "workspace_data_classes": {
+      "default": [
+        "project_data"
+      ],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Workspace Data Classes",
+      "type": "array"
+    }
+  },
+  "title": "FilesystemNormalizerConfig",
+  "type": "object"
+}

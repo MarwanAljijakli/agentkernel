@@ -87,12 +87,14 @@ class TransactionCoordinator:
             actor=actor,
             on_behalf_of=on_behalf_of,
         )
+        deadline_admitted = False
         try:
             if now >= proposal.deadline:
                 raise AgentKernelError(
                     ErrorCode.DEADLINE_EXCEEDED,
                     "Proposal deadline elapsed before transaction admission",
                 )
+            deadline_admitted = True
             if enforcement_profile:
                 raise AgentKernelError(
                     ErrorCode.UNSUPPORTED_SEMANTICS,
@@ -139,17 +141,36 @@ class TransactionCoordinator:
             )
             raise
         except BaseException as error:
+            deadline_elapsed = (
+                isinstance(error, AgentKernelError)
+                and error.code is ErrorCode.DEADLINE_EXCEEDED
+                and deadline_admitted
+            )
             reason = error.code.value if isinstance(error, AgentKernelError) else "VALIDATION_ERROR"
-            self._journal.transition(
+            record, _ = self._journal.transition(
                 proposal.transaction_id,
                 expected_version=record.version,
-                transition_event=TransitionEvent.VALIDATION_FAILED,
+                transition_event=(
+                    TransitionEvent.DEADLINE_EXCEEDED
+                    if deadline_elapsed
+                    else TransitionEvent.VALIDATION_FAILED
+                ),
                 now=self._clock(),
                 run_id=run_id,
                 actor=actor,
                 on_behalf_of=on_behalf_of,
                 reason_code=reason,
             )
+            if deadline_elapsed:
+                self._journal.transition(
+                    proposal.transaction_id,
+                    expected_version=record.version,
+                    transition_event=TransitionEvent.STAGING_DISCARD_SUCCEEDED,
+                    now=self._clock(),
+                    run_id=run_id,
+                    actor=actor,
+                    on_behalf_of=on_behalf_of,
+                )
             raise
         return TransactionSession(
             journal=self._journal,
@@ -247,8 +268,11 @@ class TransactionSession:
             )
         try:
             self._ensure_pre_effect_guards()
-        except AgentKernelError:
-            self._transition(TransitionEvent.VALIDATION_FAILED)
+        except AgentKernelError as error:
+            if error.code is ErrorCode.DEADLINE_EXCEEDED:
+                await self._abort_precommit(TransitionEvent.DEADLINE_EXCEEDED)
+            else:
+                self._transition(TransitionEvent.VALIDATION_FAILED)
             raise
         now = self._clock()
         reservation = self._journal.reserve_intent(
@@ -430,12 +454,6 @@ class TransactionSession:
 
     async def _enforce_deadline(self) -> TransactionRecord:
         if self.record.state.is_terminal or self._clock() < self._plan.proposal.deadline:
-            return self.record
-        if self.record.state is TransactionState.NEW:
-            self._transition(
-                TransitionEvent.VALIDATION_FAILED,
-                reason_code=ErrorCode.DEADLINE_EXCEEDED.value,
-            )
             return self.record
         return await self._abort_precommit(TransitionEvent.DEADLINE_EXCEEDED)
 

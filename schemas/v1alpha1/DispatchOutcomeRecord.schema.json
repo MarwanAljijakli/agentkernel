@@ -1,0 +1,239 @@
+{
+  "$defs": {
+    "CommitDispatchState": {
+      "description": "Durable post-permit classification; no state authorizes an implicit resend.",
+      "enum": [
+        "DISPATCHED",
+        "COMMITTED",
+        "NO_EFFECT",
+        "PARTIAL_OR_INVALID",
+        "IN_DOUBT",
+        "REVIEW_REQUIRED"
+      ],
+      "title": "CommitDispatchState",
+      "type": "string"
+    },
+    "ReconciliationOutcome": {
+      "description": "Evidence-only outcome returned by one reconciliation attempt.",
+      "enum": [
+        "COMMITTED",
+        "NO_EFFECT",
+        "PARTIAL_OR_INVALID",
+        "UNKNOWN"
+      ],
+      "title": "ReconciliationOutcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable hash-chain observation for one durable dispatch generation.",
+  "properties": {
+    "classification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReconciliationOutcome"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "committed_verification_permit_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Committed Verification Permit Digest"
+    },
+    "committed_verification_permit_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Committed Verification Permit Ref"
+    },
+    "committed_verification_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Committed Verification Ref"
+    },
+    "dispatch_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "effect_receipt_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Effect Receipt Ref"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "intent_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Intent Hash",
+      "type": "string"
+    },
+    "no_effect_evidence_ref": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "No Effect Evidence Ref"
+    },
+    "outcome_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Outcome Digest",
+      "type": "string"
+    },
+    "outcome_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Outcome Id",
+      "type": "string"
+    },
+    "owner_version": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Owner Version",
+      "type": "integer"
+    },
+    "previous_outcome_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Outcome Digest"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sequence": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "source_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CommitDispatchState"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "target_state": {
+      "$ref": "#/$defs/CommitDispatchState"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    },
+    "unavailable_record_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unavailable Record Digest"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "intent_hash",
+    "owner_version",
+    "dispatch_id",
+    "sequence",
+    "outcome_id",
+    "source_state",
+    "target_state",
+    "evidence_refs",
+    "recorded_at",
+    "outcome_digest"
+  ],
+  "title": "DispatchOutcomeRecord",
+  "type": "object"
+}

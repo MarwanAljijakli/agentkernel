@@ -10,7 +10,7 @@
 - Catalog and authoritative user rows: **446**.
 - Total rows: **806**.
 - Stable release readiness: **FAIL**.
-- Reason: mandatory rows remain partial/missing and a high-severity CodeQL alert is open. No stable v1 release is supported by this baseline.
+- Reason: mandatory rows remain partial/missing and clean full-release verification is absent. No stable v1 release is supported by this baseline.
 
 The four allowed status strings are exact: `implemented and verified`, `partially implemented`, `missing`, and `blocked`. No row is marked blocked unless an external reason and minimum action are both recorded.
 
@@ -33,9 +33,9 @@ Normative occurrence accounting excludes the keyword-definition line and contain
 
 | Status | Rows |
 | --- | ---: |
-| implemented and verified | 39 |
-| partially implemented | 132 |
-| missing | 635 |
+| implemented and verified | 69 |
+| partially implemented | 148 |
+| missing | 589 |
 | blocked | 0 |
 
 ## Release-oriented view
@@ -44,12 +44,12 @@ A row can relate to more than one release, so this table is not additive.
 
 | ID | Gate | Implemented + verified | Partial | Missing | Blocked |
 | --- | --- | ---: | ---: | ---: | ---: |
-| `REL-P0` | Phase 0 | 15 | 40 | 0 | 0 |
-| `REL-R01` | Release 0.1 | 12 | 32 | 21 | 0 |
-| `REL-R02` | Release 0.2 | 3 | 8 | 174 | 0 |
-| `REL-R03` | Release 0.3 | 0 | 15 | 32 | 0 |
+| `REL-P0` | Phase 0 | 24 | 31 | 0 | 0 |
+| `REL-R01` | Release 0.1 | 16 | 29 | 20 | 0 |
+| `REL-R02` | Release 0.2 | 4 | 12 | 169 | 0 |
+| `REL-R03` | Release 0.3 | 8 | 14 | 25 | 0 |
 | `REL-R04` | Release 0.4 | 0 | 0 | 144 | 0 |
-| `REL-R10` | Release 1.0 | 13 | 53 | 486 | 0 |
+| `REL-R10` | Release 1.0 | 22 | 84 | 446 | 0 |
 
 ## Explicit catalogs
 
@@ -114,6 +114,6 @@ IDs in `requirements/id-registry.json` are append-only. Existing IDs must never 
 
 ## Known release blockers versus implementation gaps
 
-There is no externally blocked row in this baseline. Missing A1/A2 confinement, the process and heterogeneous adapters, recovery scanner/saga, Z3, benchmark/data/TraceWorld, distributed operations, release artifacts, clean cross-platform verification, and the open high CodeQL finding are implementation or verification work—not external blockers.
+There is no externally blocked row in this baseline. Missing A1/A2 confinement, the process and heterogeneous adapters, complete recovery crash matrix/saga, Z3, benchmark/data/TraceWorld, distributed operations, release artifacts, and clean cross-platform verification are implementation or verification work—not external blockers. The previously open high CodeQL finding is fixed and retained as positive scan evidence.
 
 Source category count checksum: `f6e47473a5e85daef35502d5281555cc1c5569e154669cdce9f36031ceb830d7`.

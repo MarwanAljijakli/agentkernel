@@ -1,0 +1,92 @@
+{
+  "additionalProperties": false,
+  "description": "Exact adapter evidence reported after a recovery permit became unusable.",
+  "properties": {
+    "evidence_refs": {
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "operation_evidence_ref": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Operation Evidence Ref",
+      "type": "string"
+    },
+    "operation_reason_code": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Operation Reason Code"
+    },
+    "reason_code": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "recovery_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "report_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Report Digest",
+      "type": "string"
+    },
+    "reported_at": {
+      "format": "date-time",
+      "title": "Reported At",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": "1.1",
+      "enum": [
+        "1.0",
+        "1.1"
+      ],
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "terminal_work_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Terminal Work Digest",
+      "type": "string"
+    },
+    "transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Transaction Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "transaction_id",
+    "recovery_id",
+    "operation_evidence_ref",
+    "evidence_refs",
+    "reported_at",
+    "reason_code",
+    "terminal_work_digest",
+    "report_digest"
+  ],
+  "title": "LateRecoveryReportRecord",
+  "type": "object"
+}

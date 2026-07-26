@@ -2,10 +2,42 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import get_type_hints
 
 import pytest
-from agentkernel.cli import SCHEMA_MODELS
+from agentkernel.api import KernelAPI
+from agentkernel.cli import SCHEMA_MODELS, export_schemas
 from pydantic import BaseModel
+
+
+def _public_kernel_api_request_models() -> tuple[type[BaseModel], ...]:
+    models: list[type[BaseModel]] = []
+    for name, method in KernelAPI.__dict__.items():
+        if name.startswith("_") or not callable(method):
+            continue
+        parameter_hints = tuple(
+            hint for parameter, hint in get_type_hints(method).items() if parameter != "return"
+        )
+        assert len(parameter_hints) == 1, f"KernelAPI.{name} must have one request contract"
+        model = parameter_hints[0]
+        assert isinstance(model, type), f"KernelAPI.{name} request must be a model type"
+        assert issubclass(model, BaseModel), f"KernelAPI.{name} request must be a Pydantic model"
+        models.append(model)
+    return tuple(models)
+
+
+def test_every_public_kernel_api_request_is_exported_in_logical_order(
+    tmp_path: Path,
+) -> None:
+    request_models = _public_kernel_api_request_models()
+    exported_requests = tuple(model for model in SCHEMA_MODELS if model in request_models)
+    generated = tmp_path / "schemas"
+
+    assert exported_requests == request_models
+    assert export_schemas(generated) == len(SCHEMA_MODELS)
+    for model in request_models:
+        assert Path("schemas/v1alpha1", f"{model.__name__}.schema.json").is_file()
+        assert Path(generated, f"{model.__name__}.schema.json").is_file()
 
 
 @pytest.mark.parametrize("model", SCHEMA_MODELS, ids=lambda model: model.__name__)

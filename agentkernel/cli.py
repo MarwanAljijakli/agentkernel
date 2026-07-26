@@ -21,21 +21,52 @@ from typing import Any, Never
 from pydantic import BaseModel
 
 from agentkernel import __version__
+from agentkernel.adapters.base import NormalizerManifest
+from agentkernel.api import (
+    CreateTransactionRequest,
+    DispatchReconciliationRequest,
+    RecoveryScanRequest,
+    TransactionStatusQuery,
+)
+from agentkernel.authority import (
+    AuthorityEvaluationContext,
+    AuthoritySnapshot,
+    CapabilityBudgetState,
+    CapabilityKeyVersion,
+    CapabilityReservationPlan,
+    CapabilityRevocation,
+    EnforcedAuthorityDecision,
+    EnforcedCapabilityGrant,
+    ResourceAuthorityDecision,
+)
 from agentkernel.demo import DemoReport, run_demo
 from agentkernel.domain.models import (
     ActionExecutionRecord,
     ActionProposal,
+    AdapterObservation,
     Artifact,
+    AuthenticatedActionContext,
     BenchmarkTask,
     CapabilityGrant,
+    CommitPermit,
     EffectReceipt,
     EventEnvelope,
     GoalRecord,
+    InspectionPermit,
     IntentRecord,
+    NormalizedAction,
+    NormalizedIntentProjection,
+    NormalizedProvenance,
     PolicyBundle,
     ProvenanceRecord,
+    RecoveryActionBinding,
+    RecoveryPermit,
     RecoveryReport,
+    ResourceUse,
+    SemanticArgument,
+    StagePermit,
     TransactionRecord,
+    VerificationPermit,
     VerificationReport,
 )
 from agentkernel.errors import AgentKernelError, ErrorCode
@@ -46,14 +77,93 @@ from agentkernel.model_gateway.gateway import (
     ModelInferenceRequest,
     ModelResponse,
 )
+from agentkernel.normalization.filesystem import FilesystemNormalizerConfig, WriteFilesArguments
+from agentkernel.policy import (
+    AggregatePolicyDecision,
+    PolicyContext,
+    PolicyDecision,
+    PolicyLayerDecisionEvidence,
+    PolicyLayerIdentity,
+    PolicyLayerInput,
+    PolicyLayerSnapshot,
+    PolicyResourceInput,
+    ResourcePolicyDecision,
+)
 from agentkernel.sandbox.docker import DockerSandbox
+from agentkernel.transactions.contracts import (
+    AuthorizationRoundRecord,
+    CommitDispatchRecord,
+    DispatchEvidenceUnavailableRecord,
+    DispatchOutcomeRecord,
+    EnforcedTransactionEvent,
+    EnforcedTransactionRecord,
+    LateRecoveryReportRecord,
+    ReconciliationAttemptRecord,
+    RecoveryCompletionReportRecord,
+    RecoveryEvidenceUnavailableRecord,
+    RecoveryWorkRecord,
+    StageMaterialRecord,
+    TransactionRecoveryDeadlineRecord,
+    WorkerLeaseRecord,
+)
 
 SCHEMA_MODELS: tuple[type[BaseModel], ...] = (
+    CreateTransactionRequest,
+    TransactionStatusQuery,
+    RecoveryScanRequest,
+    DispatchReconciliationRequest,
     GoalRecord,
     ActionProposal,
+    AuthenticatedActionContext,
     CapabilityGrant,
     ProvenanceRecord,
+    NormalizedProvenance,
+    ResourceUse,
+    SemanticArgument,
+    NormalizedIntentProjection,
+    NormalizedAction,
+    NormalizerManifest,
+    WriteFilesArguments,
+    FilesystemNormalizerConfig,
     PolicyBundle,
+    PolicyContext,
+    PolicyDecision,
+    PolicyLayerIdentity,
+    PolicyLayerInput,
+    PolicyLayerSnapshot,
+    PolicyResourceInput,
+    PolicyLayerDecisionEvidence,
+    ResourcePolicyDecision,
+    AggregatePolicyDecision,
+    CapabilityKeyVersion,
+    CapabilityBudgetState,
+    CapabilityRevocation,
+    EnforcedCapabilityGrant,
+    AuthoritySnapshot,
+    AuthorityEvaluationContext,
+    ResourceAuthorityDecision,
+    CapabilityReservationPlan,
+    EnforcedAuthorityDecision,
+    EnforcedTransactionRecord,
+    EnforcedTransactionEvent,
+    TransactionRecoveryDeadlineRecord,
+    AuthorizationRoundRecord,
+    InspectionPermit,
+    StagePermit,
+    VerificationPermit,
+    WorkerLeaseRecord,
+    StageMaterialRecord,
+    CommitPermit,
+    RecoveryPermit,
+    RecoveryActionBinding,
+    CommitDispatchRecord,
+    DispatchEvidenceUnavailableRecord,
+    DispatchOutcomeRecord,
+    ReconciliationAttemptRecord,
+    LateRecoveryReportRecord,
+    RecoveryCompletionReportRecord,
+    RecoveryEvidenceUnavailableRecord,
+    RecoveryWorkRecord,
     TransactionRecord,
     ActionExecutionRecord,
     IntentRecord,
@@ -61,6 +171,7 @@ SCHEMA_MODELS: tuple[type[BaseModel], ...] = (
     Artifact,
     EffectReceipt,
     VerificationReport,
+    AdapterObservation,
     RecoveryReport,
     BenchmarkTask,
     DemoReport,
@@ -288,9 +399,10 @@ def export_schemas(output: Path) -> int:
     for model in SCHEMA_MODELS:
         schema = model.model_json_schema(mode="validation")
         target = output / f"{model.__name__}.schema.json"
-        target.write_text(
-            json.dumps(schema, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
+        target.write_bytes(
+            (json.dumps(schema, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
+                "utf-8"
+            )
         )
     return len(SCHEMA_MODELS)
 
