@@ -34,8 +34,8 @@ Normative occurrence accounting excludes the keyword-definition line and contain
 | Status | Rows |
 | --- | ---: |
 | implemented and verified | 69 |
-| partially implemented | 146 |
-| missing | 591 |
+| partially implemented | 148 |
+| missing | 589 |
 | blocked | 0 |
 
 ## Release-oriented view
@@ -49,7 +49,7 @@ A row can relate to more than one release, so this table is not additive.
 | `REL-R02` | Release 0.2 | 4 | 12 | 169 | 0 |
 | `REL-R03` | Release 0.3 | 8 | 14 | 25 | 0 |
 | `REL-R04` | Release 0.4 | 0 | 0 | 144 | 0 |
-| `REL-R10` | Release 1.0 | 22 | 82 | 448 | 0 |
+| `REL-R10` | Release 1.0 | 22 | 84 | 446 | 0 |
 
 ## Explicit catalogs
 

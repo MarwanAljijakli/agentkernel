@@ -130,6 +130,7 @@ def test_ledger_advances_only_verified_core_rows_and_keeps_broader_rows_partial(
     core_commit = "03388bcc2245df69ab7b08c7e5a2e54c03bd1bfe"
     recovery_commit = "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043"
     recovery_acceptance_commit = "70d378104abc3c5754abf4774fe8596e638ba574"
+    kernel_api_commit = "7f4674898c4c0d95c63d0c65f2d772104a8a6823"
     verified_core_ids = {
         "NORM-S11-010",
         "NORM-S11-011",
@@ -215,6 +216,17 @@ def test_ledger_advances_only_verified_core_rows_and_keeps_broader_rows_partial(
         rows[requirement_id]["last_verified_date"] == "2026-07-26"
         for requirement_id in verified_recovery_acceptance_ids
     )
+    kernel_api_partial_ids = {"NORM-S09-005", "COMP-SVC-KERNELAPI"}
+    assert {
+        requirement_id
+        for requirement_id, row in rows.items()
+        if row["status"] == "partially implemented"
+        and row["last_verified_commit"] == kernel_api_commit
+    } == kernel_api_partial_ids
+    assert all(
+        rows[requirement_id]["last_verified_date"] == "2026-07-26"
+        for requirement_id in kernel_api_partial_ids
+    )
     recovery_partial_ids = {
         "REL-R01-D05",
         "AK-005",
@@ -295,6 +307,47 @@ def test_recovery_freeze_evidence_names_exact_hosted_gates_without_overclaiming(
     assert "enforced coordinator and recovery scanner are absent" not in json.dumps(
         value, sort_keys=True
     )
+
+
+def test_kernel_api_boundary_evidence_is_exact_hosted_and_remains_conservative() -> None:
+    value = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    rows = {row["id"]: row for row in value["requirements"]}
+    kernel_commit = "7f4674898c4c0d95c63d0c65f2d772104a8a6823"
+
+    assert value["metadata"]["status_counts"] == {
+        "implemented and verified": 69,
+        "partially implemented": 148,
+        "missing": 589,
+        "blocked": 0,
+    }
+    assert value["metadata"]["release_readiness"] == "FAIL"
+    assert rows["NORM-S09-005"]["status"] == "partially implemented"
+    assert rows["COMP-SVC-KERNELAPI"]["status"] == "partially implemented"
+    assert rows["NORM-S09-005"]["last_verified_commit"] == kernel_commit
+    assert rows["COMP-SVC-KERNELAPI"]["last_verified_commit"] == kernel_commit
+
+    evidence = " ".join(
+        evidence
+        for row in rows.values()
+        if row["last_verified_commit"] == kernel_commit
+        for evidence in row["verification_evidence"]
+    )
+    assert "30222068042" in evidence
+    assert "30222068033" in evidence
+    assert "30222069443" in evidence
+    assert "30222069424" in evidence
+
+    assert rows["NORM-S11-001"]["status"] == "missing"
+    assert rows["NORM-S11-002"]["status"] == "missing"
+    assert rows["USR-012"]["status"] == "missing"
+    joined_implementation = " ".join(
+        text
+        for requirement_id in ("NORM-S09-005", "COMP-SVC-KERNELAPI")
+        for text in rows[requirement_id]["implementation_evidence"]
+    )
+    assert "trusted in-process" in joined_implementation
+    assert "authenticated transport" in joined_implementation
+    assert "complete SDK boundary remain absent" in joined_implementation
 
 
 def test_current_only_traceability_path_cannot_claim_baseline_commit(tmp_path: Path) -> None:

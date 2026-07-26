@@ -35,6 +35,8 @@ RECOVERY_CORE_COMMIT = "a4be55e8dabca26f51db3a3acbe20eb4ae9fe043"
 RECOVERY_CORE_DATE = "2026-07-26"
 RECOVERY_ACCEPTANCE_COMMIT = "70d378104abc3c5754abf4774fe8596e638ba574"
 RECOVERY_ACCEPTANCE_DATE = "2026-07-26"
+KERNEL_API_COMMIT = "7f4674898c4c0d95c63d0c65f2d772104a8a6823"
+KERNEL_API_DATE = "2026-07-26"
 CI_EVIDENCE = "GitHub Actions CI run 29852865780 succeeded on " + BASELINE_COMMIT
 CODEQL_EVIDENCE = (
     "GitHub code-scanning alert #1 (py/clear-text-storage-sensitive-data) is fixed, and "
@@ -62,6 +64,17 @@ RECOVERY_ACCEPTANCE_CODEQL_EVIDENCE = (
     "Exact-push GitHub CodeQL run 30217100704 succeeded on "
     + RECOVERY_ACCEPTANCE_COMMIT
     + " with zero open code-scanning alerts; PR CodeQL run 30217101896 also succeeded"
+)
+KERNEL_API_CI_EVIDENCE = (
+    "Exact-push GitHub Actions CI run 30222068042 succeeded on "
+    + KERNEL_API_COMMIT
+    + " across Linux and Windows (1685 tests each with zero failures or errors), Docker controls, "
+    "locked install, and the 85.13% cross-platform coverage union; PR run 30222069443 also succeeded"
+)
+KERNEL_API_CODEQL_EVIDENCE = (
+    "Exact-push GitHub CodeQL run 30222068033 succeeded on "
+    + KERNEL_API_COMMIT
+    + " with zero open code-scanning alerts; PR CodeQL run 30222069424 also succeeded"
 )
 
 
@@ -171,6 +184,16 @@ def recovery_acceptance_verified(
         tuple(verification),
         RECOVERY_ACCEPTANCE_COMMIT,
         RECOVERY_ACCEPTANCE_DATE,
+    )
+
+
+def kernel_api_partial(*, implementation: Sequence[str], verification: Sequence[str]) -> Evidence:
+    return Evidence(
+        "partially implemented",
+        tuple(implementation),
+        tuple(verification),
+        KERNEL_API_COMMIT,
+        KERNEL_API_DATE,
     )
 
 
@@ -468,6 +491,16 @@ NORM_EVIDENCE: dict[tuple[int, int], Evidence] = {
         ),
         verification=(
             "tests/unit/test_state_machine.py; tests/integration/test_enforced_transaction_coordinator.py; tests/integration/test_enforced_coordinator_edge_cases.py",
+        ),
+    ),
+    (475, 1): kernel_api_partial(
+        implementation=(
+            "A strict versioned embedded KernelAPI protocol and implementation establish a logical transaction, status, recovery-scan, and explicit-reconciliation boundary over the enforced coordinator; goal/proposal ingress and the remaining logical service interfaces are incomplete",
+        ),
+        verification=(
+            "tests/unit/test_kernel_api.py; test_kernel_api_preserves_explicit_commit_duplicate_idempotency_and_tenant_scope; test_kernel_api_context_exit_aborts_without_authoritative_effect; test_kernel_api_recover_once_resumes_tenant_aborting_work; test_kernel_api_explicit_reconciliation_never_redispatches_original_intent; test_every_public_kernel_api_request_is_exported_in_logical_order",
+            KERNEL_API_CI_EVIDENCE,
+            KERNEL_API_CODEQL_EVIDENCE,
         ),
     ),
     (522, 1): recovery_core_partial(
@@ -1632,6 +1665,16 @@ COMPONENT_EVIDENCE: dict[str, Evidence] = {
         ),
         verification=(
             "tests/unit/test_docker_backend_unit.py; tests/integration/test_docker_sandbox.py",
+        ),
+    ),
+    "COMP-SVC-KERNELAPI": kernel_api_partial(
+        implementation=(
+            "The trusted in-process KernelAPI receives versioned transaction requests and exposes tenant-scoped status, bounded recovery scans, and explicit dispatch reconciliation through the real enforced coordinator; goal/proposal ingress, an authenticated transport, and the complete SDK boundary remain absent",
+        ),
+        verification=(
+            "agentkernel/api/contracts.py; agentkernel/api/service.py; tests/unit/test_kernel_api.py; test_kernel_api_preserves_explicit_commit_duplicate_idempotency_and_tenant_scope; test_kernel_api_context_exit_aborts_without_authoritative_effect; test_kernel_api_recover_once_resumes_tenant_aborting_work; test_kernel_api_explicit_reconciliation_never_redispatches_original_intent; tests/unit/test_exported_schemas.py",
+            KERNEL_API_CI_EVIDENCE,
+            KERNEL_API_CODEQL_EVIDENCE,
         ),
     ),
     "COMP-SVC-AUTHORITYSERVICE": r01_core_partial(

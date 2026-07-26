@@ -19,8 +19,8 @@
     "total_row_count": 806,
     "status_counts": {
       "implemented and verified": 69,
-      "partially implemented": 146,
-      "missing": 591,
+      "partially implemented": 148,
+      "missing": 589,
       "blocked": 0
     },
     "release_readiness": "FAIL",
@@ -6007,14 +6007,20 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "A strict versioned embedded KernelAPI protocol and implementation establish a logical transaction, status, recovery-scan, and explicit-reconciliation boundary over the enforced coordinator; goal/proposal ingress and the remaining logical service interfaces are incomplete"
+      ],
+      "verification_evidence": [
+        "tests/unit/test_kernel_api.py; test_kernel_api_preserves_explicit_commit_duplicate_idempotency_and_tenant_scope; test_kernel_api_context_exit_aborts_without_authoritative_effect; test_kernel_api_recover_once_resumes_tenant_aborting_work; test_kernel_api_explicit_reconciliation_never_redispatches_original_intent; test_every_public_kernel_api_request_is_exported_in_logical_order",
+        "Exact-push GitHub Actions CI run 30222068042 succeeded on 7f4674898c4c0d95c63d0c65f2d772104a8a6823 across Linux and Windows (1685 tests each with zero failures or errors), Docker controls, locked install, and the 85.13% cross-platform coverage union; PR run 30222069443 also succeeded",
+        "Exact-push GitHub CodeQL run 30222068033 succeeded on 7f4674898c4c0d95c63d0c65f2d772104a8a6823 with zero open code-scanning alerts; PR CodeQL run 30222069424 also succeeded"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "7f4674898c4c0d95c63d0c65f2d772104a8a6823",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": true
     },
     {
@@ -33048,14 +33054,20 @@
       "artifact": [
         "Retained test/review evidence"
       ],
-      "implementation_evidence": [],
-      "verification_evidence": [],
-      "status": "missing",
+      "implementation_evidence": [
+        "The trusted in-process KernelAPI receives versioned transaction requests and exposes tenant-scoped status, bounded recovery scans, and explicit dispatch reconciliation through the real enforced coordinator; goal/proposal ingress, an authenticated transport, and the complete SDK boundary remain absent"
+      ],
+      "verification_evidence": [
+        "agentkernel/api/contracts.py; agentkernel/api/service.py; tests/unit/test_kernel_api.py; test_kernel_api_preserves_explicit_commit_duplicate_idempotency_and_tenant_scope; test_kernel_api_context_exit_aborts_without_authoritative_effect; test_kernel_api_recover_once_resumes_tenant_aborting_work; test_kernel_api_explicit_reconciliation_never_redispatches_original_intent; tests/unit/test_exported_schemas.py",
+        "Exact-push GitHub Actions CI run 30222068042 succeeded on 7f4674898c4c0d95c63d0c65f2d772104a8a6823 across Linux and Windows (1685 tests each with zero failures or errors), Docker controls, locked install, and the 85.13% cross-platform coverage union; PR run 30222069443 also succeeded",
+        "Exact-push GitHub CodeQL run 30222068033 succeeded on 7f4674898c4c0d95c63d0c65f2d772104a8a6823 with zero open code-scanning alerts; PR CodeQL run 30222069424 also succeeded"
+      ],
+      "status": "partially implemented",
       "blocker_reason": "",
       "blocker_action": "",
       "related_ids": [],
-      "last_verified_commit": "",
-      "last_verified_date": "",
+      "last_verified_commit": "7f4674898c4c0d95c63d0c65f2d772104a8a6823",
+      "last_verified_date": "2026-07-26",
       "baseline_source_row": false
     },
     {
