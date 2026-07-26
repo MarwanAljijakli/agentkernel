@@ -197,6 +197,16 @@ def test_enforced_transaction_requires_atomic_authorization_binding() -> None:
     record = EnforcedTransactionRecord.model_validate(values)
     assert record.state is TransactionState.AUTHORIZED_TO_STAGE
 
+    with pytest.raises(ValidationError, match="update precedes creation"):
+        EnforcedTransactionRecord.model_validate(
+            {**record.model_dump(mode="python"), "updated_at": _NOW - timedelta(seconds=1)}
+        )
+
+    with pytest.raises(ValidationError, match="Planning bindings must be all present"):
+        EnforcedTransactionRecord.model_validate(
+            {**record.model_dump(mode="python"), "operation": None}
+        )
+
     new_with_authority = {
         **values,
         "intent_hash": None,
@@ -210,6 +220,73 @@ def test_enforced_transaction_requires_atomic_authorization_binding() -> None:
     }
     with pytest.raises(ValidationError, match="NEW cannot carry authorization"):
         EnforcedTransactionRecord.model_validate(new_with_authority)
+
+    with pytest.raises(ValidationError, match="NEW must be the unplanned version-zero"):
+        EnforcedTransactionRecord.model_validate({**new_with_authority, "version": 1})
+
+    unplanned = {
+        **new_with_authority,
+        "authority_decision_digest": None,
+        "policy_decision_digest": None,
+        "policy_snapshot_digest": None,
+        "authorization_round_id": None,
+        "authorization_round_digest": None,
+        "capability_reservation_digest": None,
+        "allowed_modes": (),
+        "obligations": (),
+    }
+    with pytest.raises(ValidationError, match="Only NEW may have transaction version zero"):
+        EnforcedTransactionRecord.model_validate(
+            {**record.model_dump(mode="python"), "state": TransactionState.PLANNED, "version": 0}
+        )
+    with pytest.raises(ValidationError, match="requires complete planning bindings"):
+        EnforcedTransactionRecord.model_validate(
+            {**unplanned, "state": TransactionState.PLANNED, "version": 1}
+        )
+    with pytest.raises(ValidationError, match="STALE_STATE requires intended outcome"):
+        EnforcedTransactionRecord.model_validate(
+            {
+                **record.model_dump(mode="python"),
+                "state": TransactionState.STALE_STATE,
+                "reason_code": "STALE_TARGET",
+            }
+        )
+    with pytest.raises(ValidationError, match="Only abort-path transactions"):
+        EnforcedTransactionRecord.model_validate(
+            {
+                **record.model_dump(mode="python"),
+                "intended_outcome": IntendedOutcome.ABORTED,
+            }
+        )
+    with pytest.raises(ValidationError, match="modes and obligations require complete"):
+        EnforcedTransactionRecord.model_validate(
+            {
+                **unplanned,
+                "state": TransactionState.PLANNED,
+                "version": 1,
+                "intent_hash": record.intent_hash,
+                "normalized_action_digest": record.normalized_action_digest,
+                "adapter": record.adapter,
+                "operation": record.operation,
+                "adapter_manifest_digest": record.adapter_manifest_digest,
+                "deadline": record.deadline,
+                "allowed_modes": ("stage",),
+            }
+        )
+    with pytest.raises(ValidationError, match="requires complete authorization bindings"):
+        EnforcedTransactionRecord.model_validate(
+            {
+                **record.model_dump(mode="python"),
+                "authorization_round_id": None,
+                "authorization_round_digest": None,
+                "authority_decision_digest": None,
+                "policy_decision_digest": None,
+                "policy_snapshot_digest": None,
+                "capability_reservation_digest": None,
+                "allowed_modes": (),
+                "obligations": (),
+            }
+        )
 
     del values["policy_decision_digest"]
     with pytest.raises(ValidationError, match="all present or all absent"):
@@ -437,6 +514,19 @@ def test_worker_lease_and_stage_material_are_fence_bound() -> None:
     )
     assert lease.fencing_token == 7
 
+    with pytest.raises(ValidationError, match="expire after acquisition"):
+        WorkerLeaseRecord.model_validate(
+            {**lease.model_dump(mode="python"), "expires_at": lease.acquired_at}
+        )
+    with pytest.raises(ValidationError, match="release precedes acquisition"):
+        WorkerLeaseRecord.model_validate(
+            {
+                **lease.model_dump(mode="python"),
+                "released_at": lease.acquired_at - timedelta(seconds=1),
+                "version": 1,
+            }
+        )
+
     released_without_version_advance = lease.model_dump(mode="python")
     released_without_version_advance["released_at"] = _NOW + timedelta(seconds=1)
     with pytest.raises(ValidationError, match="released worker lease"):
@@ -471,6 +561,84 @@ def test_worker_lease_and_stage_material_are_fence_bound() -> None:
         updated_at=_NOW,
     )
     assert material.lease_id == lease.lease_id
+
+    with pytest.raises(ValidationError, match="update precedes creation"):
+        StageMaterialRecord.model_validate(
+            {**material.model_dump(mode="python"), "updated_at": _NOW - timedelta(seconds=1)}
+        )
+    with pytest.raises(ValidationError, match="Base-state and staged-effect"):
+        StageMaterialRecord.model_validate(
+            {**material.model_dump(mode="python"), "base_state_digest": None}
+        )
+    with pytest.raises(ValidationError, match="receipt requires staged-effect"):
+        StageMaterialRecord.model_validate(
+            {
+                **material.model_dump(mode="python"),
+                "base_state_digest": None,
+                "staged_effect_ref": None,
+            }
+        )
+    with pytest.raises(ValidationError, match="verification and its permit"):
+        StageMaterialRecord.model_validate(
+            {
+                **material.model_dump(mode="python"),
+                "verification_permit_ref": None,
+            }
+        )
+
+    no_receipt_or_verification = {
+        "staged_receipt_ref": None,
+        "staged_state_digest": None,
+        "verification_permit_digest": None,
+        "verification_permit_ref": None,
+        "verification_ref": None,
+    }
+    with pytest.raises(ValidationError, match="Allocated stage material"):
+        StageMaterialRecord.model_validate(
+            {
+                **material.model_dump(mode="python"),
+                **no_receipt_or_verification,
+                "state": StageMaterialState.ALLOCATED,
+                "version": 0,
+            }
+        )
+    with pytest.raises(ValidationError, match="STAGED requires exactly"):
+        StageMaterialRecord.model_validate(
+            {
+                **material.model_dump(mode="python"),
+                **no_receipt_or_verification,
+                "state": StageMaterialState.STAGED,
+                "base_state_digest": None,
+                "staged_effect_ref": None,
+                "version": 1,
+            }
+        )
+    with pytest.raises(ValidationError, match="EXECUTED requires exact"):
+        StageMaterialRecord.model_validate(
+            {
+                **material.model_dump(mode="python"),
+                **no_receipt_or_verification,
+                "state": StageMaterialState.EXECUTED,
+                "version": 2,
+            }
+        )
+    with pytest.raises(ValidationError, match="VERIFIED requires exact"):
+        StageMaterialRecord.model_validate(
+            {
+                **material.model_dump(mode="python"),
+                "verification_permit_digest": None,
+                "verification_permit_ref": None,
+                "verification_ref": None,
+            }
+        )
+    with pytest.raises(ValidationError, match="Discard outcome requires durable evidence"):
+        StageMaterialRecord.model_validate(
+            {
+                **material.model_dump(mode="python"),
+                "state": StageMaterialState.DISCARDED,
+                "version": 4,
+            }
+        )
 
     verified_at_version_zero = material.model_dump(mode="python")
     verified_at_version_zero["version"] = 0
@@ -735,6 +903,82 @@ def test_authorization_round_links_wrapper_and_inner_decision_digests() -> None:
     with pytest.raises(ValidationError, match="separate normalized action"):
         AuthorizationRoundRecord.model_validate(invalid_recovery)
 
+    baseline = round_record.model_dump(mode="python")
+    with pytest.raises(ValidationError, match="must evaluate the transaction"):
+        AuthorizationRoundRecord.model_validate(
+            {**baseline, "controlled_transaction_id": "transaction:other"}
+        )
+    with pytest.raises(ValidationError, match="reservation bindings must be all present"):
+        AuthorizationRoundRecord.model_validate({**baseline, "reservation_run_id": None})
+
+    reservation_fields = {
+        "capability_reservation_plan_digest": None,
+        "capability_reservation_digest": None,
+        "reservation_version": None,
+        "reservation_goal_id": None,
+        "reservation_run_id": None,
+    }
+    with pytest.raises(ValidationError, match="requires a durable reservation fence"):
+        AuthorizationRoundRecord.model_validate({**baseline, **reservation_fields})
+    with pytest.raises(ValidationError, match="cannot carry a capability reservation"):
+        AuthorizationRoundRecord.model_validate(
+            {**baseline, "verdict": AuthorizationVerdict.DENIED}
+        )
+    with pytest.raises(ValidationError, match="at least one allowed mode"):
+        AuthorizationRoundRecord.model_validate({**baseline, "allowed_modes": ()})
+    with pytest.raises(ValidationError, match="cannot carry allowed modes"):
+        AuthorizationRoundRecord.model_validate(
+            {
+                **baseline,
+                **reservation_fields,
+                "verdict": AuthorizationVerdict.DENIED,
+                "authority_valid_until": None,
+            }
+        )
+
+    artifact_fields = (
+        "authority_snapshot_ref",
+        "authority_context_ref",
+        "authority_decision_ref",
+        "policy_inputs_ref",
+        "policy_snapshot_ref",
+        "policy_decision_ref",
+    )
+    legacy_values = {
+        **round_record.model_dump(mode="python", exclude={"round_digest"}),
+        "schema_version": "1.0",
+        "authority_valid_until": None,
+        **dict.fromkeys(artifact_fields),
+    }
+    legacy_round = AuthorizationRoundRecord.create(**legacy_values)
+    assert legacy_round.schema_version == "1.0"
+
+    with pytest.raises(ValidationError, match="Legacy authorization rounds"):
+        AuthorizationRoundRecord.model_validate(
+            {**baseline, "schema_version": "1.0", "authority_valid_until": None}
+        )
+    with pytest.raises(ValidationError, match="discoverable evidence artifacts"):
+        AuthorizationRoundRecord.model_validate({**baseline, "policy_inputs_ref": None})
+    with pytest.raises(ValidationError, match="not evidence artifact references"):
+        AuthorizationRoundRecord.model_validate(
+            {**baseline, "authority_snapshot_ref": round_record.authority_snapshot_digest}
+        )
+    with pytest.raises(ValidationError, match="future authority window"):
+        AuthorizationRoundRecord.model_validate({**baseline, "authority_valid_until": _NOW})
+    with pytest.raises(ValidationError, match="cannot grant an authority window"):
+        AuthorizationRoundRecord.model_validate(
+            {
+                **baseline,
+                **reservation_fields,
+                "verdict": AuthorizationVerdict.DENIED,
+                "allowed_modes": (),
+            }
+        )
+    with pytest.raises(ValidationError, match="sorted and unique"):
+        AuthorizationRoundRecord.model_validate({**baseline, "allowed_modes": ("stage", "read")})
+    with pytest.raises(ValidationError, match=r"valid (?:UTF-8|string)"):
+        AuthorizationRoundRecord.model_validate({**baseline, "obligations": ("\ud800",)})
+
 
 def test_commit_permit_binds_every_precommit_guard_and_rejects_tampering() -> None:
     permit = _permit()
@@ -794,6 +1038,79 @@ def test_dispatch_requires_matching_permit_and_authoritative_outcome_evidence() 
         }
     )
     assert in_doubt_with_receipt.effect_receipt_ref is not None
+
+    with pytest.raises(ValidationError, match="artifact ref is inconsistent"):
+        CommitDispatchRecord.model_validate(
+            {**dispatch.model_dump(mode="python"), "permit_ref": _digest("forged-permit-ref")}
+        )
+    with pytest.raises(ValidationError, match="update precedes creation"):
+        CommitDispatchRecord.model_validate(
+            {**dispatch.model_dump(mode="python"), "updated_at": _NOW - timedelta(seconds=1)}
+        )
+    with pytest.raises(ValidationError, match="requires an effect receipt"):
+        CommitDispatchRecord.model_validate(
+            {**committed.model_dump(mode="python"), "effect_receipt_ref": None}
+        )
+    with pytest.raises(ValidationError, match="requires committed-state verification"):
+        CommitDispatchRecord.model_validate(
+            {**committed.model_dump(mode="python"), "committed_verification_ref": None}
+        )
+
+    classified = {
+        **dispatch.model_dump(mode="python"),
+        "state": CommitDispatchState.IN_DOUBT,
+        "version": 1,
+        "outcome_evidence_refs": (_digest("ambiguous-observation"),),
+    }
+    with pytest.raises(ValidationError, match="verification and its permit"):
+        CommitDispatchRecord.model_validate(
+            {**classified, "committed_verification_permit_digest": _digest("partial-verification")}
+        )
+    with pytest.raises(ValidationError, match="both committed and no-effect"):
+        CommitDispatchRecord.model_validate(
+            {
+                **classified,
+                "effect_receipt_ref": _digest("receipt"),
+                "no_effect_evidence_ref": _digest("absence"),
+            }
+        )
+    with pytest.raises(ValidationError, match="newly dispatched record"):
+        CommitDispatchRecord.model_validate(
+            {
+                **dispatch.model_dump(mode="python"),
+                "outcome_evidence_refs": (_digest("premature-outcome"),),
+            }
+        )
+    with pytest.raises(ValidationError, match="pending receipt observation"):
+        CommitDispatchRecord.model_validate({**dispatch.model_dump(mode="python"), "version": 1})
+    with pytest.raises(ValidationError, match="classified dispatch requires durable"):
+        CommitDispatchRecord.model_validate(
+            {
+                **dispatch.model_dump(mode="python"),
+                "state": CommitDispatchState.IN_DOUBT,
+                "version": 1,
+            }
+        )
+    with pytest.raises(ValidationError, match="Unavailable dispatch evidence must be typed"):
+        CommitDispatchRecord.model_validate(
+            {
+                **dispatch.model_dump(mode="python"),
+                "unavailable_record_digest": _digest("unavailable-record"),
+            }
+        )
+    with pytest.raises(ValidationError, match="Only a committed dispatch"):
+        CommitDispatchRecord.model_validate(
+            {
+                **classified,
+                "committed_verification_permit_digest": _digest("verification-permit"),
+                "committed_verification_permit_ref": _digest("verification-permit-artifact"),
+                "committed_verification_ref": _digest("verification"),
+            }
+        )
+    with pytest.raises(ValidationError, match="Only a no-effect dispatch"):
+        CommitDispatchRecord.model_validate(
+            {**classified, "no_effect_evidence_ref": _digest("unexpected-absence")}
+        )
 
     invalid = dispatch.model_dump(mode="python")
     invalid["tenant_id"] = "tenant:other"
@@ -885,6 +1202,74 @@ def test_dispatch_outcome_chain_binds_each_authoritative_classification() -> Non
     )
     assert partial_with_receipt.effect_receipt_ref is not None
 
+    with pytest.raises(ValidationError, match="Initial dispatch outcome"):
+        DispatchOutcomeRecord.model_validate(
+            {
+                **initial.model_dump(mode="python"),
+                "source_state": CommitDispatchState.DISPATCHED,
+            }
+        )
+    with pytest.raises(ValidationError, match="hash-chain source"):
+        DispatchOutcomeRecord.model_validate(
+            {**committed.model_dump(mode="python"), "source_state": None}
+        )
+
+    illegal_unclassified = {
+        **committed.model_dump(mode="python"),
+        "target_state": CommitDispatchState.COMMITTED,
+        "classification": None,
+        "effect_receipt_ref": None,
+        "committed_verification_permit_digest": None,
+        "committed_verification_permit_ref": None,
+        "committed_verification_ref": None,
+    }
+    with pytest.raises(ValidationError, match="Unclassified dispatch observation"):
+        DispatchOutcomeRecord.model_validate(illegal_unclassified)
+    with pytest.raises(ValidationError, match="requires receipt and verification"):
+        DispatchOutcomeRecord.model_validate(
+            {**committed.model_dump(mode="python"), "effect_receipt_ref": None}
+        )
+    with pytest.raises(ValidationError, match="requires authoritative absence evidence"):
+        DispatchOutcomeRecord.model_validate(
+            {
+                **committed.model_dump(mode="python"),
+                "target_state": CommitDispatchState.NO_EFFECT,
+                "classification": ReconciliationOutcome.NO_EFFECT,
+                "effect_receipt_ref": None,
+                "committed_verification_permit_digest": None,
+                "committed_verification_permit_ref": None,
+                "committed_verification_ref": None,
+            }
+        )
+    with pytest.raises(ValidationError, match="cannot carry verification or absence"):
+        DispatchOutcomeRecord.model_validate(
+            {
+                **partial_with_receipt.model_dump(mode="python"),
+                "committed_verification_permit_digest": _digest("verification-permit"),
+                "committed_verification_permit_ref": _digest("verification-permit-artifact"),
+                "committed_verification_ref": _digest("verification"),
+            }
+        )
+    unavailable_ref = _digest("typed-unavailability")
+    with pytest.raises(ValidationError, match="typed UNKNOWN classification"):
+        DispatchOutcomeRecord.model_validate(
+            {
+                **partial_with_receipt.model_dump(mode="python"),
+                "target_state": CommitDispatchState.IN_DOUBT,
+                "classification": ReconciliationOutcome.UNKNOWN,
+                "unavailable_record_digest": unavailable_ref,
+                "evidence_refs": (unavailable_ref,),
+            }
+        )
+    with pytest.raises(ValidationError, match="requires evidence or typed unavailability"):
+        DispatchOutcomeRecord.model_validate(
+            {**partial_with_receipt.model_dump(mode="python"), "evidence_refs": ()}
+        )
+    with pytest.raises(ValidationError, match="digest mismatch"):
+        DispatchOutcomeRecord.model_validate(
+            {**initial.model_dump(mode="python"), "outcome_digest": _digest("forged-outcome")}
+        )
+
     forged = committed.model_dump(mode="python")
     forged["target_state"] = CommitDispatchState.NO_EFFECT
     with pytest.raises(ValidationError, match="classification"):
@@ -936,6 +1321,11 @@ def test_recovery_completion_report_binds_exact_operation_evidence() -> None:
     )
     assert changed_identity.report_digest != report.report_digest
 
+    with pytest.raises(ValidationError, match="digest mismatch"):
+        RecoveryCompletionReportRecord.model_validate(
+            {**report.model_dump(mode="python"), "report_digest": _digest("forged-completion")}
+        )
+
     with pytest.raises(ValidationError, match="included"):
         RecoveryCompletionReportRecord.create(
             tenant_id=report.tenant_id,
@@ -981,7 +1371,9 @@ def test_recovery_completion_report_binds_exact_operation_evidence() -> None:
     ],
 )
 def test_typed_unavailable_records_are_canonical_and_reject_false_evidence(
-    record_type,
+    record_type: (
+        type[DispatchEvidenceUnavailableRecord] | type[RecoveryEvidenceUnavailableRecord]
+    ),
     identity: dict[str, str],
     boundary: str,
 ) -> None:
@@ -1071,6 +1463,99 @@ def test_reconciliation_attempt_schema_versions_preserve_legacy_fingerprint() ->
         "sha256:89855285a1b57d4a8a39e88fd9ebc9f259f8e98ca19ebedd94eea0b84a384114"
     )
 
+    with pytest.raises(ValidationError, match="reason requires operation evidence"):
+        ReconciliationAttemptRecord.model_validate(
+            {
+                **legacy.model_dump(mode="python"),
+                "schema_version": "1.1",
+                "operation_reason_code": "QUERY_FAILED",
+            }
+        )
+    with pytest.raises(ValidationError, match="outcome and completion must appear together"):
+        ReconciliationAttemptRecord.model_validate(
+            {
+                **legacy.model_dump(mode="python"),
+                "schema_version": "1.1",
+                "outcome": ReconciliationOutcome.UNKNOWN,
+            }
+        )
+    with pytest.raises(ValidationError, match="input evidence must appear with its outcome"):
+        ReconciliationAttemptRecord.model_validate(
+            {
+                **legacy.model_dump(mode="python"),
+                "schema_version": "1.1",
+                "completion_evidence_refs": legacy.evidence_refs,
+            }
+        )
+    with pytest.raises(ValidationError, match="Started reconciliation cannot carry"):
+        ReconciliationAttemptRecord.model_validate(
+            {
+                **legacy.model_dump(mode="python"),
+                "schema_version": "1.1",
+                "effect_receipt_ref": _digest("premature-receipt"),
+            }
+        )
+    with pytest.raises(ValidationError, match="must be version one"):
+        ReconciliationAttemptRecord.model_validate(
+            {**current.model_dump(mode="python"), "version": 0}
+        )
+    with pytest.raises(ValidationError, match="completion precedes start"):
+        ReconciliationAttemptRecord.model_validate(
+            {
+                **current.model_dump(mode="python"),
+                "completed_at": current.started_at - timedelta(seconds=1),
+            }
+        )
+    with pytest.raises(ValidationError, match="requires durable evidence"):
+        ReconciliationAttemptRecord.model_validate(
+            {**current.model_dump(mode="python"), "evidence_refs": ()}
+        )
+    with pytest.raises(ValidationError, match="input evidence must be retained"):
+        ReconciliationAttemptRecord.model_validate(
+            {
+                **current.model_dump(mode="python"),
+                "completion_evidence_refs": (_digest("missing-input"),),
+            }
+        )
+    other_ref = _digest("other-completion-input")
+    with pytest.raises(ValidationError, match="operation evidence must belong"):
+        ReconciliationAttemptRecord.model_validate(
+            {
+                **current.model_dump(mode="python"),
+                "evidence_refs": tuple(sorted((operation_ref, other_ref))),
+                "completion_evidence_refs": (other_ref,),
+            }
+        )
+    with pytest.raises(ValidationError, match="Only an unknown reconciliation"):
+        ReconciliationAttemptRecord.model_validate(
+            {
+                **current.model_dump(mode="python"),
+                "outcome": ReconciliationOutcome.PARTIAL_OR_INVALID,
+            }
+        )
+    with pytest.raises(ValidationError, match="No-effect reconciliation"):
+        ReconciliationAttemptRecord.model_validate(
+            {
+                **current.model_dump(mode="python"),
+                "outcome": ReconciliationOutcome.NO_EFFECT,
+                "next_attempt_not_before": None,
+            }
+        )
+    with pytest.raises(ValidationError, match="cannot carry verification or absence"):
+        ReconciliationAttemptRecord.model_validate(
+            {
+                **current.model_dump(mode="python"),
+                "no_effect_evidence_ref": _digest("invalid-absence"),
+            }
+        )
+    with pytest.raises(ValidationError, match="backoff precedes completion"):
+        ReconciliationAttemptRecord.model_validate(
+            {
+                **current.model_dump(mode="python"),
+                "next_attempt_not_before": current.started_at,
+            }
+        )
+
     forged_legacy = legacy.model_dump(mode="python")
     forged_legacy["operation_evidence_ref"] = operation_ref
     with pytest.raises(ValidationError, match="Legacy reconciliation"):
@@ -1113,6 +1598,21 @@ def test_late_recovery_report_schema_versions_preserve_legacy_fingerprint() -> N
     assert current.report_digest == (
         "sha256:22c63e87284cf19e035bc12ef2aefaeca91bd388ae58f621e971cc984cec701d"
     )
+
+    with pytest.raises(ValidationError, match="included in the late report"):
+        LateRecoveryReportRecord.model_validate(
+            {
+                **current.model_dump(mode="python"),
+                "evidence_refs": (_digest("different-evidence"),),
+            }
+        )
+    with pytest.raises(ValidationError, match="digest mismatch"):
+        LateRecoveryReportRecord.model_validate(
+            {
+                **current.model_dump(mode="python"),
+                "report_digest": _digest("forged-late-report"),
+            }
+        )
 
     forged_legacy = legacy.model_dump(mode="python", exclude={"report_digest"})
     forged_legacy["operation_reason_code"] = "RECONCILIATION_QUERY_FAILED"
@@ -1247,6 +1747,70 @@ def test_reconciliation_and_recovery_are_bounded_and_evidence_carrying() -> None
     )
     assert work.permit is None
 
+    pending_payload = work.model_dump(mode="python")
+    with pytest.raises(ValidationError, match="update precedes creation"):
+        RecoveryWorkRecord.model_validate(
+            {**pending_payload, "updated_at": work.created_at - timedelta(seconds=1)}
+        )
+    with pytest.raises(ValidationError, match="must appear together"):
+        RecoveryWorkRecord.model_validate(
+            {**pending_payload, "reason_code": "EVIDENCE_UNAVAILABLE:ARTIFACT_STORE"}
+        )
+    unavailable_ref = _digest("unavailable-recovery-record")
+    with pytest.raises(ValidationError, match="typed, terminal, and outside"):
+        RecoveryWorkRecord.model_validate(
+            {
+                **pending_payload,
+                "reason_code": "EVIDENCE_UNAVAILABLE:ARTIFACT_STORE",
+                "unavailable_record_digest": unavailable_ref,
+            }
+        )
+    with pytest.raises(ValidationError, match="created before its deadline"):
+        RecoveryWorkRecord.model_validate(
+            {
+                **pending_payload,
+                "created_at": work.deadline,
+                "updated_at": work.deadline,
+            }
+        )
+    with pytest.raises(ValidationError, match="within its retry window"):
+        RecoveryWorkRecord.model_validate(
+            {**pending_payload, "not_before": work.created_at + timedelta(seconds=1)}
+        )
+    with pytest.raises(ValidationError, match="exceeds its durable attempt bound"):
+        RecoveryWorkRecord.model_validate({**pending_payload, "recovery_ordinal": 4})
+    with pytest.raises(ValidationError, match="establish its own lineage root"):
+        RecoveryWorkRecord.model_validate({**pending_payload, "root_recovery_id": "recovery:other"})
+    with pytest.raises(ValidationError, match="distinct predecessor and root"):
+        RecoveryWorkRecord.model_validate({**pending_payload, "recovery_ordinal": 2})
+    with pytest.raises(ValidationError, match="approval ID does not match"):
+        RecoveryWorkRecord.model_validate({**pending_payload, "approval_required": True})
+    with pytest.raises(ValidationError, match="digest and version must appear together"):
+        RecoveryWorkRecord.model_validate({**pending_payload, "reservation_version": None})
+    with pytest.raises(ValidationError, match="execution bindings must be all present"):
+        RecoveryWorkRecord.model_validate({**pending_payload, "lease_id": "lease:partial"})
+    with pytest.raises(ValidationError, match="must be unclaimed version zero"):
+        RecoveryWorkRecord.model_validate({**pending_payload, "version": 1})
+    with pytest.raises(ValidationError, match="requires a worker permit"):
+        RecoveryWorkRecord.model_validate(
+            {
+                **pending_payload,
+                "state": RecoveryWorkState.RUNNING,
+                "version": 1,
+                "attempt": 1,
+            }
+        )
+    with pytest.raises(ValidationError, match="Odd recovery reservation version"):
+        RecoveryWorkRecord.model_validate(
+            {
+                **pending_payload,
+                "state": RecoveryWorkState.REVIEW_REQUIRED,
+                "reservation_version": 1,
+                "reason_code": "RECOVERY_AUTHORIZATION_DENIED",
+                "evidence_refs": (_digest("denial"),),
+            }
+        )
+
     same_transaction = work.model_dump(mode="python")
     same_transaction["recovery_action_transaction_id"] = work.transaction_id
     with pytest.raises(ValidationError, match="separate normalized transaction"):
@@ -1287,6 +1851,65 @@ def test_reconciliation_and_recovery_are_bounded_and_evidence_carrying() -> None
         }
     )
     assert running.permit is not None
+
+    with pytest.raises(ValidationError, match="Pending recovery work cannot carry"):
+        RecoveryWorkRecord.model_validate(
+            {
+                **running.model_dump(mode="python"),
+                "state": RecoveryWorkState.PENDING,
+                "version": 0,
+                "attempt": 0,
+                "updated_at": running.created_at,
+            }
+        )
+    with pytest.raises(ValidationError, match="cannot predate its work item"):
+        RecoveryWorkRecord.model_validate(
+            {
+                **running.model_dump(mode="python"),
+                "created_at": running.created_at + timedelta(seconds=1),
+                "updated_at": running.updated_at + timedelta(seconds=1),
+            }
+        )
+    with pytest.raises(ValidationError, match="artifact ref is inconsistent"):
+        RecoveryWorkRecord.model_validate(
+            {**running.model_dump(mode="python"), "permit_ref": _digest("forged-permit-ref")}
+        )
+    with pytest.raises(ValidationError, match="Successful recovery requires"):
+        RecoveryWorkRecord.model_validate(
+            {
+                **running.model_dump(mode="python"),
+                "state": RecoveryWorkState.SUCCEEDED,
+                "version": 2,
+            }
+        )
+    with pytest.raises(ValidationError, match="Successful recovery must advance"):
+        RecoveryWorkRecord.model_validate(
+            {
+                **running.model_dump(mode="python"),
+                "state": RecoveryWorkState.SUCCEEDED,
+                "evidence_refs": (_digest("completion"),),
+            }
+        )
+    with pytest.raises(ValidationError, match="Closed recovery work requires"):
+        RecoveryWorkRecord.model_validate({**pending_payload, "state": RecoveryWorkState.FAILED})
+    with pytest.raises(ValidationError, match="Executed recovery failure must advance"):
+        RecoveryWorkRecord.model_validate(
+            {
+                **running.model_dump(mode="python"),
+                "state": RecoveryWorkState.FAILED,
+                "reason_code": "RECOVERY_EFFECT_FAILED",
+                "evidence_refs": (_digest("failure"),),
+            }
+        )
+    with pytest.raises(ValidationError, match="Scheduled recovery retry must retain"):
+        RecoveryWorkRecord.model_validate(
+            {
+                **pending_payload,
+                "state": RecoveryWorkState.RETRY_SCHEDULED,
+                "reason_code": "RECOVERY_RETRY",
+                "evidence_refs": (_digest("retry"),),
+            }
+        )
 
     unadvanced_running = running.model_dump(mode="python")
     unadvanced_running["version"] = 0
