@@ -22,6 +22,12 @@ from pydantic import BaseModel
 
 from agentkernel import __version__
 from agentkernel.adapters.base import NormalizerManifest
+from agentkernel.api import (
+    CreateTransactionRequest,
+    DispatchReconciliationRequest,
+    RecoveryScanRequest,
+    TransactionStatusQuery,
+)
 from agentkernel.authority import (
     AuthorityEvaluationContext,
     AuthoritySnapshot,
@@ -102,6 +108,10 @@ from agentkernel.transactions.contracts import (
 )
 
 SCHEMA_MODELS: tuple[type[BaseModel], ...] = (
+    CreateTransactionRequest,
+    TransactionStatusQuery,
+    RecoveryScanRequest,
+    DispatchReconciliationRequest,
     GoalRecord,
     ActionProposal,
     AuthenticatedActionContext,

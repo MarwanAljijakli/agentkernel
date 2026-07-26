@@ -26,6 +26,13 @@ from agentkernel.adapters.base import (
 )
 from agentkernel.adapters.mock import MockReversibleAdapter, VersionedMemoryTarget
 from agentkernel.adapters.registry import AdapterRegistry
+from agentkernel.api import (
+    CreateTransactionRequest,
+    DispatchReconciliationRequest,
+    InProcessKernelAPI,
+    RecoveryScanRequest,
+    TransactionStatusQuery,
+)
 from agentkernel.authority import (
     AuthorityEvaluationContext,
     AuthoritySnapshot,
@@ -1055,6 +1062,133 @@ def _kill_process_after_durable_dispatch(root: str) -> None:
 
     asyncio.run(execute())
     os._exit(_PROCESS_CRASH_EXIT_CODE + 1)
+
+
+@pytest.mark.asyncio
+async def test_kernel_api_preserves_explicit_commit_duplicate_idempotency_and_tenant_scope(
+    tmp_path: Path,
+) -> None:
+    harness = _make_harness(tmp_path)
+    api = InProcessKernelAPI(harness.coordinator)
+    request = CreateTransactionRequest(transaction=harness.request)
+    try:
+        created = await api.transaction(request)
+        assert isinstance(created, EnforcedTransactionSession)
+        async with created:
+            assert harness.target.state == {"before": "kept"}
+            committed = await created.commit()
+
+        assert committed.state is TransactionState.COMMITTED
+        assert harness.target.state == {"before": "kept", "answer": "42"}
+        assert harness.target.version == 1
+        assert len(harness.target.dispatches) == 1
+
+        duplicate = await api.transaction(request)
+        assert isinstance(duplicate, EnforcedTransactionStatus)
+        assert duplicate.record == committed
+        assert harness.target.version == 1
+        assert len(harness.target.dispatches) == 1
+
+        status = api.status(
+            TransactionStatusQuery(
+                tenant_id=committed.tenant_id,
+                transaction_id=committed.transaction_id,
+            )
+        )
+        assert status.record == committed
+        with pytest.raises(AgentKernelError) as wrong_tenant:
+            api.status(
+                TransactionStatusQuery(
+                    tenant_id="tenant:not-the-owner",
+                    transaction_id=committed.transaction_id,
+                )
+            )
+        assert wrong_tenant.value.code is ErrorCode.VALIDATION_ERROR
+    finally:
+        harness.store.close()
+
+
+@pytest.mark.asyncio
+async def test_kernel_api_context_exit_aborts_without_authoritative_effect(
+    tmp_path: Path,
+) -> None:
+    harness = _make_harness(tmp_path)
+    api = InProcessKernelAPI(harness.coordinator)
+    try:
+        created = await api.transaction(CreateTransactionRequest(transaction=harness.request))
+        assert isinstance(created, EnforcedTransactionSession)
+        async with created:
+            assert created.record.state is TransactionState.READY_TO_COMMIT
+
+        assert created.record.state is TransactionState.ABORTED
+        assert harness.target.state == {"before": "kept"}
+        assert harness.target.version == 0
+        assert harness.target.dispatches == {}
+    finally:
+        harness.store.close()
+
+
+@pytest.mark.asyncio
+async def test_kernel_api_recover_once_resumes_tenant_aborting_work(tmp_path: Path) -> None:
+    harness = _make_harness(
+        tmp_path,
+        crash_point=CoordinatorCrashPoint.AFTER_ABORTING,
+    )
+    try:
+        api = InProcessKernelAPI(harness.coordinator)
+        created = await api.transaction(CreateTransactionRequest(transaction=harness.request))
+        assert isinstance(created, EnforcedTransactionSession)
+        with pytest.raises(CoordinatorInjectedCrash):
+            async with created:
+                pass
+        assert created.record.state is TransactionState.ABORTING
+
+        harness.clock.advance(timedelta(minutes=1, microseconds=1))
+        recovery_api = InProcessKernelAPI(_restart_coordinator(harness))
+        recovered = await recovery_api.recover_once(
+            RecoveryScanRequest(tenant_id=created.record.tenant_id, limit=1)
+        )
+
+        assert recovered.processed == 1
+        assert not recovered.failures
+        assert recovered.statuses[0].record.state is TransactionState.ABORTED
+        assert harness.target.state == {"before": "kept"}
+        assert harness.target.dispatches == {}
+    finally:
+        harness.store.close()
+
+
+@pytest.mark.asyncio
+async def test_kernel_api_explicit_reconciliation_never_redispatches_original_intent(
+    tmp_path: Path,
+) -> None:
+    harness = _make_harness(tmp_path, adapter_type=_TimeoutAfterDurableEffectAdapter)
+    adapter = harness.adapter
+    assert isinstance(adapter, _TimeoutAfterDurableEffectAdapter)
+    try:
+        api = InProcessKernelAPI(harness.coordinator)
+        created = await api.transaction(CreateTransactionRequest(transaction=harness.request))
+        assert isinstance(created, EnforcedTransactionSession)
+        with pytest.raises(TimeoutError):
+            async with created:
+                await created.commit()
+        assert created.record.state is TransactionState.IN_DOUBT
+
+        recovery_api = InProcessKernelAPI(_restart_coordinator(harness))
+        reconciled = await recovery_api.resume_dispatch_reconciliation(
+            DispatchReconciliationRequest(
+                tenant_id=created.record.tenant_id,
+                transaction_id=created.record.transaction_id,
+            )
+        )
+
+        assert reconciled.record.state is TransactionState.COMMITTED
+        assert adapter.commit_calls == 1
+        assert adapter.reconcile_calls == 1
+        assert harness.target.version == 1
+        assert len(harness.target.dispatches) == 1
+    finally:
+        harness.store.close()
 
 
 @pytest.mark.asyncio

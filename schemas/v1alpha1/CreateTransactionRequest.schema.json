@@ -1,0 +1,330 @@
+{
+  "$defs": {
+    "ActionProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Adapter",
+          "type": "string"
+        },
+        "adapter_version": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Adapter Version",
+          "type": "string"
+        },
+        "agent_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "api_version": {
+          "const": "agentkernel.io/v1alpha1",
+          "default": "agentkernel.io/v1alpha1",
+          "title": "Api Version",
+          "type": "string"
+        },
+        "arguments": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "maxProperties": 4096,
+          "title": "Arguments",
+          "type": "object"
+        },
+        "capability_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Capability Refs",
+          "type": "array"
+        },
+        "deadline": {
+          "format": "date-time",
+          "title": "Deadline",
+          "type": "string"
+        },
+        "goal_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Goal Id",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Idempotency Key"
+        },
+        "operation": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Operation",
+          "type": "string"
+        },
+        "provenance_ids": {
+          "default": [],
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Provenance Ids",
+          "type": "array"
+        },
+        "transaction_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Transaction Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "goal_id",
+        "transaction_id",
+        "agent_id",
+        "adapter",
+        "adapter_version",
+        "operation",
+        "arguments",
+        "deadline"
+      ],
+      "title": "ActionProposal",
+      "type": "object"
+    },
+    "AuthenticatedActionContext": {
+      "additionalProperties": false,
+      "description": "Identity and deployment facts authenticated outside untrusted proposal data.",
+      "properties": {
+        "actor_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "agent_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "api_version": {
+          "const": "agentkernel.io/v1alpha1",
+          "default": "agentkernel.io/v1alpha1",
+          "title": "Api Version",
+          "type": "string"
+        },
+        "configuration_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Configuration Digest",
+          "type": "string"
+        },
+        "goal_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Goal Id",
+          "type": "string"
+        },
+        "on_behalf_of": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "On Behalf Of",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "run_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "tenant_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "trace_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Trace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "principal_id",
+        "goal_id",
+        "run_id",
+        "trace_id",
+        "actor_id",
+        "on_behalf_of",
+        "agent_id",
+        "configuration_digest"
+      ],
+      "title": "AuthenticatedActionContext",
+      "type": "object"
+    },
+    "EnforcedTransactionRequest": {
+      "additionalProperties": false,
+      "description": "Untrusted proposal plus authentication material awaiting explicit validation.\n\n``presented_context`` is transport evidence only.  The coordinator registers solely the\ncontext returned by :class:`AuthenticatedContextValidator`.",
+      "properties": {
+        "authentication_evidence_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Authentication Evidence Ref",
+          "type": "string"
+        },
+        "presented_context": {
+          "$ref": "#/$defs/AuthenticatedActionContext"
+        },
+        "proposal": {
+          "$ref": "#/$defs/ActionProposal"
+        },
+        "provenance_records": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceRecord"
+          },
+          "maxItems": 256,
+          "title": "Provenance Records",
+          "type": "array"
+        }
+      },
+      "required": [
+        "proposal",
+        "presented_context",
+        "authentication_evidence_ref"
+      ],
+      "title": "EnforcedTransactionRequest",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "ProvenanceRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "acquisition_step": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Acquisition Step",
+          "type": "string"
+        },
+        "api_version": {
+          "const": "agentkernel.io/v1alpha1",
+          "default": "agentkernel.io/v1alpha1",
+          "title": "Api Version",
+          "type": "string"
+        },
+        "data_classes": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Data Classes",
+          "type": "array"
+        },
+        "integrity_ref": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Integrity Ref"
+        },
+        "parent_ids": {
+          "default": [],
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Parent Ids",
+          "type": "array"
+        },
+        "provenance_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+          "title": "Provenance Id",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "transformations": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Transformations",
+          "type": "array"
+        },
+        "trust": {
+          "$ref": "#/$defs/ProvenanceTrust"
+        }
+      },
+      "required": [
+        "provenance_id",
+        "source",
+        "acquisition_step",
+        "trust"
+      ],
+      "title": "ProvenanceRecord",
+      "type": "object"
+    },
+    "ProvenanceTrust": {
+      "enum": [
+        "trusted_control",
+        "authorized_user",
+        "project_data",
+        "external_untrusted",
+        "model_generated",
+        "unknown"
+      ],
+      "title": "ProvenanceTrust",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Request admission through the configured enforced transaction coordinator.",
+  "properties": {
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "transaction": {
+      "$ref": "#/$defs/EnforcedTransactionRequest"
+    }
+  },
+  "required": [
+    "transaction"
+  ],
+  "title": "CreateTransactionRequest",
+  "type": "object"
+}

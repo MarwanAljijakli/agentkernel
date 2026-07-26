@@ -32,12 +32,24 @@ _LAZY_ENFORCED_EXPORTS = frozenset(
         "ValidatedAuthenticatedContext",
     }
 )
+_LAZY_API_EXPORTS = frozenset(
+    {
+        "CreateTransactionRequest",
+        "DispatchReconciliationRequest",
+        "InProcessKernelAPI",
+        "KernelAPI",
+        "RecoveryScanRequest",
+        "TransactionStatusQuery",
+    }
+)
 
 
 def __getattr__(name: str) -> Any:
-    if name not in _LAZY_ENFORCED_EXPORTS:
-        raise AttributeError(name)
-    return getattr(import_module("agentkernel.transactions.enforced"), name)
+    if name in _LAZY_ENFORCED_EXPORTS:
+        return getattr(import_module("agentkernel.transactions.enforced"), name)
+    if name in _LAZY_API_EXPORTS:
+        return getattr(import_module("agentkernel.api"), name)
+    raise AttributeError(name)
 
 
 try:
@@ -49,17 +61,23 @@ __all__ = [
     "ActionProposal",
     "CapabilityGrant",
     "CoordinatorCrashPoint",
+    "CreateTransactionRequest",
     "DispatchEvidenceUnavailableRecord",
+    "DispatchReconciliationRequest",
     "EnforcedCoordinatorConfig",
     "EnforcedTransactionCoordinator",
     "EnforcedTransactionRequest",
     "EnforcedTransactionStatus",
     "GoalRecord",
+    "InProcessKernelAPI",
+    "KernelAPI",
     "PolicyBundle",
     "RecoveryEvidenceUnavailableRecord",
     "RecoveryFailureKind",
     "RecoveryRunResult",
+    "RecoveryScanRequest",
     "TransactionRecord",
+    "TransactionStatusQuery",
     "ValidatedAuthenticatedContext",
     "__version__",
 ]
