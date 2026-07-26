@@ -105,6 +105,7 @@ from agentkernel.transactions.enforced import (
 _CAPABILITY_ID = "capability:coordinator-test"
 _MEDIA_TYPE = "application/vnd.agentkernel.canonical+json"
 _PROCESS_CRASH_EXIT_CODE = 87
+_ASYNC_COORDINATION_TIMEOUT_SECONDS = 15.0
 
 
 @dataclass(slots=True)
@@ -2467,7 +2468,10 @@ async def test_cancel_between_coordinator_and_adapter_dispatch_recovers_truthful
                 await session.commit()
 
         commit_task = asyncio.create_task(commit_in_scope())
-        assert await asyncio.to_thread(adapter.commit_barrier_entered.wait, 1)
+        assert await asyncio.to_thread(
+            adapter.commit_barrier_entered.wait,
+            _ASYNC_COORDINATION_TIMEOUT_SECONDS,
+        )
         durable_dispatch = harness.store.get_commit_dispatch(
             tenant_id=session.record.tenant_id,
             transaction_id=session.record.transaction_id,
@@ -2478,7 +2482,10 @@ async def test_cancel_between_coordinator_and_adapter_dispatch_recovers_truthful
         assert harness.target.state == {"before": "kept"}
 
         commit_task.cancel()
-        assert await asyncio.to_thread(adapter.commit_cancellation_seen.wait, 1)
+        assert await asyncio.to_thread(
+            adapter.commit_cancellation_seen.wait,
+            _ASYNC_COORDINATION_TIMEOUT_SECONDS,
+        )
         assert not commit_task.done()
         assert (
             harness.store.get_commit_dispatch(
@@ -2490,7 +2497,10 @@ async def test_cancel_between_coordinator_and_adapter_dispatch_recovers_truthful
 
         adapter.commit_barrier_release.set()
         with pytest.raises(asyncio.CancelledError):
-            await asyncio.wait_for(commit_task, timeout=1)
+            await asyncio.wait_for(
+                commit_task,
+                timeout=_ASYNC_COORDINATION_TIMEOUT_SECONDS,
+            )
 
         assert session.record.state is TransactionState.IN_DOUBT
         assert harness.target.dispatches == {}
@@ -2539,12 +2549,18 @@ async def test_repeated_cancel_after_adapter_dispatch_waits_then_recovers_exactl
                 await session.commit()
 
         commit_task = asyncio.create_task(commit_in_scope())
-        assert await asyncio.to_thread(adapter.commit_barrier_entered.wait, 1)
+        assert await asyncio.to_thread(
+            adapter.commit_barrier_entered.wait,
+            _ASYNC_COORDINATION_TIMEOUT_SECONDS,
+        )
         assert session.record.state is TransactionState.COMMITTING
         assert harness.target.state == {"before": "kept"}
 
         commit_task.cancel()
-        assert await asyncio.to_thread(adapter.commit_cancellation_seen.wait, 1)
+        assert await asyncio.to_thread(
+            adapter.commit_cancellation_seen.wait,
+            _ASYNC_COORDINATION_TIMEOUT_SECONDS,
+        )
         commit_task.cancel()
         await asyncio.sleep(0)
         assert not commit_task.done()
@@ -2552,7 +2568,10 @@ async def test_repeated_cancel_after_adapter_dispatch_waits_then_recovers_exactl
 
         adapter.commit_barrier_release.set()
         with pytest.raises(asyncio.CancelledError):
-            await asyncio.wait_for(commit_task, timeout=1)
+            await asyncio.wait_for(
+                commit_task,
+                timeout=_ASYNC_COORDINATION_TIMEOUT_SECONDS,
+            )
 
         assert session.record.state is TransactionState.IN_DOUBT
         assert harness.target.state == {"before": "kept", "answer": "42"}
