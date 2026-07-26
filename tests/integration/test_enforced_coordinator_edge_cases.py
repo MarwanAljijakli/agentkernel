@@ -48,6 +48,7 @@ from agentkernel.domain.models import (
     RecoveryActionBinding,
 )
 from agentkernel.errors import AgentKernelError, ErrorCode
+from agentkernel.evidence.artifacts import LocalArtifactStore
 from agentkernel.normalization.mock import MockSetValuesNormalizer
 from agentkernel.normalization.registry import NormalizerRegistry
 from agentkernel.policy import (
@@ -140,6 +141,18 @@ def _worker_lease_snapshot(
 
 def _artifact_file_snapshot(root: Path) -> tuple[str, ...]:
     return tuple(sorted(str(path.relative_to(root)) for path in root.rglob("*") if path.is_file()))
+
+
+def _restore_private_artifact(
+    store: LocalArtifactStore,
+    path: Path,
+    content: bytes,
+) -> None:
+    """Restore a damaged test blob through the production private-file boundary."""
+
+    path.unlink(missing_ok=True)
+    restored = store.put(content)
+    assert support._artifact_path(store.root, restored.digest) == path
 
 
 def _rewrite_test_intent_head_evidence(
@@ -4544,7 +4557,7 @@ async def test_recovery_status_degrades_only_for_exact_unavailable_record_token(
                 == projection
             )
         finally:
-            damaged_path.write_bytes(original)
+            _restore_private_artifact(harness.artifacts, damaged_path, original)
 
         exact_token: dict[str, object] = {
             "kind": "recovery",
@@ -5781,7 +5794,7 @@ async def test_expired_unstarted_reconciliation_quiesces_when_artifacts_are_unav
                 )
             assert corrupt.value.code is ErrorCode.INTEGRITY_ERROR
         finally:
-            artifact_path.write_bytes(artifact_content)
+            _restore_private_artifact(harness.artifacts, artifact_path, artifact_content)
 
         for mutation in ("untyped", "open"):
             malformed_coordinator = _clone_coordinator(
@@ -6657,7 +6670,7 @@ async def test_terminal_reconciliation_follow_on_revalidates_operation_evidence(
             assert recovery_actions.create_calls == 0
             assert adapter.rollback_calls == adapter.abort_stage_calls == 0
         finally:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
 
         converged = await recovered.recover_once(intermediate.tenant_id)
         assert converged.scanned == converged.processed == 1
@@ -6893,7 +6906,7 @@ async def test_terminal_reconciliation_follow_on_revalidates_full_generation_clo
             assert recovery_actions.create_calls == adapter.reconcile_calls == 1
             assert adapter.rollback_calls == adapter.abort_stage_calls == 0
         finally:
-            damaged_path.write_bytes(original_artifact)
+            _restore_private_artifact(harness.artifacts, damaged_path, original_artifact)
             damaged_path = None
             original_artifact = None
 
@@ -6923,7 +6936,7 @@ async def test_terminal_reconciliation_follow_on_revalidates_full_generation_clo
         assert recovery_actions.create_calls == 2
     finally:
         if damaged_path is not None and original_artifact is not None:
-            damaged_path.write_bytes(original_artifact)
+            _restore_private_artifact(harness.artifacts, damaged_path, original_artifact)
         harness.store.close()
 
 
@@ -7121,7 +7134,7 @@ async def test_immediate_reconciliation_follow_on_revalidates_historical_attempt
             assert recovery_actions.create_calls == baseline_factory_calls == 1
             assert adapter.rollback_calls == adapter.abort_stage_calls == 0
         finally:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
 
         converged = await coordinator.recover_once(running.tenant_id)
         assert converged.scanned == converged.processed == 1
@@ -7384,7 +7397,7 @@ async def test_terminal_reconciliation_follow_on_revalidates_every_completed_att
             assert adapter.reconcile_calls == 1
             assert adapter.rollback_calls == adapter.abort_stage_calls == 0
         finally:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
 
         converged = await recovered.recover_once(intermediate.tenant_id)
         assert converged.scanned == converged.processed == 1
@@ -7514,7 +7527,7 @@ async def test_terminal_reconciliation_follow_on_revalidates_retried_work_genera
             assert adapter.reconcile_calls == recovery_actions.create_calls == 2
             assert adapter.rollback_calls == 0
         finally:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
 
         converged = await recovered.recover_once(failed.tenant_id)
         assert converged.scanned == converged.processed == 1
@@ -7682,7 +7695,7 @@ async def test_immediate_reconciliation_follow_on_revalidates_retried_generation
             assert adapter.reconcile_calls == 2
             assert adapter.rollback_calls == adapter.abort_stage_calls == 0
         finally:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
 
         converged = await recovery.recover_once(first_work.tenant_id)
         assert converged.scanned == converged.processed == 1
@@ -7815,7 +7828,7 @@ async def test_reconciliation_successor_authorization_revalidates_prior_evidence
             assert adapter.reconcile_calls == 1
             assert adapter.rollback_calls == adapter.abort_stage_calls == 0
         finally:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
 
         converged = await recovery.recover_once(scheduled.tenant_id)
         assert converged.scanned == converged.processed == 1
@@ -7949,7 +7962,7 @@ async def test_authorized_reconciliation_successor_revalidates_prior_evidence_be
             assert adapter.reconcile_calls == 1
             assert adapter.rollback_calls == adapter.abort_stage_calls == 0
         finally:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
 
         converged = await restarted.recover_once(scheduled.tenant_id)
         assert converged.scanned == converged.processed == 1
@@ -8110,7 +8123,7 @@ async def test_live_running_reconciliation_successor_evidence_failure_is_read_on
         assert recovery_actions.create_calls == adapter.reconcile_calls == 2
         assert baseline_artifacts != damaged_artifacts or artifact_damage == "corrupt"
 
-        operation_path.write_bytes(original_operation)
+        _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         original_operation = None
         adapter.second_reconcile_release.set()
         completed = await asyncio.wait_for(live_task, timeout=5)
@@ -8122,7 +8135,7 @@ async def test_live_running_reconciliation_successor_evidence_failure_is_read_on
         assert not repeated.failures
     finally:
         if operation_path is not None and original_operation is not None:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         adapter.second_reconcile_release.set()
         if live_task is not None:
             await asyncio.gather(live_task, return_exceptions=True)
@@ -8279,7 +8292,7 @@ async def test_successor_authorization_revalidates_after_handoff_lease_acquisiti
         assert recovery_actions.create_calls == adapter.reconcile_calls == 1
         assert adapter.rollback_calls == adapter.abort_stage_calls == 0
 
-        operation_path.write_bytes(original_operation)
+        _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         original_operation = None
         harness.store.close()
         reopened_store, restarted = support._reopen_coordinator(harness, database_path)
@@ -8314,7 +8327,7 @@ async def test_successor_authorization_revalidates_after_handoff_lease_acquisiti
         assert not repeated.failures
     finally:
         if operation_path is not None and original_operation is not None:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         harness.store.close()
 
 
@@ -8477,7 +8490,7 @@ async def test_discard_authorization_revalidates_after_handoff_lease_acquisition
         assert recovery_actions.create_calls == adapter.reconcile_calls == 1
         assert adapter.abort_stage_calls == 0
 
-        operation_path.write_bytes(original_operation)
+        _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         original_operation = None
         if expire_before_resume:
             harness.clock.advance(open_discard.binding.absolute_deadline - harness.clock())
@@ -8574,7 +8587,7 @@ async def test_discard_authorization_revalidates_after_handoff_lease_acquisition
         assert adapter.abort_stage_calls == 1
     finally:
         if operation_path is not None and original_operation is not None:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         harness.store.close()
 
 
@@ -8750,7 +8763,7 @@ async def test_failed_follow_on_revalidates_after_handoff_lease_acquisition(
         else:
             assert adapter.compensation_calls == 0
 
-        operation_path.write_bytes(original_operation)
+        _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         original_operation = None
         assert (
             harness.store.count_recovery_candidates(
@@ -8834,7 +8847,7 @@ async def test_failed_follow_on_revalidates_after_handoff_lease_acquisition(
             assert adapter.compensation_calls == 1
     finally:
         if operation_path is not None and original_operation is not None:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         harness.store.close()
 
 
@@ -9245,7 +9258,7 @@ async def test_concurrent_scanners_after_terminal_reconciliation_create_one_foll
         with pytest.raises(AgentKernelError) as paused_outage:
             await paused.recover_once(failed.tenant_id)
         assert paused_outage.value.code is ErrorCode.EVIDENCE_UNAVAILABLE
-        operation_path.write_bytes(operation_evidence)
+        _restore_private_artifact(harness.artifacts, operation_path, operation_evidence)
         monkeypatch.setattr(
             harness.store,
             "acquire_recovery_authorization_lease",
@@ -9728,7 +9741,7 @@ async def test_scheduled_reconciliation_expiry_revalidates_prior_operation_befor
         assert _artifact_file_snapshot(harness.artifacts.root) == baseline_artifacts
         assert recovery_actions.create_calls == adapter.reconcile_calls == 1
 
-        operation_path.write_bytes(original_operation)
+        _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         original_operation = None
         expired = await restarted.recover_once(scheduled.tenant_id)
         assert expired.scanned == expired.processed == 1
@@ -9747,7 +9760,7 @@ async def test_scheduled_reconciliation_expiry_revalidates_prior_operation_befor
         assert not repeated.failures
     finally:
         if operation_path is not None and original_operation is not None:
-            operation_path.write_bytes(original_operation)
+            _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         harness.store.close()
 
 
