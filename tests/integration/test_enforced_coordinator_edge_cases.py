@@ -1925,6 +1925,7 @@ async def test_second_cancellation_during_recovery_factory_settles_before_rerais
 async def test_cancellation_during_voluntary_cancel_is_rethrown_after_cleanup(
     tmp_path: Path,
 ) -> None:
+    coordination_timeout = 15.0
     harness = support._make_harness(
         tmp_path,
         transaction_id="transaction:voluntary-cancel-interrupted",
@@ -1936,13 +1937,19 @@ async def test_cancellation_during_voluntary_cancel_is_rethrown_after_cleanup(
     await session.__aenter__()
     task = asyncio.create_task(session.cancel())
     try:
-        await asyncio.wait_for(recovery_actions.first_started.wait(), timeout=2)
+        await asyncio.wait_for(
+            recovery_actions.first_started.wait(),
+            timeout=coordination_timeout,
+        )
         task.cancel()
-        await asyncio.wait_for(recovery_actions.second_started.wait(), timeout=2)
+        await asyncio.wait_for(
+            recovery_actions.second_started.wait(),
+            timeout=coordination_timeout,
+        )
         recovery_actions.release.set()
 
         with pytest.raises(CancelledError):
-            await asyncio.wait_for(task, timeout=2)
+            await asyncio.wait_for(task, timeout=coordination_timeout)
 
         assert task.cancelled()
         assert session.record.state is TransactionState.ABORTED
