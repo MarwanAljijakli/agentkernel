@@ -447,6 +447,23 @@ async def test_node_boundary_is_exact_without_crossing_container_limits() -> Non
 
 @pytest.mark.asyncio
 async def test_single_and_aggregate_scalar_boundaries_are_exact() -> None:
+    async def read_boundary(
+        body: bytes,
+    ) -> tuple[
+        BoundedAuthorityInputSuccessV8 | BoundedAuthorityInputFailureV8,
+        InProcessAuthorityInputSourceV8,
+    ]:
+        now = datetime(2030, 1, 1, tzinfo=UTC)
+        source = InProcessAuthorityInputSourceV8(body=body)
+        result = await read_bounded_authority_input_v8(
+            source,
+            transport_encoding=TransportEncodingV8.IDENTITY,
+            operation_deadline=now + timedelta(days=1),
+            clock=_FixedClock(now),
+            cancellation_token=_ManualToken(),
+        )
+        return result, source
+
     scalar_at_limit = b'{"x":"' + (b"a" * AUTHORITY_INPUT_MAX_SCALAR_BYTES_V8) + b'"}'
     scalar_over_limit = scalar_at_limit[:-2] + b'a"}'
 
@@ -461,10 +478,10 @@ async def test_single_and_aggregate_scalar_boundaries_are_exact() -> None:
     )
     aggregate_over_limit = aggregate_at_limit[:-2] + b'x"}'
 
-    scalar_result, _source = await _read(scalar_at_limit)
-    scalar_failure, _source = await _read(scalar_over_limit)
-    aggregate_result, _source = await _read(aggregate_at_limit)
-    aggregate_failure, _source = await _read(aggregate_over_limit)
+    scalar_result, scalar_source = await read_boundary(scalar_at_limit)
+    scalar_failure, scalar_failure_source = await read_boundary(scalar_over_limit)
+    aggregate_result, aggregate_source = await read_boundary(aggregate_at_limit)
+    aggregate_failure, aggregate_failure_source = await read_boundary(aggregate_over_limit)
 
     assert type(scalar_result) is BoundedAuthorityInputSuccessV8
     assert scalar_result.document.maximum_decoded_string_bytes == (
@@ -495,6 +512,14 @@ async def test_single_and_aggregate_scalar_boundaries_are_exact() -> None:
         aggregate_failure.termination.reason
         is AuthorityInputTerminationReasonV8.AGGREGATE_SCALAR_LIMIT_EXCEEDED
     )
+    assert scalar_source.finish_count == 1
+    assert scalar_source.reusable is True
+    assert scalar_failure_source.finish_count == 1
+    assert scalar_failure_source.reusable is False
+    assert aggregate_source.finish_count == 1
+    assert aggregate_source.reusable is True
+    assert aggregate_failure_source.finish_count == 1
+    assert aggregate_failure_source.reusable is False
 
 
 @pytest.mark.asyncio
