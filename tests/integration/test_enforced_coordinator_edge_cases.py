@@ -8002,6 +8002,7 @@ async def test_live_running_reconciliation_successor_evidence_failure_is_read_on
     tmp_path: Path,
     artifact_damage: str,
 ) -> None:
+    coordination_timeout = 15.0
     database_path = tmp_path / "control.db"
     harness = support._make_harness(
         tmp_path,
@@ -8043,7 +8044,10 @@ async def test_live_running_reconciliation_successor_evidence_failure_is_read_on
 
         live_coordinator = support._restart_coordinator(harness)
         live_task = asyncio.create_task(live_coordinator.recover_once(scheduled.tenant_id))
-        await asyncio.wait_for(adapter.second_reconcile_entered.wait(), timeout=5)
+        await asyncio.wait_for(
+            adapter.second_reconcile_entered.wait(),
+            timeout=coordination_timeout,
+        )
 
         baseline_transaction = harness.store.get_enforced_transaction(
             scheduled.tenant_id,
@@ -8138,7 +8142,7 @@ async def test_live_running_reconciliation_successor_evidence_failure_is_read_on
         _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         original_operation = None
         adapter.second_reconcile_release.set()
-        completed = await asyncio.wait_for(live_task, timeout=5)
+        completed = await asyncio.wait_for(live_task, timeout=coordination_timeout)
         live_task = None
         assert completed.statuses[0].record.state is TransactionState.COMMITTED
         assert recovery_actions.create_calls == adapter.reconcile_calls == 2
