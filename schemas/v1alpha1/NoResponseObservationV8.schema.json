@@ -1,0 +1,35 @@
+{
+  "$defs": {
+    "AuthorityInputPhaseV8": {
+      "description": "Stable phases at which the bounded authority-input gate may terminate.",
+      "enum": [
+        "BEFORE_RESPONSE",
+        "WIRE_READ",
+        "CONTENT_DECODE",
+        "UTF8_DECODE",
+        "JSON_SCAN",
+        "RESPONSE_FINALIZE"
+      ],
+      "title": "AuthorityInputPhaseV8",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evidence that the gate accepted zero response-body wire bytes.",
+  "properties": {
+    "failure_phase": {
+      "$ref": "#/$defs/AuthorityInputPhaseV8"
+    },
+    "kind": {
+      "const": "NO_RESPONSE",
+      "default": "NO_RESPONSE",
+      "title": "Kind",
+      "type": "string"
+    }
+  },
+  "required": [
+    "failure_phase"
+  ],
+  "title": "NoResponseObservationV8",
+  "type": "object"
+}

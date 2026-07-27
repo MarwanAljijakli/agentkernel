@@ -1,0 +1,68 @@
+{
+  "additionalProperties": false,
+  "description": "The independently digested selection inputs that may be reused across subjects.",
+  "properties": {
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "deployment_profile_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Deployment Profile Digest",
+      "type": "string"
+    },
+    "reuse_profile_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Reuse Profile Digest",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_endpoint_grants": {
+      "items": {
+        "additionalProperties": false,
+        "description": "One explicitly selected endpoint bound to the exact admitted grant content.",
+        "properties": {
+          "capability_id": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "grant_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Grant Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "capability_id",
+          "grant_digest"
+        ],
+        "title": "SelectedEndpointGrantBindingV8",
+        "type": "object"
+      },
+      "maxItems": 256,
+      "title": "Selected Endpoint Grants",
+      "type": "array"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "deployment_profile_digest",
+    "selected_endpoint_grants",
+    "reuse_profile_digest"
+  ],
+  "title": "AuthoritySelectionReuseProfileV8",
+  "type": "object"
+}

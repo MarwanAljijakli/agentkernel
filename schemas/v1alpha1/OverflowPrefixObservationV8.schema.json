@@ -1,0 +1,85 @@
+{
+  "$defs": {
+    "OverflowBoundaryV8": {
+      "description": "The only byte counters that can produce a canonical overflow witness.",
+      "enum": [
+        "UNCOMPRESSED_WIRE",
+        "COMPRESSED_WIRE",
+        "DECOMPRESSED"
+      ],
+      "title": "OverflowBoundaryV8",
+      "type": "string"
+    },
+    "TransportEncodingV8": {
+      "description": "Supported authority-input content encodings.",
+      "enum": [
+        "IDENTITY",
+        "GZIP"
+      ],
+      "title": "TransportEncodingV8",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evidence through the first byte beyond one transport byte boundary.",
+  "properties": {
+    "configured_limit": {
+      "default": 8388608,
+      "maximum": 8388608,
+      "minimum": 8388608,
+      "title": "Configured Limit",
+      "type": "integer"
+    },
+    "exceeded_boundary": {
+      "$ref": "#/$defs/OverflowBoundaryV8"
+    },
+    "first_excess_observed_count": {
+      "default": 8388609,
+      "maximum": 8388609,
+      "minimum": 8388609,
+      "title": "First Excess Observed Count",
+      "type": "integer"
+    },
+    "kind": {
+      "const": "OVERFLOW_PREFIX",
+      "default": "OVERFLOW_PREFIX",
+      "title": "Kind",
+      "type": "string"
+    },
+    "observed_decompressed_prefix_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Observed Decompressed Prefix Digest",
+      "type": "string"
+    },
+    "observed_decompressed_prefix_length": {
+      "maximum": 8388609,
+      "minimum": 0,
+      "title": "Observed Decompressed Prefix Length",
+      "type": "integer"
+    },
+    "observed_wire_prefix_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Observed Wire Prefix Digest",
+      "type": "string"
+    },
+    "observed_wire_prefix_length": {
+      "maximum": 8388609,
+      "minimum": 1,
+      "title": "Observed Wire Prefix Length",
+      "type": "integer"
+    },
+    "transport_encoding": {
+      "$ref": "#/$defs/TransportEncodingV8"
+    }
+  },
+  "required": [
+    "transport_encoding",
+    "observed_wire_prefix_digest",
+    "observed_wire_prefix_length",
+    "observed_decompressed_prefix_digest",
+    "observed_decompressed_prefix_length",
+    "exceeded_boundary"
+  ],
+  "title": "OverflowPrefixObservationV8",
+  "type": "object"
+}

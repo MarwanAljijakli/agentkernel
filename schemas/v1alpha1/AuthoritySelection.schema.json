@@ -1,0 +1,191 @@
+{
+  "additionalProperties": false,
+  "description": "Content identity for the authority endpoints selected for one subject action.",
+  "properties": {
+    "api_version": {
+      "const": "agentkernel.io/v1alpha1",
+      "default": "agentkernel.io/v1alpha1",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "deployment_profile_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Deployment Profile Digest",
+      "type": "string"
+    },
+    "normalized_action_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Normalized Action Digest",
+      "type": "string"
+    },
+    "origin": {
+      "discriminator": {
+        "mapping": {
+          "INGRESS": {
+            "additionalProperties": false,
+            "description": "Ingress selection provenance bound to both persisted request artifacts.",
+            "properties": {
+              "kind": {
+                "const": "INGRESS",
+                "default": "INGRESS",
+                "title": "Kind",
+                "type": "string"
+              },
+              "proposal_artifact_digest": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "title": "Proposal Artifact Digest",
+                "type": "string"
+              },
+              "request_digest": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "title": "Request Digest",
+                "type": "string"
+              }
+            },
+            "required": [
+              "request_digest",
+              "proposal_artifact_digest"
+            ],
+            "title": "IngressAuthoritySelectionOriginV8",
+            "type": "object"
+          },
+          "RECOVERY": {
+            "additionalProperties": false,
+            "description": "Recovery selection provenance bound to the new recovery action binding.",
+            "properties": {
+              "kind": {
+                "const": "RECOVERY",
+                "default": "RECOVERY",
+                "title": "Kind",
+                "type": "string"
+              },
+              "recovery_action_binding_digest": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "title": "Recovery Action Binding Digest",
+                "type": "string"
+              }
+            },
+            "required": [
+              "recovery_action_binding_digest"
+            ],
+            "title": "RecoveryAuthoritySelectionOriginV8",
+            "type": "object"
+          }
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Ingress selection provenance bound to both persisted request artifacts.",
+          "properties": {
+            "kind": {
+              "const": "INGRESS",
+              "default": "INGRESS",
+              "title": "Kind",
+              "type": "string"
+            },
+            "proposal_artifact_digest": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "title": "Proposal Artifact Digest",
+              "type": "string"
+            },
+            "request_digest": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "title": "Request Digest",
+              "type": "string"
+            }
+          },
+          "required": [
+            "request_digest",
+            "proposal_artifact_digest"
+          ],
+          "title": "IngressAuthoritySelectionOriginV8",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Recovery selection provenance bound to the new recovery action binding.",
+          "properties": {
+            "kind": {
+              "const": "RECOVERY",
+              "default": "RECOVERY",
+              "title": "Kind",
+              "type": "string"
+            },
+            "recovery_action_binding_digest": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "title": "Recovery Action Binding Digest",
+              "type": "string"
+            }
+          },
+          "required": [
+            "recovery_action_binding_digest"
+          ],
+          "title": "RecoveryAuthoritySelectionOriginV8",
+          "type": "object"
+        }
+      ],
+      "title": "Origin"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_endpoint_grants": {
+      "items": {
+        "additionalProperties": false,
+        "description": "One explicitly selected endpoint bound to the exact admitted grant content.",
+        "properties": {
+          "capability_id": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "grant_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Grant Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "capability_id",
+          "grant_digest"
+        ],
+        "title": "SelectedEndpointGrantBindingV8",
+        "type": "object"
+      },
+      "maxItems": 256,
+      "title": "Selected Endpoint Grants",
+      "type": "array"
+    },
+    "selection_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Selection Digest",
+      "type": "string"
+    },
+    "subject_transaction_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Subject Transaction Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,255}$",
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "subject_transaction_id",
+    "normalized_action_digest",
+    "deployment_profile_digest",
+    "selected_endpoint_grants",
+    "origin",
+    "selection_digest"
+  ],
+  "title": "AuthoritySelection",
+  "type": "object"
+}

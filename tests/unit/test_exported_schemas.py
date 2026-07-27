@@ -9,6 +9,18 @@ from agentkernel.api import KernelAPI
 from agentkernel.cli import SCHEMA_MODELS, export_schemas
 from pydantic import BaseModel
 
+_G1A_SCHEMA_NAMES = (
+    "SelectedEndpointGrantBindingV8",
+    "IngressAuthoritySelectionOriginV8",
+    "RecoveryAuthoritySelectionOriginV8",
+    "AuthoritySelection",
+    "AuthoritySelectionReuseProfileV8",
+    "NoResponseObservationV8",
+    "CompleteBoundedResponseObservationV8",
+    "IncompleteBoundedResponseObservationV8",
+    "OverflowPrefixObservationV8",
+)
+
 
 def _public_kernel_api_request_models() -> tuple[type[BaseModel], ...]:
     models: list[type[BaseModel]] = []
@@ -45,3 +57,20 @@ def test_committed_schema_matches_model(model: type[BaseModel]) -> None:
     path = Path("schemas/v1alpha1") / f"{model.__name__}.schema.json"
     committed = json.loads(path.read_text(encoding="utf-8"))
     assert committed == model.model_json_schema(mode="validation")
+
+
+def test_g1a_exports_only_its_nine_additive_canonical_model_schemas() -> None:
+    exported_names = tuple(model.__name__ for model in SCHEMA_MODELS)
+
+    assert exported_names[-len(_G1A_SCHEMA_NAMES) :] == _G1A_SCHEMA_NAMES
+    assert not {
+        "AuthorityInputGateResultV8",
+        "AuthorityInputTerminationV8",
+        "BoundedAuthorityInputFailureV8",
+        "BoundedAuthorityInputSuccessV8",
+        "BoundedJsonDocumentV8",
+        "SourceDataV8",
+        "SourceDisconnectedV8",
+        "SourceEofV8",
+        "SourceFramingFailureV8",
+    } & set(exported_names)

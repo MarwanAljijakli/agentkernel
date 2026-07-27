@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "description": "Ingress selection provenance bound to both persisted request artifacts.",
+  "properties": {
+    "kind": {
+      "const": "INGRESS",
+      "default": "INGRESS",
+      "title": "Kind",
+      "type": "string"
+    },
+    "proposal_artifact_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Proposal Artifact Digest",
+      "type": "string"
+    },
+    "request_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Request Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_digest",
+    "proposal_artifact_digest"
+  ],
+  "title": "IngressAuthoritySelectionOriginV8",
+  "type": "object"
+}
