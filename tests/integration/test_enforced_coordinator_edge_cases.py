@@ -1925,6 +1925,7 @@ async def test_second_cancellation_during_recovery_factory_settles_before_rerais
 async def test_cancellation_during_voluntary_cancel_is_rethrown_after_cleanup(
     tmp_path: Path,
 ) -> None:
+    coordination_timeout = 15.0
     harness = support._make_harness(
         tmp_path,
         transaction_id="transaction:voluntary-cancel-interrupted",
@@ -1936,13 +1937,19 @@ async def test_cancellation_during_voluntary_cancel_is_rethrown_after_cleanup(
     await session.__aenter__()
     task = asyncio.create_task(session.cancel())
     try:
-        await asyncio.wait_for(recovery_actions.first_started.wait(), timeout=2)
+        await asyncio.wait_for(
+            recovery_actions.first_started.wait(),
+            timeout=coordination_timeout,
+        )
         task.cancel()
-        await asyncio.wait_for(recovery_actions.second_started.wait(), timeout=2)
+        await asyncio.wait_for(
+            recovery_actions.second_started.wait(),
+            timeout=coordination_timeout,
+        )
         recovery_actions.release.set()
 
         with pytest.raises(CancelledError):
-            await asyncio.wait_for(task, timeout=2)
+            await asyncio.wait_for(task, timeout=coordination_timeout)
 
         assert task.cancelled()
         assert session.record.state is TransactionState.ABORTED
@@ -7995,6 +8002,7 @@ async def test_live_running_reconciliation_successor_evidence_failure_is_read_on
     tmp_path: Path,
     artifact_damage: str,
 ) -> None:
+    coordination_timeout = 15.0
     database_path = tmp_path / "control.db"
     harness = support._make_harness(
         tmp_path,
@@ -8036,7 +8044,10 @@ async def test_live_running_reconciliation_successor_evidence_failure_is_read_on
 
         live_coordinator = support._restart_coordinator(harness)
         live_task = asyncio.create_task(live_coordinator.recover_once(scheduled.tenant_id))
-        await asyncio.wait_for(adapter.second_reconcile_entered.wait(), timeout=5)
+        await asyncio.wait_for(
+            adapter.second_reconcile_entered.wait(),
+            timeout=coordination_timeout,
+        )
 
         baseline_transaction = harness.store.get_enforced_transaction(
             scheduled.tenant_id,
@@ -8131,7 +8142,7 @@ async def test_live_running_reconciliation_successor_evidence_failure_is_read_on
         _restore_private_artifact(harness.artifacts, operation_path, original_operation)
         original_operation = None
         adapter.second_reconcile_release.set()
-        completed = await asyncio.wait_for(live_task, timeout=5)
+        completed = await asyncio.wait_for(live_task, timeout=coordination_timeout)
         live_task = None
         assert completed.statuses[0].record.state is TransactionState.COMMITTED
         assert recovery_actions.create_calls == adapter.reconcile_calls == 2

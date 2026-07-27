@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "AuthorityInputPhaseV8": {
+      "description": "Stable phases at which the bounded authority-input gate may terminate.",
+      "enum": [
+        "BEFORE_RESPONSE",
+        "WIRE_READ",
+        "CONTENT_DECODE",
+        "UTF8_DECODE",
+        "JSON_SCAN",
+        "RESPONSE_FINALIZE"
+      ],
+      "title": "AuthorityInputPhaseV8",
+      "type": "string"
+    },
+    "AuthorityInputTerminationReasonV8": {
+      "description": "Stable, evidence-safe streaming termination identifiers.",
+      "enum": [
+        "DISCONNECTED",
+        "DEADLINE_EXCEEDED",
+        "CANCELLED",
+        "SOURCE_PROTOCOL_VIOLATION",
+        "CONTROL_SIGNAL_FAILURE",
+        "TRANSFER_FRAMING_FAILED",
+        "DECOMPRESSION_FAILED",
+        "TRUNCATED_COMPRESSED_STREAM",
+        "TRAILING_COMPRESSED_DATA",
+        "INVALID_UTF8",
+        "INVALID_JSON",
+        "ROOT_NOT_OBJECT",
+        "DUPLICATE_OBJECT_KEY",
+        "LONE_SURROGATE",
+        "NONCANONICAL_NUMBER",
+        "DEPTH_LIMIT_EXCEEDED",
+        "NODE_LIMIT_EXCEEDED",
+        "CONTAINER_LIMIT_EXCEEDED",
+        "SCALAR_LIMIT_EXCEEDED",
+        "AGGREGATE_SCALAR_LIMIT_EXCEEDED"
+      ],
+      "title": "AuthorityInputTerminationReasonV8",
+      "type": "string"
+    },
+    "TransportEncodingV8": {
+      "description": "Supported authority-input content encodings.",
+      "enum": [
+        "IDENTITY",
+        "GZIP"
+      ],
+      "title": "TransportEncodingV8",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evidence for a bounded accepted prefix before proven transport completion.",
+  "properties": {
+    "kind": {
+      "const": "INCOMPLETE_BOUNDED_RESPONSE",
+      "default": "INCOMPLETE_BOUNDED_RESPONSE",
+      "title": "Kind",
+      "type": "string"
+    },
+    "observed_decompressed_prefix_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Observed Decompressed Prefix Digest",
+      "type": "string"
+    },
+    "observed_decompressed_prefix_length": {
+      "maximum": 8388608,
+      "minimum": 0,
+      "title": "Observed Decompressed Prefix Length",
+      "type": "integer"
+    },
+    "observed_wire_prefix_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Observed Wire Prefix Digest",
+      "type": "string"
+    },
+    "observed_wire_prefix_length": {
+      "maximum": 8388608,
+      "minimum": 1,
+      "title": "Observed Wire Prefix Length",
+      "type": "integer"
+    },
+    "termination_phase": {
+      "$ref": "#/$defs/AuthorityInputPhaseV8"
+    },
+    "termination_reason": {
+      "$ref": "#/$defs/AuthorityInputTerminationReasonV8"
+    },
+    "transport_encoding": {
+      "$ref": "#/$defs/TransportEncodingV8"
+    }
+  },
+  "required": [
+    "termination_phase",
+    "termination_reason",
+    "transport_encoding",
+    "observed_wire_prefix_digest",
+    "observed_wire_prefix_length",
+    "observed_decompressed_prefix_digest",
+    "observed_decompressed_prefix_length"
+  ],
+  "title": "IncompleteBoundedResponseObservationV8",
+  "type": "object"
+}

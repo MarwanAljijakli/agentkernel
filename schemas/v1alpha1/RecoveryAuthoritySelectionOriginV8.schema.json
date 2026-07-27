@@ -1,0 +1,22 @@
+{
+  "additionalProperties": false,
+  "description": "Recovery selection provenance bound to the new recovery action binding.",
+  "properties": {
+    "kind": {
+      "const": "RECOVERY",
+      "default": "RECOVERY",
+      "title": "Kind",
+      "type": "string"
+    },
+    "recovery_action_binding_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Recovery Action Binding Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "recovery_action_binding_digest"
+  ],
+  "title": "RecoveryAuthoritySelectionOriginV8",
+  "type": "object"
+}

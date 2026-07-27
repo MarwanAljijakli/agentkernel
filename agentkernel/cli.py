@@ -30,14 +30,23 @@ from agentkernel.api import (
 )
 from agentkernel.authority import (
     AuthorityEvaluationContext,
+    AuthoritySelection,
+    AuthoritySelectionReuseProfileV8,
     AuthoritySnapshot,
     CapabilityBudgetState,
     CapabilityKeyVersion,
     CapabilityReservationPlan,
     CapabilityRevocation,
+    CompleteBoundedResponseObservationV8,
     EnforcedAuthorityDecision,
     EnforcedCapabilityGrant,
+    IncompleteBoundedResponseObservationV8,
+    IngressAuthoritySelectionOriginV8,
+    NoResponseObservationV8,
+    OverflowPrefixObservationV8,
+    RecoveryAuthoritySelectionOriginV8,
     ResourceAuthorityDecision,
+    SelectedEndpointGrantBindingV8,
 )
 from agentkernel.demo import DemoReport, run_demo
 from agentkernel.domain.models import (
@@ -179,6 +188,15 @@ SCHEMA_MODELS: tuple[type[BaseModel], ...] = (
     ModelInferenceRequest,
     ModelResponse,
     ModelInferenceReceipt,
+    SelectedEndpointGrantBindingV8,
+    IngressAuthoritySelectionOriginV8,
+    RecoveryAuthoritySelectionOriginV8,
+    AuthoritySelection,
+    AuthoritySelectionReuseProfileV8,
+    NoResponseObservationV8,
+    CompleteBoundedResponseObservationV8,
+    IncompleteBoundedResponseObservationV8,
+    OverflowPrefixObservationV8,
 )
 
 _REQUIRED_DOCKER_CONTROLS = (

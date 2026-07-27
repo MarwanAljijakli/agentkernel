@@ -1,0 +1,57 @@
+{
+  "$defs": {
+    "TransportEncodingV8": {
+      "description": "Supported authority-input content encodings.",
+      "enum": [
+        "IDENTITY",
+        "GZIP"
+      ],
+      "title": "TransportEncodingV8",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evidence for a clean transport EOF within both applicable byte bounds.",
+  "properties": {
+    "complete_decompressed_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Complete Decompressed Digest",
+      "type": "string"
+    },
+    "complete_decompressed_length": {
+      "maximum": 8388608,
+      "minimum": 0,
+      "title": "Complete Decompressed Length",
+      "type": "integer"
+    },
+    "complete_wire_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Complete Wire Digest",
+      "type": "string"
+    },
+    "complete_wire_length": {
+      "maximum": 8388608,
+      "minimum": 0,
+      "title": "Complete Wire Length",
+      "type": "integer"
+    },
+    "kind": {
+      "const": "COMPLETE_BOUNDED_RESPONSE",
+      "default": "COMPLETE_BOUNDED_RESPONSE",
+      "title": "Kind",
+      "type": "string"
+    },
+    "transport_encoding": {
+      "$ref": "#/$defs/TransportEncodingV8"
+    }
+  },
+  "required": [
+    "transport_encoding",
+    "complete_wire_digest",
+    "complete_wire_length",
+    "complete_decompressed_digest",
+    "complete_decompressed_length"
+  ],
+  "title": "CompleteBoundedResponseObservationV8",
+  "type": "object"
+}
